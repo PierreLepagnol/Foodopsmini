@@ -1,0 +1,21 @@
+id,name,temps_prepa_min,temps_service_min,portions,category,difficulty,description
+burger_classic,Burger Classique,8,3,1,plat,2,Burger avec steak haché et garnitures
+burger_chicken,Burger Poulet,10,3,1,plat,2,Burger au blanc de poulet grillé
+wrap_chicken,Wrap Poulet,6,2,1,plat,1,Wrap au poulet avec légumes frais
+salad_caesar,Salade César,5,2,1,entrée,1,Salade verte avec croûtons et parmesan
+pasta_bolognese,Pâtes Bolognaise,15,4,1,plat,3,Pâtes avec sauce bolognaise maison
+pasta_carbonara,Pâtes Carbonara,12,4,1,plat,3,Pâtes à la carbonara traditionnelle
+bowl_chicken,Bowl Poulet,8,3,1,plat,2,Bowl santé au poulet et légumes
+bowl_salmon,Bowl Saumon,10,3,1,plat,3,Bowl au saumon grillé et avocat
+pizza_margherita,Pizza Margherita,20,5,1,plat,3,Pizza tomate mozzarella basilic
+sandwich_ham,Sandwich Jambon,4,2,1,plat,1,Sandwich jambon beurre classique
+soup_tomato,Soupe Tomate,25,3,1,entrée,2,Soupe de tomates fraîches
+quiche_lorraine,Quiche Lorraine,30,5,4,plat,4,Quiche aux lardons et fromage
+salad_goat,Salade Chèvre,6,2,1,entrée,2,Salade au fromage de chèvre chaud
+fish_chips,Fish & Chips,12,4,1,plat,3,Poisson pané avec frites maison
+risotto_mushroom,Risotto Champignons,25,5,1,plat,4,Risotto crémeux aux champignons
+menu_enfant,Menu Enfant,6,3,1,plat,1,Nuggets de poulet avec frites
+steak_frites,Steak Frites,8,4,1,plat,3,Steak grillé avec frites fraîches
+omelet_cheese,Omelette Fromage,5,3,1,plat,2,Omelette au fromage et fines herbes
+croque_monsieur,Croque Monsieur,8,4,1,plat,2,Croque monsieur gratinéé
+tartine_avocado,Tartine Avocat,4,2,1,entrée,1,Tartine à l'avocat et citron

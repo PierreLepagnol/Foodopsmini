@@ -1,0 +1,9 @@
+id,name,reliability,lead_time_days,min_order_value,shipping_cost,payment_terms_days,discount_threshold,discount_rate
+metro_pro,Metro Pro,0.95,1,150.0,25.0,30,500.0,0.03
+rungis_direct,Rungis Direct,0.92,2,200.0,35.0,15,800.0,0.05
+bio_france,Bio France,0.88,3,120.0,40.0,30,400.0,0.02
+local_farm,Ferme Locale,0.85,1,80.0,15.0,7,300.0,0.04
+sysco_france,Sysco France,0.96,1,300.0,50.0,45,1000.0,0.06
+transgourmet,Transgourmet,0.94,2,250.0,30.0,30,750.0,0.04
+pomona_terre,Pomona Terre Azur,0.90,2,180.0,28.0,30,600.0,0.03
+davigel,Davigel,0.93,3,220.0,45.0,30,500.0,0.02

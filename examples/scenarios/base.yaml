@@ -1,0 +1,142 @@
+name: "Scénario de Base"
+description: "Scénario d'initiation avec 3 segments de marché et concurrence modérée"
+
+# Paramètres de jeu
+turns: 12
+base_demand: 420
+demand_noise: 0.08
+ai_competitors: 2
+random_seed: 42
+
+# Segments de marché
+segments:
+  - name: "Étudiants"
+    share: 0.35
+    budget: 11.0
+    price_sensitivity: 1.4
+    quality_sensitivity: 0.8
+    type_affinity:
+      fast: 1.2
+      classic: 0.7
+      gastronomique: 0.4
+      brasserie: 0.9
+    seasonality:
+      1: 0.8   # Janvier - vacances
+      2: 1.1   # Février - reprise
+      3: 1.2   # Mars - pleine activité
+      4: 1.1   # Avril
+      5: 1.0   # Mai
+      6: 0.7   # Juin - examens
+      7: 0.3   # Juillet - vacances
+      8: 0.3   # Août - vacances
+      9: 1.3   # Septembre - rentrée
+      10: 1.2  # Octobre
+      11: 1.1  # Novembre
+      12: 0.9  # Décembre - examens
+
+  - name: "Familles"
+    share: 0.40
+    budget: 17.0
+    price_sensitivity: 1.1
+    quality_sensitivity: 1.2
+    type_affinity:
+      fast: 0.9
+      classic: 1.0
+      gastronomique: 0.6
+      brasserie: 1.1
+    seasonality:
+      1: 0.9   # Janvier
+      2: 1.0   # Février
+      3: 1.0   # Mars
+      4: 1.1   # Avril - vacances scolaires
+      5: 1.0   # Mai
+      6: 1.0   # Juin
+      7: 1.3   # Juillet - vacances
+      8: 1.3   # Août - vacances
+      9: 1.0   # Septembre
+      10: 1.0  # Octobre - vacances scolaires
+      11: 1.0  # Novembre
+      12: 1.2  # Décembre - fêtes
+
+  - name: "Foodies"
+    share: 0.25
+    budget: 25.0
+    price_sensitivity: 0.7
+    quality_sensitivity: 1.6
+    type_affinity:
+      fast: 0.6
+      classic: 1.3
+      gastronomique: 1.8
+      brasserie: 1.4
+    seasonality:
+      1: 1.1   # Janvier - bonnes résolutions
+      2: 1.0   # Février
+      3: 1.0   # Mars
+      4: 1.0   # Avril
+      5: 1.1   # Mai - beaux jours
+      6: 1.2   # Juin - terrasses
+      7: 1.1   # Juillet
+      8: 0.8   # Août - vacances
+      9: 1.0   # Septembre
+      10: 1.0  # Octobre
+      11: 1.0  # Novembre
+      12: 1.3  # Décembre - fêtes
+
+# Taux de TVA par catégorie
+vat_rates:
+  food_onsite: 0.10      # Restauration sur place
+  food_takeaway: 0.055   # Vente à emporter
+  alcohol: 0.20          # Boissons alcoolisées
+  services: 0.20         # Services
+
+# Charges sociales par type de contrat
+social_charges:
+  cdi: 0.42
+  cdd: 0.44
+  extra: 0.45
+  apprenti: 0.11
+  stage: 0.00
+
+# Paramètres financiers
+interest_rate: 0.045  # Taux d'intérêt pour emprunts
+inflation_rate: 0.03  # Inflation annuelle
+
+# Configuration des concurrents IA
+ai_config:
+  competitor_1:
+    name: "Chez Mario"
+    type: "classic"
+    strategy: "quality_focused"
+    price_positioning: 1.1  # 10% au-dessus de la moyenne
+    
+  competitor_2:
+    name: "Quick Burger"
+    type: "fast"
+    strategy: "price_focused"
+    price_positioning: 0.9  # 10% en-dessous de la moyenne
+
+# Événements aléatoires (optionnel)
+random_events:
+  - name: "Grève des transports"
+    probability: 0.05
+    effect:
+      demand_modifier: -0.2
+      duration_turns: 1
+      
+  - name: "Festival local"
+    probability: 0.08
+    effect:
+      demand_modifier: 0.3
+      duration_turns: 1
+      
+  - name: "Contrôle sanitaire"
+    probability: 0.03
+    effect:
+      fixed_cost_penalty: 500
+      duration_turns: 1
+
+# Paramètres d'équilibrage
+balance:
+  max_price_deviation: 2.0    # Écart max par rapport au budget segment
+  capacity_utilization_target: 0.75  # Taux d'utilisation cible
+  profit_margin_target: 0.15  # Marge bénéficiaire cible

@@ -1,0 +1,108 @@
+{
+  "social_charges": {
+    "cdi": {
+      "employee_rate": 0.22,
+      "employer_rate": 0.42,
+      "description": "CDI temps plein - taux standard"
+    },
+    "cdd": {
+      "employee_rate": 0.22,
+      "employer_rate": 0.44,
+      "description": "CDD - majoration précarité"
+    },
+    "extra": {
+      "employee_rate": 0.22,
+      "employer_rate": 0.45,
+      "description": "Extra - taux majoré"
+    },
+    "apprenti": {
+      "employee_rate": 0.05,
+      "employer_rate": 0.11,
+      "description": "Apprenti - taux réduit"
+    },
+    "stage": {
+      "employee_rate": 0.00,
+      "employer_rate": 0.00,
+      "description": "Stagiaire - pas de charges"
+    }
+  },
+  "salary_ranges": {
+    "cuisine": {
+      "min_monthly": 1800,
+      "max_monthly": 3500,
+      "average_monthly": 2200,
+      "description": "Cuisinier - du commis au chef de partie"
+    },
+    "salle": {
+      "min_monthly": 1700,
+      "max_monthly": 2800,
+      "average_monthly": 2000,
+      "description": "Service - du serveur au chef de rang"
+    },
+    "manager": {
+      "min_monthly": 2500,
+      "max_monthly": 5000,
+      "average_monthly": 3200,
+      "description": "Management - du chef d'équipe au directeur"
+    },
+    "plonge": {
+      "min_monthly": 1650,
+      "max_monthly": 1900,
+      "average_monthly": 1750,
+      "description": "Plongeur - SMIC à SMIC+10%"
+    },
+    "caisse": {
+      "min_monthly": 1650,
+      "max_monthly": 2200,
+      "average_monthly": 1850,
+      "description": "Caissier - SMIC à expérimenté"
+    }
+  },
+  "premiums": {
+    "sunday_rate": 0.30,
+    "night_rate": 0.10,
+    "holiday_rate": 1.00,
+    "seniority_rates": {
+      "12_months": 0.02,
+      "24_months": 0.05,
+      "60_months": 0.10
+    }
+  },
+  "legal_parameters": {
+    "smic_hourly_2024": 11.65,
+    "legal_hours_weekly": 35,
+    "overtime_rate_25": 1.25,
+    "overtime_rate_50": 1.50,
+    "social_security_ceiling_monthly": 3864,
+    "minimum_rest_hours": 11,
+    "maximum_daily_hours": 10,
+    "maximum_weekly_hours": 48
+  },
+  "restaurant_staffing": {
+    "fast": {
+      "base_team": {
+        "cuisine": 2,
+        "salle": 2,
+        "manager": 1
+      },
+      "staffing_multipliers": {
+        "1": 0.7,
+        "2": 1.0,
+        "3": 1.3
+      }
+    },
+    "classic": {
+      "base_team": {
+        "cuisine": 3,
+        "salle": 3,
+        "manager": 1,
+        "plonge": 1
+      },
+      "staffing_multipliers": {
+        "1": 0.7,
+        "2": 1.0,
+        "3": 1.3
+      }
+    }
+  }
+}
