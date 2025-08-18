@@ -38,8 +38,8 @@ RESTAURANT_TYPES: Dict[str, dict] = {
         "base_capacity": 120,      # couverts/tour (avant vitesse/staff)
         "speed": 1.40,             # facteur vitesse de service
         "cogs_rate": 0.32,         # % du CA en coût matières
-        "staff_costs": {1: 1800, 2: 2600, 3: 3400},
-        "fixed_cost": 1200,        # loyer + charges fixes/tour
+        "staff_costs": {1: 58, 2: 100, 3: 142},  # Coûts réalistes par service
+        "fixed_cost": 92,          # loyer + charges fixes/tour (5500€/mois ÷ 60)
         "suggested_price": 11.5,
     },
     "classic": {
@@ -47,8 +47,8 @@ RESTAURANT_TYPES: Dict[str, dict] = {
         "base_capacity": 60,
         "speed": 1.00,
         "cogs_rate": 0.36,
-        "staff_costs": {1: 2200, 2: 3200, 3: 4200},
-        "fixed_cost": 1800,
+        "staff_costs": {1: 75, 2: 133, 3: 192},  # Coûts réalistes par service
+        "fixed_cost": 128,         # loyer + charges fixes/tour (7700€/mois ÷ 60)
         "suggested_price": 17.0,
     },
 }
