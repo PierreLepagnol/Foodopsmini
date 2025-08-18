@@ -311,8 +311,163 @@ class DecisionMenu:
             self.ui.pause()
     
     def _purchasing_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
-        """Gestion des achats et stocks."""
-        self.ui.show_info("Module Achats & Stocks - En développement")
+        """Gestion des achats et stocks avancée."""
+        while True:
+            self.ui.clear_screen()
+
+            submenu_options = [
+                "🛒 Passer une commande",
+                "📦 Gérer les stocks",
+                "🏪 Analyser les fournisseurs",
+                "📊 Rapport qualité/prix",
+                "⚠️ Alertes et promotions",
+                "🔙 Retour"
+            ]
+
+            choice = self.ui.show_menu("ACHATS & STOCKS", submenu_options)
+
+            if choice == 1:
+                self._place_order_interface(restaurant, decisions)
+            elif choice == 2:
+                self._stock_management_interface(restaurant)
+            elif choice == 3:
+                self._supplier_analysis_interface(restaurant)
+            elif choice == 4:
+                self._quality_price_report(restaurant)
+            elif choice == 5:
+                self._alerts_promotions_interface(restaurant)
+            elif choice == 6:
+                break
+
+    def _place_order_interface(self, restaurant: Restaurant, decisions: Dict) -> None:
+        """Interface de commande avec choix de qualité."""
+        self.ui.show_info("🛒 COMMANDE D'INGRÉDIENTS")
+
+        # Simuler l'affichage des options de qualité
+        example_ingredients = [
+            {
+                'name': 'Steak haché',
+                'variants': [
+                    {'quality': '⭐ Surgelé', 'price': '5.95€/kg', 'supplier': 'Davigel'},
+                    {'quality': '⭐⭐ Frais standard', 'price': '8.50€/kg', 'supplier': 'Metro Pro'},
+                    {'quality': '⭐⭐⭐⭐ Bio', 'price': '12.75€/kg', 'supplier': 'Bio France'},
+                ]
+            },
+            {
+                'name': 'Tomates',
+                'variants': [
+                    {'quality': '⭐ Conserve', 'price': '2.24€/kg', 'supplier': 'Metro Pro'},
+                    {'quality': '⭐⭐ Frais import', 'price': '3.20€/kg', 'supplier': 'Rungis Direct'},
+                    {'quality': '⭐⭐⭐⭐⭐ Terroir', 'price': '6.40€/kg', 'supplier': 'Ferme Locale'},
+                ]
+            }
+        ]
+
+        for ingredient in example_ingredients:
+            self.ui.print_section(f"📋 {ingredient['name']}")
+            for variant in ingredient['variants']:
+                print(f"   {variant['quality']} - {variant['price']} ({variant['supplier']})")
+
+        self.ui.show_info("💡 Choisissez vos ingrédients selon votre stratégie qualité/prix")
+        self.ui.pause()
+
+    def _stock_management_interface(self, restaurant: Restaurant) -> None:
+        """Interface de gestion des stocks."""
+        self.ui.show_info("📦 GESTION DES STOCKS")
+
+        # Simuler l'affichage des stocks
+        stock_info = [
+            "📊 ÉTAT DES STOCKS:",
+            "",
+            "🥩 Steak haché:",
+            "   Lot A: 15kg (expire dans 2 jours) ⚠️",
+            "   Lot B: 8kg (expire dans 5 jours) ✅",
+            "",
+            "🍅 Tomates:",
+            "   Lot C: 5kg (expire demain) 🚨 PROMOTION -50%",
+            "   Lot D: 12kg (expire dans 4 jours) ✅",
+            "",
+            "💡 Actions recommandées:",
+            "• Utiliser le Lot A en priorité (FEFO)",
+            "• Promouvoir les tomates du Lot C",
+            "• Commander du steak haché (stock bas)"
+        ]
+
+        self.ui.print_box(stock_info, "STOCKS ACTUELS")
+        self.ui.pause()
+
+    def _supplier_analysis_interface(self, restaurant: Restaurant) -> None:
+        """Interface d'analyse des fournisseurs."""
+        self.ui.show_info("🏪 ANALYSE DES FOURNISSEURS")
+
+        suppliers_data = [
+            "📊 COMPARATIF FOURNISSEURS:",
+            "",
+            "🥩 METRO PRO:",
+            "   Fiabilité: 95% | Délai: 1j | Prix: Standard",
+            "   Spécialité: Gamme complète 1★-3★",
+            "",
+            "🌱 BIO FRANCE:",
+            "   Fiabilité: 88% | Délai: 3j | Prix: +20%",
+            "   Spécialité: Bio et premium 3★-5★",
+            "",
+            "🚚 RUNGIS DIRECT:",
+            "   Fiabilité: 92% | Délai: 2j | Prix: Variable",
+            "   Spécialité: Frais quotidien 2★-4★",
+            "",
+            "💡 Recommandation: Diversifiez vos sources",
+            "   selon votre positionnement qualité"
+        ]
+
+        self.ui.print_box(suppliers_data, "FOURNISSEURS")
+        self.ui.pause()
+
+    def _quality_price_report(self, restaurant: Restaurant) -> None:
+        """Rapport qualité/prix."""
+        self.ui.show_info("📊 RAPPORT QUALITÉ/PRIX")
+
+        report_data = [
+            "📈 IMPACT QUALITÉ SUR VOS VENTES:",
+            "",
+            "Score qualité actuel: ⭐⭐⭐ (3.2/5)",
+            "Impact sur attractivité: +15%",
+            "",
+            "💰 ANALYSE COÛT/BÉNÉFICE:",
+            "• Passer en bio (+50% coût) = +30% satisfaction",
+            "• ROI estimé: +12% de marge sur 6 mois",
+            "",
+            "🎯 RECOMMANDATIONS:",
+            "• Privilégier le bio sur 2-3 ingrédients clés",
+            "• Garder l'économique sur les accompagnements",
+            "• Communiquer sur la qualité pour justifier les prix"
+        ]
+
+        self.ui.print_box(report_data, "QUALITÉ/PRIX")
+        self.ui.pause()
+
+    def _alerts_promotions_interface(self, restaurant: Restaurant) -> None:
+        """Interface des alertes et promotions."""
+        self.ui.show_info("⚠️ ALERTES ET PROMOTIONS")
+
+        alerts_data = [
+            "🚨 ALERTES URGENTES:",
+            "",
+            "• 5kg de tomates expirent demain",
+            "  → Promotion -50% recommandée",
+            "",
+            "• Stock de steak haché bas (8kg restants)",
+            "  → Commande urgente suggérée",
+            "",
+            "🎯 OPPORTUNITÉS SAISONNIÈRES:",
+            "",
+            "• Tomates d'été: -30% ce mois",
+            "  → Qualité +1★ pour même prix",
+            "",
+            "• Champignons d'automne disponibles",
+            "  → Nouveau plat saisonnier possible"
+        ]
+
+        self.ui.print_box(alerts_data, "ALERTES")
         self.ui.pause()
     
     def _marketing_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
