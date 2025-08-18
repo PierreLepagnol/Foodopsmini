@@ -9,6 +9,7 @@ from decimal import Decimal
 from ..domain.ingredient import Ingredient
 from ..domain.recipe import Recipe, RecipeItem
 from ..domain.stock import StockLot
+from ..domain.restaurant import RestaurantType
 
 
 @dataclass
@@ -73,8 +74,8 @@ class RecipeCostCalculator:
     Calculateur de coûts de recettes avec gestion des stocks FEFO.
     """
     
-    def __init__(self, ingredients: Dict[str, Ingredient], 
-                 hourly_labor_cost: Decimal = Decimal("15.0")) -> None:
+    def __init__(self, ingredients: Dict[str, Ingredient],
+                 hourly_labor_cost: Decimal = Decimal("12.0")) -> None:
         """
         Initialise le calculateur.
         
@@ -83,7 +84,31 @@ class RecipeCostCalculator:
             hourly_labor_cost: Coût horaire de la main d'œuvre
         """
         self.ingredients = ingredients
-        self.hourly_labor_cost = hourly_labor_cost
+        self.base_hourly_labor_cost = hourly_labor_cost
+
+    def get_hourly_labor_cost(self, restaurant_type: Optional[RestaurantType] = None) -> Decimal:
+        """
+        Calcule le coût horaire de main d'œuvre selon le type de restaurant.
+
+        Args:
+            restaurant_type: Type de restaurant (optionnel)
+
+        Returns:
+            Coût horaire ajusté
+        """
+        if restaurant_type is None:
+            return self.base_hourly_labor_cost
+
+        # Facteurs de coût par type de restaurant
+        cost_factors = {
+            RestaurantType.FAST: Decimal("0.85"),        # -15% (moins qualifié)
+            RestaurantType.CLASSIC: Decimal("1.0"),      # Base
+            RestaurantType.BRASSERIE: Decimal("1.1"),    # +10% (service plus élaboré)
+            RestaurantType.GASTRONOMIQUE: Decimal("1.4") # +40% (chefs qualifiés)
+        }
+
+        factor = cost_factors.get(restaurant_type, Decimal("1.0"))
+        return self.base_hourly_labor_cost * factor
     
     def calculate_recipe_cost(self, recipe: Recipe, 
                             stock_lots: Optional[List[StockLot]] = None) -> CostBreakdown:
@@ -247,9 +272,9 @@ class RecipeCostCalculator:
         cost_per_portion = cost_breakdown.total_cost_with_labor / recipe.portions
         
         margin_ht = selling_price_ht - cost_per_portion
-        margin_percentage = (margin_ht / selling_price_ht * 100) if selling_price_ht > 0 else Decimal("0")
-        
-        food_cost_percentage = (cost_breakdown.cost_per_portion / selling_price_ht * 100) if selling_price_ht > 0 else Decimal("0")
+        margin_percentage = (margin_ht / selling_price_ht) if selling_price_ht > 0 else Decimal("0")
+
+        food_cost_percentage = (cost_per_portion / selling_price_ht) if selling_price_ht > 0 else Decimal("0")
         
         return {
             'selling_price_ht': selling_price_ht,

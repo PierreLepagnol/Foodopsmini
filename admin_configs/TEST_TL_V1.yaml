@@ -1,0 +1,16 @@
+features:
+  enable_random_events: true
+  enable_scoring: true
+  enable_seasonal_effects: true
+game_params:
+  ai_count: 0
+  ai_difficulty: medium
+  max_players: 2
+  starting_budget_max: 500000.0
+  starting_budget_min: 20000.0
+  total_turns: 6
+session_info:
+  academic_year: 2025-2026
+  course_code: GESTION_BTS_Classe1_Gr2
+  instructor: LEPAGNOL
+  name: TEST TL V1

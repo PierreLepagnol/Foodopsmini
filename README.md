@@ -20,91 +20,184 @@ Former des futurs entrepreneurs/restaurateurs aux aspects clés de la gestion :
 - **KPIs métier** : ticket moyen, coût matière, marge, taux de saturation, cash-flow
 - **Données paramétrables** via CSV/JSON et scénarios YAML
 
-## 🚀 Installation et lancement
+## 🚀 Start & Play (1 clic)
 
-### Installation des dépendances
+**🎮 LANCEMENT EN 1 CLIC :**
+
+### 🚀 Menu Principal (Recommandé)
+1. **Double-cliquez** sur `🎮_MENU_PRINCIPAL.bat`
+2. **Choisissez** votre mode de jeu (1-5)
+3. **Le jeu s'ouvre** dans une nouvelle console !
+
+### 🌐 Launcher Web (Instructions)
+1. **Double-cliquez** sur `🚀_LAUNCHER.bat` → Choisir "Launcher Web"
+2. **Ou ouvrez** `launcher.html` dans votre navigateur
+3. **Suivez** les instructions pour lancer manuellement
+
+### 💻 Windows (Double-clic direct)
+- **� `Jouer_Pro.bat`** ← Version complète
+- **👨‍🏫 `Mode_Admin.bat`** ← Configuration professeur
+- **🧪 `Demo_Rapide.bat`** ← Démonstration
+- **🎮 `MENU_PRINCIPAL.bat`** ← Menu interactif (NOUVEAU !)
+
+### 📋 Terminal (Copier-coller)
+```bash
+# 🍽️ Version Pro complète
+python start_pro.py
+
+# 👨‍🏫 Mode Administrateur
+python start_admin.py
+
+# 🧪 Démonstration rapide
+python demo_pro.py
+
+# 🎮 Version classique
+python -m src.foodops_pro.cli
+```
+
+### 🖥️ Raccourci Bureau
+```bash
+# Créer un raccourci sur le bureau
+python create_desktop_shortcut.py
+```
+
+## 🛠️ Installation
+
+### Prérequis
 
 ```bash
 pip install pyyaml pandas pytest
 ```
 
-### Lancement du jeu
+### Commandes manuelles
 
 ```bash
-# Lancer une partie
+# Version classique
 python -m src.foodops_pro.cli
-
-# Avec un scénario spécifique
 python -m src.foodops_pro.cli --scenario examples/scenarios/base.yaml
-
-# Mode debug avec graine fixe
 python -m src.foodops_pro.cli --debug --seed 42
+
+# Version Pro (interface enrichie)
+python -m src.foodops_pro.cli_pro
+python -m src.foodops_pro.cli_pro --scenario examples/scenarios/base.yaml
+
+# Mode Administrateur (Professeur)
+python -m src.foodops_pro.cli_pro --admin
+
+# Scripts de lancement rapide
+python start_pro.py        # Version Pro
+python start_admin.py      # Mode Admin
+python start_demo.py       # Démo 3 tours
 ```
 
-### Démonstration
+### Presets de configuration
+
+**📋 Configurations prêtes à l'emploi :**
+
+- `admin_configs/preset_demo.yaml` : Démo rapide (1 joueur, 3 tours, budget 40-60k€)
+- `admin_configs/preset_cours.yaml` : Cours standard (4 joueurs, 12 tours, budget 25-45k€)
+- `admin_configs/preset_concours.yaml` : Concours (8 joueurs, 18 tours, budget fixe 20k€, IA difficile)
 
 ```bash
-# Voir une démonstration des fonctionnalités
-python demo.py
+# Utiliser un preset
+python -m src.foodops_pro.cli_pro --scenario admin_configs/preset_demo.yaml
 ```
 
 ## 🏗️ Architecture
 
 ```
 src/foodops_pro/
-├── domain/          # Modèles métier
-│   ├── ingredient.py    # Ingrédients avec coûts et TVA
-│   ├── recipe.py        # Recettes avec rendements
-│   ├── restaurant.py    # Restaurants et types
-│   ├── employee.py      # Employés et contrats français
-│   ├── supplier.py      # Fournisseurs et conditions
-│   ├── stock.py         # Gestion stocks FEFO
-│   └── scenario.py      # Scénarios et segments marché
-├── core/            # Logique business
-│   ├── market.py        # Allocation demande et concurrence
+├── cli.py               # CLI classique
+├── cli_pro.py           # CLI Pro (UI avancée, mode admin, fonds de commerce)
+├── ui/                  # Interface console pro & rapports
+│   ├── console_ui.py
+│   ├── decision_menu.py
+│   └── financial_reports.py
+├── admin/               # Mode administrateur (config prof)
+│   └── admin_config.py
+├── domain/
+│   ├── commerce.py      # Fonds de commerce (nouveau)
+│   ├── ingredient.py
+│   ├── recipe.py
+│   ├── restaurant.py
+│   ├── employee.py
+│   ├── supplier.py
+│   ├── stock.py
+│   └── scenario.py
+├── core/
+│   ├── market.py        # Allocation demande & concurrence
 │   ├── costing.py       # Calcul coûts recettes
-│   ├── ledger.py        # Comptabilité PCG française
-│   └── payroll_fr.py    # Paie française (charges, heures sup)
-├── io/              # Persistance et données
+│   ├── ledger.py        # Comptabilité française
+│   └── payroll_fr.py    # Paie (charges, heures sup)
+├── io/
 │   ├── data_loader.py   # Chargement CSV/JSON/YAML
 │   ├── persistence.py   # Sauvegarde parties
 │   └── export.py        # Export résultats et KPIs
-├── data/            # Données seed réalistes
+├── data/
 │   ├── ingredients.csv  # 35 ingrédients avec prix réels
 │   ├── recipes.csv      # 20 recettes équilibrées
 │   ├── recipe_items.csv # Fiches techniques détaillées
 │   ├── suppliers.csv    # 8 fournisseurs avec conditions
 │   └── hr_tables.json   # Tables RH françaises
-└── cli.py           # Interface console
 
-examples/scenarios/  # Scénarios configurables
-└── base.yaml       # Scénario d'initiation 3 segments
+examples/scenarios/
+└── base.yaml
 
-tests/              # Tests unitaires (pytest)
-├── test_market_allocation.py  # Tests allocation marché
-├── test_recipe_costing.py     # Tests calcul coûts
-├── test_ledger_vat.py         # Tests comptabilité TVA
-├── test_payroll.py            # Tests paie française
-└── test_integration.py       # Tests d'intégration
+tests/
+├── test_market_allocation.py
+├── test_recipe_costing.py
+├── test_ledger_vat.py
+├── test_payroll.py
+└── test_integration.py
 ```
 
-## 🎮 Comment jouer
+## 🎮 Comment jouer (Classique)
 
 1. **Lancement** : `python -m src.foodops_pro.cli`
 2. **Configuration** : Choisissez le nombre de joueurs (1-4) et le type de restaurant
 3. **Chaque tour** :
    - Ajustez vos prix de vente
    - Définissez votre niveau de staffing (0=fermé, 1=léger, 2=normal, 3=renforcé)
-   - Gérez vos commandes fournisseurs (TODO)
 4. **Résultats** : Analysez vos KPIs et votre position concurrentielle
 5. **Fin de partie** : Classement par trésorerie finale
 
-## 📊 KPIs et métriques
+## 🎮 Comment jouer (Pro)
 
-- **Opérationnels** : clients servis, taux d'utilisation, clients perdus
-- **Financiers** : CA, ticket moyen, marge, coût matière %
-- **Marché** : part de marché, satisfaction demande
-- **RH** : coût personnel, productivité équipe
+1. **Lancement** : `python -m src.foodops_pro.cli_pro`
+2. **Briefing** : l’écran d’accueil affiche le scénario (contexte, objectifs, segments)
+3. **Achat** : choisissez un fonds de commerce (prix, loyer, rénovation, trafic, concurrence)
+4. **Configuration** : nommez votre restaurant, un menu de base est appliqué
+5. **Tour de jeu (décisions enrichies)** :
+   - 📋 Menu & Pricing, 👥 RH, 🛒 Achats, 📈 Marketing, 🏗 Investissements, 💰 Finance, 📊 Rapports
+6. **Résultats** : demande allouée, clients servis, utilisation, CA, ticket moyen, marges, etc.
+7. **Fin** : classement final par trésorerie et analyses
+
+## 👨‍🏫 Guide Professeur (Mode Administrateur)
+
+Démarrer : `python -m src.foodops_pro.cli_pro --admin`
+
+- 📋 Session : nom du cours, professeur, code de cours, année
+- 🎮 Jeu : joueurs max, nombre de tours, budgets, IA (nombre + difficulté)
+- 📊 Marché : taille du marché, croissance, intensité concurrentielle
+- 🎯 Réalisme : événements aléatoires, saisonnalité, cycles économiques, fréquence
+- 📝 Notation : critères pondérés (survie, rentabilité, croissance, efficacité, stratégie)
+- 🔒 Restrictions : types de restaurants, limites d’employés, limites de prix (progressif)
+- 💾 Sauvegarde : YAML dans `admin_configs/`
+- ▶️ Lancer : démarre la partie avec vos paramètres
+
+Scénarios pédagogiques types :
+- Débutant : budget 40–60k€, 6–8 tours, IA facile, peu d’événements
+- Intermédiaire : budget 25–40k€, 12 tours, IA moyenne, événements modérés
+- Avancé : budget 15–25k€, 18–24 tours, IA difficile, événements fréquents, cycles activés
+- Concours : conditions identiques, notation stricte, classement final, export résultats
+
+## 📊 KPIs et rapports (Pro)
+
+- **Opérationnels** : clients servis, taux d’utilisation
+- **Financiers** : CA, ticket moyen, marge brute et nette, food cost %
+- **Marché** : part de marché, satisfaction de la demande
+- **RH** : coût personnel, productivité
+- **Rapports** : compte de résultat, bilan, flux de trésorerie, KPIs et analyse
 
 ## 🧪 Tests
 
@@ -176,15 +269,15 @@ Modifiez les fichiers CSV dans `src/foodops_pro/data/` :
 
 ## 📝 TODO et améliorations
 
-- [ ] Gestion complète des commandes fournisseurs dans le CLI
-- [ ] Système de recrutement/licenciement d'employés
-- [ ] Événements aléatoires (grèves, festivals, contrôles)
-- [ ] Interface web (Flask/Django)
-- [ ] Sauvegarde/chargement de parties
-- [ ] Graphiques et tableaux de bord
+- [ ] Achats & Stocks complets (FEFO visible dans le CLI Pro)
+- [ ] RH avancé (licenciement, formation, horaires)
+- [ ] Événements aléatoires/saisonniers/cycles (paramétrés en admin)
+- [ ] Sauvegarde/chargement de parties enrichi
+- [ ] Graphiques et tableaux de bord console
 - [ ] Mode campagne avec progression
 - [ ] Multijoueur en réseau
+- [ ] Interface web (ultérieur)
 
 ## 📄 Licence
 
-MIT License - Projet éducatif libre d'utilisation et de modification.
+Thomas LEPAGNOL Propiétaire du code source

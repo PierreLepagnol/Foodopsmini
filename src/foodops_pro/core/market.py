@@ -101,6 +101,11 @@ class MarketEngine:
         
         # Application des contraintes de capacité et redistribution
         results = self._apply_capacity_constraints(restaurants, results)
+
+        # S'assurer que la capacité est définie dans les résultats
+        for restaurant in restaurants:
+            if restaurant.id in results:
+                results[restaurant.id].capacity = restaurant.capacity_current
         
         # Calcul des revenus
         for restaurant in restaurants:
@@ -360,6 +365,14 @@ class MarketEngine:
                 total_revenue += price * recipe_customers
 
         result.revenue = total_revenue
+
+        # Recalculer les métriques dérivées
+        if result.capacity > 0:
+            result.utilization_rate = Decimal(result.served_customers) / Decimal(result.capacity)
+        result.lost_customers = max(0, result.allocated_demand - result.served_customers)
+        if result.served_customers > 0:
+            result.average_ticket = result.revenue / Decimal(result.served_customers)
+
         return result
 
     def get_market_share(self, restaurant_id: str, turn: int = -1) -> Decimal:
