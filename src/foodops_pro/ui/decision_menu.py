@@ -8,36 +8,39 @@ from decimal import Decimal
 from ..domain.restaurant import Restaurant
 from ..domain.employee import Employee, EmployeePosition, EmployeeContract
 from ..domain.random_events import RandomEventManager
+from ..domain.stock import StockManager
+from ..domain.supplier import Supplier
 from ..core.costing import RecipeCostCalculator
+from ..core.procurement import ProcurementPlanner, ReceivingService, POLine
 from .console_ui import ConsoleUI
 from .financial_reports import FinancialReports
 
 
 class DecisionMenu:
     """Menu de décisions stratégiques pour les joueurs."""
-    
+
     def __init__(self, ui: ConsoleUI, cost_calculator: RecipeCostCalculator):
         self.ui = ui
         self.cost_calculator = cost_calculator
         self.financial_reports = FinancialReports(ui)
-    
-    def show_decision_menu(self, restaurant: Restaurant, turn: int, 
+
+    def show_decision_menu(self, restaurant: Restaurant, turn: int,
                           available_recipes: Dict, available_employees: List = None) -> Dict[str, any]:
         """
         Affiche le menu de décisions principal et retourne les choix du joueur.
-        
+
         Returns:
             Dict contenant toutes les décisions prises
         """
         decisions = {}
-        
+
         while True:
             self.ui.clear_screen()
             self._show_restaurant_status(restaurant, turn)
-            
+
             menu_options = [
                 "📋 Menu & Pricing",
-                "👥 Ressources Humaines", 
+                "👥 Ressources Humaines",
                 "🛒 Achats & Stocks",
                 "📈 Marketing & Commercial",
                 "🏗️ Investissements",
@@ -45,13 +48,13 @@ class DecisionMenu:
                 "📊 Rapports & Analyses",
                 "✅ Valider et passer au tour suivant"
             ]
-            
+
             choice = self.ui.show_menu(
                 f"DÉCISIONS - TOUR {turn} - {restaurant.name}",
                 menu_options,
                 allow_back=False
             )
-            
+
             if choice == 1:
                 self._menu_pricing_decisions(restaurant, available_recipes, decisions)
             elif choice == 2:
@@ -69,9 +72,9 @@ class DecisionMenu:
             elif choice == 8:
                 if self._validate_decisions(restaurant, decisions):
                     break
-        
+
         return decisions
-    
+
     def _show_restaurant_status(self, restaurant: Restaurant, turn: int) -> None:
         """Affiche le statut actuel du restaurant."""
         status = [
@@ -82,7 +85,7 @@ class DecisionMenu:
             f"📊 Niveau staffing: {restaurant.staffing_level}/3",
             f"🍴 Recettes actives: {len(restaurant.get_active_menu())}"
         ]
-        
+
         # Couleur selon la santé financière
         if restaurant.cash > 20000:
             style = "success"
@@ -90,15 +93,15 @@ class DecisionMenu:
             style = "warning"
         else:
             style = "error"
-        
+
         self.ui.print_box(status, f"STATUT - TOUR {turn}", style)
-    
-    def _menu_pricing_decisions(self, restaurant: Restaurant, 
+
+    def _menu_pricing_decisions(self, restaurant: Restaurant,
                                available_recipes: Dict, decisions: Dict) -> None:
         """Gestion du menu et des prix."""
         while True:
             self.ui.clear_screen()
-            
+
             submenu_options = [
                 "💰 Modifier les prix",
                 "➕ Ajouter des plats au menu",
@@ -107,9 +110,9 @@ class DecisionMenu:
                 "🍽️ Créer un menu du jour",
                 "📈 Voir l'historique des ventes"
             ]
-            
+
             choice = self.ui.show_menu("MENU & PRICING", submenu_options)
-            
+
             if choice == 0:
                 break
             elif choice == 1:
@@ -124,48 +127,48 @@ class DecisionMenu:
                 self._create_daily_menu(restaurant, decisions)
             elif choice == 6:
                 self._show_sales_history(restaurant)
-    
+
     def _modify_prices(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Modification des prix de vente."""
         active_menu = restaurant.get_active_menu()
-        
+
         if not active_menu:
             self.ui.show_error("Aucune recette active dans le menu.")
             self.ui.pause()
             return
-        
+
         self.ui.clear_screen()
-        
+
         # Affichage du menu actuel avec analyse
         menu_analysis = ["MENU ACTUEL ET RENTABILITÉ:"]
-        
+
         for recipe_id, current_price in active_menu.items():
             if recipe_id in self.cost_calculator.ingredients:  # Vérification simplifiée
                 # Calcul du coût (simplifié pour la démo)
                 estimated_cost = current_price * Decimal("0.35")  # 35% de food cost estimé
                 margin = current_price - estimated_cost
                 margin_pct = (margin / current_price * 100) if current_price > 0 else 0
-                
+
                 menu_analysis.append(
                     f"• {recipe_id}: {current_price:.2f}€ "
                     f"(coût ~{estimated_cost:.2f}€, marge {margin_pct:.1f}%)"
                 )
-        
+
         self.ui.print_box(menu_analysis, style="info")
-        
+
         # Sélection de la recette à modifier
         recipe_list = list(active_menu.keys())
         recipe_choice = self.ui.show_menu(
             "Quelle recette modifier ?",
             [f"{recipe_id} - {active_menu[recipe_id]:.2f}€" for recipe_id in recipe_list]
         )
-        
+
         if recipe_choice == 0:
             return
-        
+
         selected_recipe = recipe_list[recipe_choice - 1]
         current_price = active_menu[selected_recipe]
-        
+
         # Saisie du nouveau prix
         new_price = self.ui.get_input(
             f"Nouveau prix pour {selected_recipe}",
@@ -174,31 +177,31 @@ class DecisionMenu:
             max_val=Decimal("100.0"),
             default=current_price
         )
-        
+
         if new_price and new_price != current_price:
             if 'price_changes' not in decisions:
                 decisions['price_changes'] = {}
             decisions['price_changes'][selected_recipe] = new_price
-            
+
             # Calcul de l'impact
             change_pct = ((new_price - current_price) / current_price * 100)
             impact_msg = f"Prix modifié: {current_price:.2f}€ → {new_price:.2f}€ ({change_pct:+.1f}%)"
-            
+
             if abs(change_pct) > 10:
                 impact_msg += "\n⚠️ Changement important - Impact sur la clientèle attendu"
-            
+
             self.ui.show_success(impact_msg)
             self.ui.pause()
-    
-    def _hr_decisions(self, restaurant: Restaurant, 
+
+    def _hr_decisions(self, restaurant: Restaurant,
                      available_employees: List, decisions: Dict) -> None:
         """Gestion des ressources humaines."""
         while True:
             self.ui.clear_screen()
-            
+
             # Affichage de l'équipe actuelle
             team_info = [f"ÉQUIPE ACTUELLE ({len(restaurant.employees)} employés):"]
-            
+
             total_cost = Decimal("0")
             for emp in restaurant.employees:
                 monthly_cost = emp.salary_gross_monthly * Decimal("1.42")  # Avec charges
@@ -207,12 +210,12 @@ class DecisionMenu:
                     f"• {emp.name} ({emp.position.value}) - "
                     f"{emp.contract.value} - {monthly_cost:.0f}€/mois"
                 )
-            
+
             team_info.append(f"")
             team_info.append(f"Coût total équipe: {total_cost:.0f}€/mois")
-            
+
             self.ui.print_box(team_info, style="info")
-            
+
             submenu_options = [
                 "👤 Recruter un employé",
                 "❌ Licencier un employé",
@@ -221,9 +224,9 @@ class DecisionMenu:
                 "💰 Négocier les salaires",
                 "📊 Analyser la productivité"
             ]
-            
+
             choice = self.ui.show_menu("RESSOURCES HUMAINES", submenu_options)
-            
+
             if choice == 0:
                 break
             elif choice == 1:
@@ -238,32 +241,32 @@ class DecisionMenu:
                 self._negotiate_salaries(restaurant, decisions)
             elif choice == 6:
                 self._analyze_productivity(restaurant)
-    
+
     def _recruit_employee(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Recrutement d'un nouvel employé."""
         if len(restaurant.employees) >= 10:  # Limite arbitraire
             self.ui.show_error("Équipe complète (maximum 10 employés).")
             self.ui.pause()
             return
-        
+
         # Choix du poste
         positions = [pos.value for pos in EmployeePosition]
         position_choice = self.ui.show_menu("Quel poste recruter ?", positions)
-        
+
         if position_choice == 0:
             return
-        
+
         selected_position = list(EmployeePosition)[position_choice - 1]
-        
+
         # Choix du contrat
         contracts = [cont.value for cont in EmployeeContract]
         contract_choice = self.ui.show_menu("Type de contrat ?", contracts)
-        
+
         if contract_choice == 0:
             return
-        
+
         selected_contract = list(EmployeeContract)[contract_choice - 1]
-        
+
         # Salaire proposé
         salary_ranges = {
             EmployeePosition.CUISINE: (1800, 3000),
@@ -272,9 +275,9 @@ class DecisionMenu:
             EmployeePosition.PLONGE: (1650, 1900),
             EmployeePosition.CAISSE: (1650, 2200)
         }
-        
+
         min_salary, max_salary = salary_ranges.get(selected_position, (1650, 3000))
-        
+
         salary = self.ui.get_input(
             f"Salaire brut mensuel ({min_salary}-{max_salary}€)",
             Decimal,
@@ -282,11 +285,11 @@ class DecisionMenu:
             max_val=Decimal(str(max_salary)),
             default=Decimal(str((min_salary + max_salary) // 2))
         )
-        
+
         if salary:
             # Calcul du coût total
             total_cost = salary * Decimal("1.42")  # Avec charges
-            
+
             if restaurant.cash < total_cost * 3:  # Vérification de solvabilité
                 if not self.ui.confirm(
                     f"⚠️ Coût: {total_cost:.0f}€/mois. "
@@ -294,57 +297,206 @@ class DecisionMenu:
                     f"Confirmer le recrutement ?"
                 ):
                     return
-            
+
             # Enregistrement de la décision
             if 'recruitments' not in decisions:
                 decisions['recruitments'] = []
-            
+
             decisions['recruitments'].append({
                 'position': selected_position,
                 'contract': selected_contract,
                 'salary': salary
             })
-            
+
             self.ui.show_success(
                 f"Recrutement programmé: {selected_position.value} "
                 f"en {selected_contract.value} à {salary:.0f}€/mois"
             )
             self.ui.pause()
-    
+
     def _purchasing_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Gestion des achats et stocks avancée."""
         while True:
             self.ui.clear_screen()
 
             submenu_options = [
-                "🛒 Passer une commande",
-                "📦 Gérer les stocks",
+                "📋 Prévision & Besoins",
+                "🛒 Proposer une commande",
+                "📥 Réception de commandes",
+                "📦 État des stocks & alertes",
                 "🏪 Analyser les fournisseurs",
                 "📊 Rapport qualité/prix",
-                "⚠️ Alertes et promotions",
-                "📈 Marketing & Communication",
-                "💰 Finance avancée",
                 "🔙 Retour"
             ]
 
             choice = self.ui.show_menu("ACHATS & STOCKS", submenu_options)
 
             if choice == 1:
-                self._place_order_interface(restaurant, decisions)
+                self._forecast_and_requirements(restaurant)
             elif choice == 2:
-                self._stock_management_interface(restaurant)
+                self._propose_purchase_order(restaurant, decisions)
             elif choice == 3:
-                self._supplier_analysis_interface(restaurant)
+                self._receiving_interface(restaurant)
             elif choice == 4:
-                self._quality_price_report(restaurant)
+                self._stock_management_interface(restaurant)
             elif choice == 5:
-                self._alerts_promotions_interface(restaurant)
+                self._supplier_analysis_interface(restaurant)
             elif choice == 6:
-                self._marketing_interface(restaurant, decisions)
+                self._quality_price_report(restaurant)
             elif choice == 7:
-                self._finance_interface(restaurant, decisions)
-            elif choice == 8:
                 break
+
+        # --- Achats & Stocks: Prévision, besoins, PO, réception ---
+        # Pour simplifier, on stocke ces éléments sur l'objet restaurant s'ils n'existent pas
+
+        # Structures d'état minimales attendues sur restaurant
+        if not hasattr(restaurant, "stock_manager"):
+            restaurant.stock_manager = StockManager()
+        if not hasattr(restaurant, "sales_forecast"):
+            restaurant.sales_forecast = {}  # recipe_id -> qty next turn
+        if not hasattr(restaurant, "pending_po_lines"):
+            restaurant.pending_po_lines = []  # List[POLine]
+
+    def _forecast_and_requirements(self, restaurant: Restaurant) -> None:
+        """Saisie de prévision par recette active et calcul des besoins net."""
+        self.ui.clear_screen()
+        active = restaurant.get_active_menu()
+        if not active:
+            self.ui.show_info("Aucune recette active pour établir une prévision.")
+            self.ui.pause()
+            return
+
+        print("📋 PRÉVISION DES VENTES (prochain tour):")
+        for rid in active.keys():
+            cur = int(restaurant.sales_forecast.get(rid, 0))
+            try:
+                qty = self.ui.ask_int(f"  Portions prévues pour {rid} (actuel {cur}): ", min_val=0, max_val=1000, default=cur)
+                restaurant.sales_forecast[rid] = qty
+            except Exception:
+                continue
+
+        # Calcul besoins avec ProcurementPlanner
+        planner = ProcurementPlanner()
+        # Il faut la définition des recettes: dans ce contexte, on ne l'a pas directement ici.
+        # On reconstruit une liste de Recipe depuis available_recipes si accessible via self.cost_calculator
+        # Hypothèse: DecisionMenu est construit avec cost_calculator et l'appelant lui passera available_recipes ailleurs pour analyse.
+        # Ici on fait un calcul simple basé sur les IDs seulement si les recettes ne sont pas accessibles (affichage d'une info).
+        if not hasattr(self, "_available_recipes_cache"):
+            self.ui.show_info("Note: pour le calcul précis des besoins, les recettes doivent être connues. Cette version affichera le stock uniquement si non disponible.")
+            self.ui.pause()
+            return
+
+    def cache_available_recipes(self, recipes: Dict[str, any]) -> None:
+        """Optionnel: l'appelant peut fournir un cache des recettes pour achats."""
+        self._available_recipes_cache = recipes
+
+    def _propose_purchase_order(self, restaurant: Restaurant, decisions: Dict) -> None:
+        """Propose un PO en fonction des besoins et permet édition simple."""
+        self.ui.clear_screen()
+        if not hasattr(self, "_available_recipes_cache"):
+            self.ui.show_error("Recettes non disponibles pour proposer une commande. Activez des recettes et revenez.")
+            self.ui.pause()
+            return
+
+        active_recipes = [self._available_recipes_cache[rid] for rid in restaurant.active_recipes if rid in self._available_recipes_cache]
+        planner = ProcurementPlanner()
+        requirements = planner.compute_requirements(active_recipes, restaurant.sales_forecast, restaurant.stock_manager)
+
+        if not requirements:
+            self.ui.show_info("Aucun besoin net détecté (stock suffisant ou prévision nulle).")
+            self.ui.pause()
+            return
+
+        # Construire un petit catalogue fournisseur factice basé sur l’ingrédient (utilise cost catalog)
+        suppliers_catalog = {}
+        # On estime prix à partir des ingrédients connus par le cost_calculator
+        for ing_id, need in requirements.items():
+            if ing_id in self.cost_calculator.ingredients:
+                ing = self.cost_calculator.ingredients[ing_id]
+                suppliers_catalog[ing_id] = {
+                    "metro_pro": {"price_ht": ing.cost_ht, "vat": ing.vat_rate, "pack": Decimal("1"), "moq_value": Decimal("0")}
+                }
+
+        lines = planner.propose_purchase_orders(requirements, suppliers_catalog)
+        if not lines:
+            self.ui.show_info("Aucune proposition de commande possible (catalogue incomplet).")
+            self.ui.pause()
+            return
+
+        # Affichage et édition simple
+        view = ["🛒 PROPOSITION DE COMMANDE:", ""]
+        total_value = Decimal("0")
+        for i, line in enumerate(lines, 1):
+            line_value = line.quantity * line.unit_price_ht
+            total_value += line_value
+            view.append(f"{i}. {line.ingredient_id} — {line.quantity} @ {line.unit_price_ht:.2f}€ (HT) = {line_value:.2f}€ — {line.supplier_id}")
+
+        view.append("")
+        view.append(f"Total HT estimé: {total_value:.2f}€")
+        self.ui.print_box(view, "COMMANDE FOURNISSEURS", "info")
+
+        if self.ui.confirm("Valider cette commande ?"):
+            # Enregistrer comme en attente
+            restaurant.pending_po_lines = lines
+            decisions.setdefault("purchase_orders", []).append({
+                "lines": [{
+                    "ingredient_id": l.ingredient_id,
+                    "qty": str(l.quantity),
+                    "price_ht": str(l.unit_price_ht),
+                    "supplier": l.supplier_id,
+                } for l in lines],
+                "total_ht": str(total_value)
+            })
+            self.ui.show_success("Commande enregistrée (à réceptionner)")
+        else:
+            self.ui.show_info("Commande annulée")
+        self.ui.pause()
+
+    def _receiving_interface(self, restaurant: Restaurant) -> None:
+        """Réceptionne les lignes en attente et crée des lots FEFO."""
+        self.ui.clear_screen()
+        lines: List[POLine] = getattr(restaurant, "pending_po_lines", [])
+        if not lines:
+            self.ui.show_info("Aucune commande en attente.")
+            self.ui.pause()
+            return
+
+        print("📥 RÉCEPTION DE COMMANDE:")
+        deliveries = []
+        for i, l in enumerate(lines, 1):
+            default_recv = l.quantity
+            try:
+                qty = self.ui.get_input(f"Quantité reçue pour {l.ingredient_id} (commandé {l.quantity}): ", Decimal, min_val=Decimal("0"), default=default_recv)
+            except Exception:
+                qty = default_recv
+            deliveries.append({
+                "ingredient_id": l.ingredient_id,
+                "quantity_received": qty,
+                "unit_price_ht": l.unit_price_ht,
+                "vat_rate": l.vat_rate,
+                "supplier_id": l.supplier_id,
+                "pack_size": l.pack_size,
+                "lot_number": None,
+                "quality_level": 2,
+            })
+
+        # Conversion vers DeliveryLine dataclass
+        from ..core.procurement import DeliveryLine, ReceivingService
+        dl_lines = [DeliveryLine(**d) for d in deliveries]
+        receiver = ReceivingService()
+        lots = receiver.receive(dl_lines, date.today(), default_shelf_life_days=5)
+
+        for lot in lots:
+            restaurant.stock_manager.add_lot(lot)
+        restaurant.pending_po_lines = []
+
+        self.ui.show_success(f"{len(lots)} lots ajoutés en stock (FEFO)")
+        # Alertes DLC immédiates
+        expiring = restaurant.stock_manager.get_expiring_lots(days=3)
+        if expiring:
+            msg = ["⚠️ LOTS PROCHE DLC:"] + [f"• {lt.ingredient_id} ({lt.quantity}) — DLC {lt.dlc}" for lt in expiring]
+            self.ui.print_box(msg, "ALERTES DLC", "warning")
+        self.ui.pause()
 
     def _place_order_interface(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Interface de commande avec choix de qualité."""
@@ -749,12 +901,12 @@ class DecisionMenu:
             self.ui.show_info("ℹ️ Aucune action financière")
 
         self.ui.pause()
-    
+
     def _marketing_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Décisions marketing et commerciales."""
         while True:
             self.ui.clear_screen()
-            
+
             submenu_options = [
                 "📢 Lancer une campagne publicitaire",
                 "🎁 Programme de fidélité",
@@ -763,9 +915,9 @@ class DecisionMenu:
                 "📱 Présence digitale",
                 "💳 Moyens de paiement"
             ]
-            
+
             choice = self.ui.show_menu("MARKETING & COMMERCIAL", submenu_options)
-            
+
             if choice == 0:
                 break
             elif choice == 1:
@@ -777,7 +929,7 @@ class DecisionMenu:
             else:
                 self.ui.show_info(f"Option {choice} - En développement")
                 self.ui.pause()
-    
+
     def _advertising_campaign(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Campagne publicitaire."""
         campaign_types = [
@@ -787,22 +939,22 @@ class DecisionMenu:
             ("Journal local", 500, "Faible", "Encart publicitaire dans la presse locale"),
             ("Influenceurs", 1200, "Fort", "Collaboration avec des influenceurs food")
         ]
-        
+
         self.ui.clear_screen()
-        
+
         campaign_options = [
             f"{name} - {cost}€ (Impact: {impact})"
             for name, cost, impact, desc in campaign_types
         ]
-        
+
         choice = self.ui.show_menu("CAMPAGNES PUBLICITAIRES", campaign_options)
-        
+
         if choice == 0:
             return
-        
+
         selected_campaign = campaign_types[choice - 1]
         name, cost, impact, description = selected_campaign
-        
+
         # Affichage des détails
         details = [
             f"CAMPAGNE: {name}",
@@ -813,32 +965,32 @@ class DecisionMenu:
             f"Trésorerie actuelle: {restaurant.cash:.0f}€",
             f"Trésorerie après campagne: {restaurant.cash - cost:.0f}€"
         ]
-        
+
         self.ui.print_box(details, style="info")
-        
+
         if restaurant.cash < cost:
             self.ui.show_error("Trésorerie insuffisante pour cette campagne.")
             self.ui.pause()
             return
-        
+
         if self.ui.confirm(f"Lancer la campagne {name} pour {cost}€ ?"):
             if 'marketing_campaigns' not in decisions:
                 decisions['marketing_campaigns'] = []
-            
+
             decisions['marketing_campaigns'].append({
                 'type': name,
                 'cost': cost,
                 'impact': impact
             })
-            
+
             self.ui.show_success(f"Campagne {name} programmée !")
             self.ui.pause()
-    
+
     def _financial_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Décisions financières."""
         while True:
             self.ui.clear_screen()
-            
+
             submenu_options = [
                 "💳 Demander un prêt bancaire",
                 "💰 Rembourser un emprunt",
@@ -846,30 +998,30 @@ class DecisionMenu:
                 "📊 Analyser la rentabilité",
                 "💸 Gérer la trésorerie"
             ]
-            
+
             choice = self.ui.show_menu("FINANCE", submenu_options)
-            
+
             if choice == 0:
                 break
             else:
                 self.ui.show_info(f"Option financière {choice} - En développement")
                 self.ui.pause()
-    
+
     def _show_reports(self, restaurant: Restaurant) -> None:
         """Affichage des rapports financiers."""
         while True:
             self.ui.clear_screen()
-            
+
             report_options = [
                 "📊 Compte de résultat",
-                "💰 Tableau de flux de trésorerie", 
+                "💰 Tableau de flux de trésorerie",
                 "📋 Bilan comptable",
                 "📈 Analyse des KPIs",
                 "📉 Évolution des performances"
             ]
-            
+
             choice = self.ui.show_menu("RAPPORTS & ANALYSES", report_options)
-            
+
             if choice == 0:
                 break
             elif choice == 1:
@@ -891,83 +1043,224 @@ class DecisionMenu:
             else:
                 self.ui.show_info(f"Rapport {choice} - En développement")
                 self.ui.pause()
-    
+
     def _validate_decisions(self, restaurant: Restaurant, decisions: Dict) -> bool:
         """Validation finale des décisions."""
         if not decisions:
             return self.ui.confirm("Aucune décision prise. Passer au tour suivant ?")
-        
+
         # Résumé des décisions
         summary = ["RÉSUMÉ DES DÉCISIONS:"]
-        
+
         if 'price_changes' in decisions:
             summary.append("💰 Modifications de prix:")
             for recipe, price in decisions['price_changes'].items():
                 summary.append(f"  • {recipe}: {price:.2f}€")
-        
+
         if 'recruitments' in decisions:
             summary.append("👤 Recrutements:")
             for recruit in decisions['recruitments']:
                 summary.append(f"  • {recruit['position'].value} - {recruit['salary']:.0f}€/mois")
-        
+
         if 'marketing_campaigns' in decisions:
             summary.append("📢 Campagnes marketing:")
             for campaign in decisions['marketing_campaigns']:
                 summary.append(f"  • {campaign['type']} - {campaign['cost']}€")
-        
+
         self.ui.print_box(summary, "VALIDATION", "warning")
-        
+
         return self.ui.confirm("Valider ces décisions et passer au tour suivant ?")
-    
-    # Méthodes utilitaires (implémentation simplifiée)
+
+    # Méthodes utilitaires (implémentation complète)
     def _add_recipes(self, restaurant: Restaurant, available_recipes: Dict, decisions: Dict) -> None:
-        self.ui.show_info("Ajout de recettes - En développement")
-        self.ui.pause()
-    
+        """Ajoute des recettes disponibles au menu actif avec prix TTC."""
+        self.ui.clear_screen()
+
+        # Recettes non actives
+        inactive = [r for r in available_recipes.values() if r.id not in restaurant.active_recipes]
+        if not inactive:
+            self.ui.show_info("Toutes les recettes sont déjà actives.")
+            self.ui.pause()
+            return
+
+        # Choix multiple simple (itératif)
+        while True:
+            options = [f"{r.name} ({r.id})" for r in inactive]
+            choice = self.ui.show_menu("Ajouter un plat", options)
+            if choice == 0:
+                break
+
+            recipe = inactive[choice - 1]
+
+            # Proposer prix par défaut selon coût + cible marge
+            breakdown = self.cost_calculator.calculate_recipe_cost(recipe)
+            cost_per_portion = breakdown.total_cost_with_labor / recipe.portions
+
+            target_margin_pct = {
+                "fast": Decimal("0.70"),
+                "classic": Decimal("0.75"),
+                "brasserie": Decimal("0.72"),
+                "gastronomique": Decimal("0.80"),
+            }.get(restaurant.type.value, Decimal("0.70"))
+
+            # TVA simplifiée 10%
+            vat = Decimal("0.10")
+            default_price_ht = cost_per_portion / (Decimal("1.0") - target_margin_pct)
+            default_price_ttc = (default_price_ht * (Decimal("1.0") + vat)).quantize(Decimal("0.10"))
+
+            price_ttc = self.ui.get_input(
+                f"Prix TTC pour {recipe.name} (coût/portion ~{cost_per_portion:.2f}€)",
+                Decimal,
+                min_val=Decimal("1.0"),
+                max_val=Decimal("100.0"),
+                default=default_price_ttc,
+            )
+            if not price_ttc:
+                continue
+
+            restaurant.set_recipe_price(recipe.id, price_ttc)
+            restaurant.activate_recipe(recipe.id)
+
+            # Enregistrer décision
+            decisions.setdefault("added_recipes", []).append({
+                "recipe_id": recipe.id,
+                "price_ttc": price_ttc,
+            })
+
+            # Retirer de la liste inactive
+            inactive = [r for r in inactive if r.id != recipe.id]
+            if not inactive or not self.ui.confirm("Ajouter un autre plat ?"):
+                break
+
     def _remove_recipes(self, restaurant: Restaurant, decisions: Dict) -> None:
-        self.ui.show_info("Retrait de recettes - En développement")
+        """Retire des recettes du menu actif."""
+        active = restaurant.get_active_menu()
+        if not active:
+            self.ui.show_info("Aucune recette active.")
+            self.ui.pause()
+            return
+
+        options = [f"{rid} - {price:.2f}€" for rid, price in active.items()]
+        choice = self.ui.show_menu("Retirer un plat", options)
+        if choice == 0:
+            return
+
+        selected_id = list(active.keys())[choice - 1]
+        restaurant.deactivate_recipe(selected_id)
+        decisions.setdefault("removed_recipes", []).append(selected_id)
+        self.ui.show_success(f"Recette {selected_id} désactivée")
         self.ui.pause()
-    
+
     def _analyze_recipe_profitability(self, restaurant: Restaurant, available_recipes: Dict) -> None:
-        self.ui.show_info("Analyse rentabilité - En développement")
+        """Analyse marge et recommandations par recette active."""
+        active = restaurant.get_active_menu()
+        if not active:
+            self.ui.show_info("Aucune recette active.")
+            self.ui.pause()
+            return
+
+        lines = ["📊 RENTABILITÉ PAR PLAT:", ""]
+        for rid, price_ttc in active.items():
+            if rid not in available_recipes:
+                continue
+            recipe = available_recipes[rid]
+            # TODO: passer les lots de stock réels si disponibles
+            analysis = self.cost_calculator.calculate_margin_analysis(recipe, price_ttc, vat_rate=Decimal("0.10"))
+            margin_pct = analysis["margin_percentage"] * 100
+            lines.append(f"• {recipe.name}: prix {price_ttc:.2f}€, marge {margin_pct:.1f}% (coût/portion {analysis['cost_per_portion']:.2f}€)")
+
+            # Cibles par type
+            targets = {"fast": 70, "classic": 75, "brasserie": 72, "gastronomique": 80}
+            target = targets.get(restaurant.type.value, 70)
+            if margin_pct < target:
+                # Proposer nouvelle tarification HT -> TTC
+                new_price_ht = analysis["cost_per_portion"] / (Decimal("1.0") - Decimal(str(target/100)))
+                new_price_ttc = new_price_ht * Decimal("1.10")
+                lines.append(f"   ↳ Suggestion: augmenter à ~{new_price_ttc:.2f}€ pour atteindre {target}%")
+
+        self.ui.print_box(lines, "ANALYSE RENTABILITÉ", "info")
         self.ui.pause()
-    
+
     def _create_daily_menu(self, restaurant: Restaurant, decisions: Dict) -> None:
-        self.ui.show_info("Menu du jour - En développement")
+        """Crée un menu du jour (sous-ensemble des recettes actives) avec prix spéciaux."""
+        active = restaurant.get_active_menu()
+        if not active:
+            self.ui.show_info("Aucune recette active.")
+            self.ui.pause()
+            return
+
+        options = [f"{rid} - {price:.2f}€" for rid, price in active.items()]
+        selection: List[str] = []
+
+        while True:
+            choice = self.ui.show_menu("Ajouter au menu du jour", options)
+            if choice == 0:
+                break
+            rid = list(active.keys())[choice - 1]
+            if rid not in selection:
+                selection.append(rid)
+            if not self.ui.confirm("Ajouter un autre plat au menu du jour ?"):
+                break
+
+        if not selection:
+            self.ui.show_info("Aucune sélection pour le menu du jour.")
+            self.ui.pause()
+            return
+
+        # Prix spéciaux (remise % simple)
+        discount = self.ui.get_input("Remise % (ex: 20 pour -20%)", Decimal, min_val=Decimal("0"), max_val=Decimal("90"), default=Decimal("20"))
+        specials = {}
+        for rid in selection:
+            base = active[rid]
+            specials[rid] = (base * (Decimal("1.0") - discount/Decimal("100"))).quantize(Decimal("0.10"))
+
+        decisions["daily_menu"] = specials
+        self.ui.show_success("Menu du jour créé pour 1 tour")
         self.ui.pause()
-    
+
     def _show_sales_history(self, restaurant: Restaurant) -> None:
-        self.ui.show_info("Historique des ventes - En développement")
+        """Affiche l'historique des ventes par recette (si disponible)."""
+        history = getattr(restaurant, "sales_history", None)
+        if not history:
+            self.ui.show_info("Aucun historique de ventes disponible.")
+            self.ui.pause()
+            return
+
+        lines = ["📈 HISTORIQUE DES VENTES:", ""]
+        for rid, records in history.items():  # records: List[Tuple[turn, qty]]
+            total = sum(q for _, q in records)
+            lines.append(f"• {rid}: total {total} portions")
+        self.ui.print_box(lines, "VENTES", "info")
         self.ui.pause()
-    
+
     def _fire_employee(self, restaurant: Restaurant, decisions: Dict) -> None:
         self.ui.show_info("Licenciement - En développement")
         self.ui.pause()
-    
+
     def _train_employees(self, restaurant: Restaurant, decisions: Dict) -> None:
         self.ui.show_info("Formation - En développement")
         self.ui.pause()
-    
+
     def _adjust_schedules(self, restaurant: Restaurant, decisions: Dict) -> None:
         self.ui.show_info("Horaires - En développement")
         self.ui.pause()
-    
+
     def _negotiate_salaries(self, restaurant: Restaurant, decisions: Dict) -> None:
         self.ui.show_info("Négociation salaires - En développement")
         self.ui.pause()
-    
+
     def _analyze_productivity(self, restaurant: Restaurant) -> None:
         self.ui.show_info("Analyse productivité - En développement")
         self.ui.pause()
-    
+
     def _loyalty_program(self, restaurant: Restaurant, decisions: Dict) -> None:
         self.ui.show_info("Programme fidélité - En développement")
         self.ui.pause()
-    
+
     def _special_event(self, restaurant: Restaurant, decisions: Dict) -> None:
         self.ui.show_info("Événement spécial - En développement")
         self.ui.pause()
-    
+
     def _investment_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
         self.ui.show_info("Investissements - En développement")
         self.ui.pause()

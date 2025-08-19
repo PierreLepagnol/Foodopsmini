@@ -249,7 +249,7 @@ class RecipeCostCalculator:
             Coût de main d'œuvre
         """
         total_time_hours = Decimal(recipe.temps_total_min) / 60
-        return total_time_hours * self.hourly_labor_cost
+        return total_time_hours * self.get_hourly_labor_cost()
     
     def calculate_margin_analysis(self, recipe: Recipe, selling_price_ttc: Decimal,
                                 vat_rate: Decimal = Decimal("0.10"),

@@ -610,6 +610,8 @@ def main() -> None:
     
     try:
         game = FoodOpsProGame(args.scenario, args.admin)
+        # Passer les recettes au DecisionMenu pour Achats & Stocks
+        game.decision_menu.cache_available_recipes(game.recipes)
         game.start_game()
         
     except KeyboardInterrupt:
