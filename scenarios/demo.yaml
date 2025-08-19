@@ -1,0 +1,68 @@
+name: "Scénario Démonstration"
+description: "Configuration simplifiée pour démonstrations rapides"
+difficulty: "facile"
+
+# Configuration du marché
+market:
+  base_demand: 300
+  demand_noise: 0.10
+  price_sensitivity: 1.0
+  quality_importance: 0.8
+  
+# Segments de clientèle
+segments:
+  étudiants:
+    size: 120
+    budget: 12.0
+    price_sensitivity: 1.5
+    quality_sensitivity: 0.8
+    description: "Étudiants avec budget modéré"
+    
+  familles:
+    size: 120
+    budget: 16.0
+    price_sensitivity: 1.0
+    quality_sensitivity: 1.0
+    description: "Familles équilibrées"
+    
+  foodies:
+    size: 60
+    budget: 22.0
+    price_sensitivity: 0.8
+    quality_sensitivity: 1.5
+    description: "Amateurs de bonne cuisine"
+
+# Configuration restaurant
+restaurant:
+  initial_budget: 15000
+  base_capacity: 140
+  base_staff_cost: 2500
+  base_overhead: 1000
+  
+# Concurrents (plus faibles)
+competitors:
+  - name: "Snack Corner"
+    strategy: "prix_bas"
+    base_price: 8.80
+    quality_level: 1
+    
+  - name: "Café Central"
+    strategy: "equilibre"
+    base_price: 12.50
+    quality_level: 2
+
+# Paramètres de jeu
+game:
+  max_turns: 5
+  starting_month: 6
+  enable_seasonality: false
+  enable_events: false
+  enable_marketing: false
+  enable_advanced_finance: false
+
+# Objectifs
+objectives:
+  primary: "Réaliser un profit de 2000€"
+  secondary:
+    - "Maintenir une satisfaction > 3.0"
+    - "Survivre aux 5 tours"

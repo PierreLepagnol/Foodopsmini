@@ -4,7 +4,7 @@ Chargeur de données pour FoodOps Pro.
 
 import csv
 import json
-import yaml
+# import yaml  # Remplacé par configuration Python
 from pathlib import Path
 from typing import Dict, List, Optional
 from decimal import Decimal

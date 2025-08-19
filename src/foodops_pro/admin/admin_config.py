@@ -6,7 +6,8 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 from pathlib import Path
-import yaml
+# import yaml  # Remplacé par configuration Python
+import json
 
 from ..domain.scenario import Scenario, MarketSegment
 from ..domain.restaurant import RestaurantType
@@ -399,7 +400,7 @@ class AdminConfigManager:
     
     def _save_configuration(self):
         """Sauvegarde la configuration."""
-        config_path = Path("admin_configs") / f"{self.settings.session_name.replace(' ', '_')}.yaml"
+        config_path = Path("admin_configs") / f"{self.settings.session_name.replace(' ', '_')}.json"
         config_path.parent.mkdir(exist_ok=True)
         
         # Conversion en dict pour YAML
@@ -427,7 +428,7 @@ class AdminConfigManager:
         
         try:
             with open(config_path, 'w', encoding='utf-8') as f:
-                yaml.dump(config_dict, f, default_flow_style=False, allow_unicode=True)
+                json.dump(config_dict, f, indent=2, ensure_ascii=False)
             
             self.ui.show_success(f"Configuration sauvegardée dans {config_path}")
         except Exception as e:
