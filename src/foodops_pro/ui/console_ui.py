@@ -66,7 +66,7 @@ class ConsoleUI:
         
         # Logo et titre
         logo = [
-            "🍽️  FOODOPS PRO 2024  🍽️",
+            "🍽️  FOODOPS PRO 2025  🍽️",
             "",
             "Simulateur de Gestion de Restaurant",
             "Version Éducative Professionnelle"
