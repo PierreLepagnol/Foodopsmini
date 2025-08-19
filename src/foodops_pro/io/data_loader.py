@@ -4,7 +4,10 @@ Chargeur de données pour FoodOps Pro.
 
 import csv
 import json
-import yaml  # Chargement YAML
+try:
+    import yaml  # Chargement YAML
+except ImportError:  # PyYAML optionnel
+    yaml = None
 from pathlib import Path
 from typing import Dict, List, Optional
 from decimal import Decimal
@@ -174,18 +177,7 @@ class DataLoader:
                 }
                 catalog.setdefault(ing, []).append(entry)
 
-        def build_suppliers_catalog(self, suppliers: Dict[str, Supplier], prices: Dict[str, List[Dict]]) -> Dict[str, List[Dict]]:
-            """Construit un catalogue enrichi avec lead_time et fiabilité."""
-            catalog: Dict[str, List[Dict]] = {}
-            for ing_id, entries in prices.items():
-                for e in entries:
-                    sup = suppliers.get(e['supplier_id'])
-                    offer = dict(e)
-                    if sup:
-                        offer['lead_time_days'] = sup.lead_time_days
-                        offer['reliability'] = sup.reliability
-                    catalog.setdefault(ing_id, []).append(offer)
-            return catalog
+
 
         return catalog
 
@@ -217,15 +209,71 @@ class DataLoader:
             Configuration RH complète
         """
         json_path = self.data_path / "hr_tables.json"
-
         with open(json_path, 'r', encoding='utf-8') as file:
             hr_data = json.load(file)
+
+    def build_suppliers_catalog(self, suppliers: Dict[str, Supplier], prices: Dict[str, List[Dict]]) -> Dict[str, List[Dict]]:
+        """Construit un catalogue enrichi avec lead_time et fiabilité."""
+        catalog: Dict[str, List[Dict]] = {}
+        for ing_id, entries in prices.items():
+            for e in entries:
+                sup = suppliers.get(e['supplier_id'])
+                offer = dict(e)
+                if sup:
+                    offer['lead_time_days'] = sup.lead_time_days
+                    offer['reliability'] = sup.reliability
+                catalog.setdefault(ing_id, []).append(offer)
+        return catalog
 
         # Conversion des valeurs numériques en Decimal
         for contract_type, rates in hr_data.get('social_charges', {}).items():
             for rate_type, value in rates.items():
                 if isinstance(value, (int, float)):
                     hr_data['social_charges'][contract_type][rate_type] = Decimal(str(value))
+
+    def _fallback_scenario_data(self) -> Dict:
+        """Scénario par défaut minimal si YAML indisponible."""
+        return {
+            'name': 'Scénario de Base (fallback)',
+            'description': "Scénario par défaut quand PyYAML n'est pas installé",
+            'turns': 12,
+            'base_demand': 420,
+            'demand_noise': 0.08,
+            'ai_competitors': 2,
+            'random_seed': 42,
+            'segments': [
+                {
+                    'name': 'Étudiants',
+                    'share': 0.35,
+                    'budget': 11.0,
+                    'price_sensitivity': 1.4,
+                    'quality_sensitivity': 0.8,
+                    'type_affinity': {'fast': 1.2, 'classic': 0.7, 'gastronomique': 0.4, 'brasserie': 0.9},
+                    'seasonality': {1: 0.8, 2: 1.1, 3: 1.2, 4: 1.1, 5: 1.0, 6: 0.7, 7: 0.3, 8: 0.3, 9: 1.3, 10: 1.2, 11: 1.1, 12: 0.9}
+                },
+                {
+                    'name': 'Familles',
+                    'share': 0.40,
+                    'budget': 17.0,
+                    'price_sensitivity': 1.1,
+                    'quality_sensitivity': 1.2,
+                    'type_affinity': {'fast': 0.9, 'classic': 1.0, 'gastronomique': 0.6, 'brasserie': 1.1},
+                    'seasonality': {1: 0.9, 2: 1.0, 3: 1.0, 4: 1.1, 5: 1.0, 6: 1.0, 7: 1.3, 8: 1.3, 9: 1.0, 10: 1.0, 11: 1.0, 12: 1.2}
+                },
+                {
+                    'name': 'Foodies',
+                    'share': 0.25,
+                    'budget': 25.0,
+                    'price_sensitivity': 0.7,
+                    'quality_sensitivity': 1.6,
+                    'type_affinity': {'fast': 0.6, 'classic': 1.3, 'gastronomique': 1.8, 'brasserie': 1.4},
+                    'seasonality': {1: 1.1, 2: 1.0, 3: 1.0, 4: 1.0, 5: 1.1, 6: 1.2, 7: 1.1, 8: 0.8, 9: 1.0, 10: 1.0, 11: 1.0, 12: 1.3}
+                }
+            ],
+            'vat_rates': {'food_onsite': 0.10, 'food_takeaway': 0.055, 'alcohol': 0.20, 'services': 0.20},
+            'social_charges': {'cdi': 0.42, 'cdd': 0.44, 'extra': 0.45, 'apprenti': 0.11, 'stage': 0.00},
+            'interest_rate': 0.045,
+        }
 
         return hr_data
 
@@ -239,10 +287,13 @@ class DataLoader:
         Returns:
             Scénario chargé
         """
-        # Si c'est un fichier .yaml, on charge via PyYAML
+        # Si c'est un fichier .yaml, on charge via PyYAML si disponible, sinon fallback JSON embarqué
         if str(scenario_path).endswith('.yaml'):
-            with open(scenario_path, 'r', encoding='utf-8') as file:
-                data = yaml.safe_load(file)
+            if yaml is not None:
+                with open(scenario_path, 'r', encoding='utf-8') as file:
+                    data = yaml.safe_load(file)
+            else:
+                data = self._fallback_scenario_data()
         else:
             with open(scenario_path, 'r', encoding='utf-8') as file:
                 data = json.load(file)

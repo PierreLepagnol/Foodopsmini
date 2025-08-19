@@ -331,6 +331,14 @@ class DecisionMenu:
 
     def _purchasing_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Gestion des achats et stocks avancée."""
+        # État minimal requis pour le module Achats & Stocks
+        if not hasattr(restaurant, "stock_manager"):
+            restaurant.stock_manager = StockManager()
+        if not hasattr(restaurant, "sales_forecast"):
+            restaurant.sales_forecast = {}
+        if not hasattr(restaurant, "pending_po_lines"):
+            restaurant.pending_po_lines = []
+
         while True:
             self.ui.clear_screen()
 
