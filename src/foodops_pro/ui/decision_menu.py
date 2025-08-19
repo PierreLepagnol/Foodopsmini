@@ -484,6 +484,12 @@ class DecisionMenu:
                     vat_rate=offer['vat_rate'],
                     supplier_id=offer['supplier_id'],
                     pack_size=offer['pack_size'],
+                    pack_unit=offer.get('pack_unit'),
+                    quality_level=offer.get('quality_level'),
+                    eta_days=offer.get('lead_time_days'),
+                    qty_rounded_pack=qty_final,
+                    moq_ok=True,
+                    amount_ttc_estimated=(qty_final * offer['unit_price_ht']) * (Decimal('1') + offer['vat_rate'])
                 )
                 pending.append(line)
                 added_any = True
@@ -491,7 +497,13 @@ class DecisionMenu:
                 # Infos coût TTC & ETA
                 cost_ttc = order_value * (Decimal('1') + offer['vat_rate'])
                 eta_days = offer.get('lead_time_days', None)
-                self.ui.show_info(f"Ligne ajoutée: {qty_final} @ {offer['unit_price_ht']:.2f}€ (HT={order_value:.2f}€, TTC={cost_ttc:.2f}€) | ETA {eta_days}j")
+                moq_msg = []
+                if offer.get('moq_qty', Decimal('0')) > 0:
+                    moq_msg.append(f"MOQ qty {offer['moq_qty']}")
+                if offer.get('moq_value', Decimal('0')) > 0:
+                    moq_msg.append(f"MOQ valeur {offer['moq_value']:.2f}€")
+                moq_str = f" ({', '.join(moq_msg)})" if moq_msg else ""
+                self.ui.show_info(f"Ligne ajoutée: {qty_final} @ {offer['unit_price_ht']:.2f}€ (HT={order_value:.2f}€, TTC={cost_ttc:.2f}€){moq_str} | ETA {eta_days}j")
 
                 if not self.ui.confirm("Ajouter une autre ligne (autre offre) pour cet ingrédient ?"):
                     break

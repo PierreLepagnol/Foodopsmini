@@ -18,22 +18,38 @@ from ..domain.stock import StockManager, StockLot
 from ..domain.supplier import Supplier
 
 
-@dataclass(frozen=True)
+@dataclass
 class POLine:
-    """Ligne d'un bon de commande fournisseur."""
+    """Ligne d'un bon de commande fournisseur (support multi-fournisseurs/ingrédient)."""
     ingredient_id: str
-    quantity: Decimal            # quantité commandée (unité catalogue)
+    quantity: Decimal            # quantité commandée (unité catalogue, arrondie pack)
     unit_price_ht: Decimal       # prix unitaire HT catalogue
     vat_rate: Decimal            # taux de TVA
     supplier_id: str             # fournisseur choisi
     pack_size: Decimal           # taille du conditionnement
+    # Métadonnées mercuriale / calculs
+    pack_unit: Optional[str] = None
+    quality_level: Optional[int] = None
+    eta_days: Optional[int] = None
+    qty_rounded_pack: Optional[Decimal] = None
+    moq_ok: Optional[bool] = None
+    amount_ttc_estimated: Optional[Decimal] = None
+    # Réception / statut
+    received_qty: Decimal = Decimal("0")
+    status: str = "OPEN"  # OPEN, PARTIAL, CLOSED
+    def compute_amounts(self) -> None:
+        """Calcule amount_ttc_estimated, qty_rounded_pack, moq_ok sur la ligne."""
+        self.qty_rounded_pack = self.quantity
+        self.moq_ok = True  # défini côté planner/UI lors des ajustements MOQ
+        self.amount_ttc_estimated = (self.quantity * self.unit_price_ht) * (Decimal('1') + self.vat_rate)
+
 
 
 @dataclass(frozen=True)
 class PurchaseOrder:
     """Bon de commande simple."""
     supplier_id: str
-    lines: List[POLine]
+    lines: list[POLine]
     created_on: date
 
 
@@ -46,8 +62,8 @@ class DeliveryLine:
     vat_rate: Decimal
     supplier_id: str
     pack_size: Decimal
-    lot_number: Optional[str] = None
-    quality_level: Optional[int] = None  # 1..5
+    lot_number: str | None = None
+    quality_level: int | None = None  # 1..5
 
 
 class ProcurementPlanner:
@@ -57,10 +73,10 @@ class ProcurementPlanner:
 
     def compute_requirements(
         self,
-        active_recipes: List[Recipe],
-        sales_forecast: Dict[str, int],  # recipe_id -> portions prévues
+        active_recipes: list[Recipe],
+        sales_forecast: dict[str, int],  # recipe_id -> portions prévues
         stock: StockManager,
-    ) -> Dict[str, Decimal]:
+    ) -> dict[str, Decimal]:
         """
         Besoin brut = Σ (ventes prévues × qty_brute_par_portion)
         Besoin net = max(0, besoin_brut - stock_dispo_non_perime)
@@ -90,11 +106,11 @@ class ProcurementPlanner:
 
     def propose_purchase_orders(
         self,
-        requirements: Dict[str, Decimal],
-        suppliers_catalog: Dict[str, Dict[str, Dict[str, Decimal]]],
+        requirements: dict[str, Decimal],
+        suppliers_catalog: dict[str, dict[str, dict[str, Decimal]]],
         # structure: ingredient_id -> supplier_id -> {"price_ht": Decimal, "vat": Decimal, "pack": Decimal, "moq_value": Decimal}
-        safety_stock: Dict[str, Decimal] | None = None,
-    ) -> List[POLine]:
+        safety_stock: dict[str, Decimal] | None = None,
+    ) -> list[POLine]:
         """
         Propose des lignes d'achat optimisées par coût total (prix, pack, MOQ).
         """
@@ -144,7 +160,7 @@ class ProcurementPlanner:
 
         return lines
 
-    def _score_offer(self, qty: Decimal, price: Decimal, lead_time: Optional[Decimal], reliability: Optional[Decimal]) -> Decimal:
+    def _score_offer(self, qty: Decimal, price: Decimal, lead_time: int | None, reliability: Decimal | None) -> Decimal:
         """Score simple: valeur HT + pénalité délai - bonus fiabilité."""
         total_value = qty * price
         penalty = (Decimal(str(lead_time)) if lead_time is not None else Decimal('0')) * Decimal('0.5')

@@ -167,13 +167,16 @@ class DataLoader:
                 ing = row['ingredient_id']
                 entry = {
                     'supplier_id': row['supplier_id'],
-                    'quality_level': int(row['quality_level']),
+                    'quality_level': int(row['quality_level']) if row.get('quality_level') else None,
                     'pack_size': Decimal(row['pack_size']),
-                    'pack_unit': row['pack_unit'],
+                    'pack_unit': row.get('pack_unit') or None,
                     'unit_price_ht': Decimal(row['unit_price_ht']),
                     'vat_rate': Decimal(row['vat_rate']),
                     'moq_qty': Decimal(row['moq_qty']) if row.get('moq_qty') else Decimal('0'),
                     'moq_value': Decimal(row['moq_value']) if row.get('moq_value') else Decimal('0'),
+                    'lead_time_days': int(row['lead_time_days']) if row.get('lead_time_days') else None,
+                    'reliability': Decimal(row['reliability']) if row.get('reliability') else None,
+                    'available': int(row['available']) if row.get('available') else 1,
                 }
                 catalog.setdefault(ing, []).append(entry)
 
