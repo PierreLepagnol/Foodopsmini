@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from ..domain.restaurant import Restaurant
 from ..domain.employee import Employee, EmployeePosition, EmployeeContract
+from ..domain.random_events import RandomEventManager
 from ..core.costing import RecipeCostCalculator
 from .console_ui import ConsoleUI
 from .financial_reports import FinancialReports
@@ -969,4 +970,45 @@ class DecisionMenu:
     
     def _investment_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
         self.ui.show_info("Investissements - En développement")
+        self.ui.pause()
+
+    def show_random_events(self, event_manager: RandomEventManager) -> None:
+        """Affiche les événements aléatoires actifs."""
+        events_summary = event_manager.get_events_summary()
+
+        if not events_summary["active_events"]:
+            self.ui.show_info("📅 Aucun événement spécial en cours")
+            return
+
+        self.ui.clear_screen()
+        self.ui.show_info("🎲 ÉVÉNEMENTS EN COURS")
+
+        for event in events_summary["active_events"]:
+            print(f"\n{event['title']}")
+            print(f"   📝 {event['description']}")
+            print(f"   📊 Catégorie: {event['category']}")
+            print(f"   ⏱️ Reste: {event['remaining_turns']} tour(s)")
+
+        # Afficher les effets cumulés
+        effects = event_manager.get_current_effects()
+
+        print(f"\n📈 EFFETS CUMULÉS:")
+        if effects["demand_multiplier"] != 1.0:
+            change = (effects["demand_multiplier"] - 1) * 100
+            print(f"   Demande globale: {change:+.0f}%")
+
+        if effects["price_sensitivity"] != 1.0:
+            change = (effects["price_sensitivity"] - 1) * 100
+            print(f"   Sensibilité aux prix: {change:+.0f}%")
+
+        if effects["quality_importance"] != 1.0:
+            change = (effects["quality_importance"] - 1) * 100
+            print(f"   Importance de la qualité: {change:+.0f}%")
+
+        if effects["segment_effects"]:
+            print(f"   Effets par segment:")
+            for segment, multiplier in effects["segment_effects"].items():
+                change = (multiplier - 1) * 100
+                print(f"     • {segment}: {change:+.0f}%")
+
         self.ui.pause()

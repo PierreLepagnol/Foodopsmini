@@ -10,6 +10,7 @@ import random
 from ..domain.restaurant import Restaurant
 from ..domain.scenario import Scenario, MarketSegment
 from ..domain.seasonality import SeasonalityManager
+from ..domain.competition import CompetitionManager
 
 
 @dataclass
@@ -62,7 +63,8 @@ class MarketEngine:
         self.scenario = scenario
         self.rng = random.Random(random_seed or scenario.random_seed)
         self.turn_history: List[Dict[str, AllocationResult]] = []
-        self.seasonality_manager = SeasonalityManager()  # NOUVEAU: Gestionnaire saisonnalité
+        self.seasonality_manager = SeasonalityManager()  # Gestionnaire saisonnalité
+        self.competition_manager = CompetitionManager(random_seed)  # NOUVEAU: Gestionnaire concurrence
     
     def allocate_demand(self, restaurants: List[Restaurant], 
                        turn: int, month: int = 1) -> Dict[str, AllocationResult]:
@@ -77,11 +79,17 @@ class MarketEngine:
         Returns:
             Dict des résultats d'allocation par restaurant
         """
-        # Calcul de la demande totale avec bruit
+        # NOUVEAU: Traiter les événements de marché
+        current_season = self._get_season_name(month)
+        new_events = self.competition_manager.process_turn_events(turn, current_season)
+        market_modifiers = self.competition_manager.get_market_modifiers()
+
+        # Calcul de la demande totale avec bruit et événements
         base_demand = self.scenario.calculate_total_demand(turn, month)
-        noise_factor = 1 + self.rng.uniform(-float(self.scenario.demand_noise), 
+        noise_factor = 1 + self.rng.uniform(-float(self.scenario.demand_noise),
                                            float(self.scenario.demand_noise))
-        total_demand = int(base_demand * noise_factor)
+        event_demand_modifier = float(market_modifiers["demand_modifier"])
+        total_demand = int(base_demand * noise_factor * event_demand_modifier)
         
         # Allocation par segment de marché
         results = {}
@@ -291,6 +299,17 @@ class MarketEngine:
         final_factor += reputation_bonus
 
         return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
+
+    def _get_season_name(self, month: int) -> str:
+        """Retourne le nom de la saison selon le mois."""
+        if month in [12, 1, 2]:
+            return "hiver"
+        elif month in [3, 4, 5]:
+            return "printemps"
+        elif month in [6, 7, 8]:
+            return "été"
+        else:
+            return "automne"
 
     def _get_seasonal_demand_bonus(self, segment_name: str, month: int) -> Decimal:
         """
