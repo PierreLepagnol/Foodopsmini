@@ -4,7 +4,7 @@ Chargeur de données pour FoodOps Pro.
 
 import csv
 import json
-# import yaml  # Remplacé par configuration Python
+import yaml  # Chargement YAML
 from pathlib import Path
 from typing import Dict, List, Optional
 from decimal import Decimal
@@ -183,9 +183,10 @@ class DataLoader:
         Returns:
             Scénario chargé
         """
-        # Si c'est un fichier .yaml, on utilise la configuration par défaut
+        # Si c'est un fichier .yaml, on charge via PyYAML
         if str(scenario_path).endswith('.yaml'):
-            data = self._get_default_scenario_config()
+            with open(scenario_path, 'r', encoding='utf-8') as file:
+                data = yaml.safe_load(file)
         else:
             with open(scenario_path, 'r', encoding='utf-8') as file:
                 data = json.load(file)
