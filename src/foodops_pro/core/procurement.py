@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_CEILING
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from ..domain.recipe import Recipe
 from ..domain.stock import StockManager, StockLot
@@ -36,6 +36,7 @@ class POLine:
     amount_ttc_estimated: Optional[Decimal] = None
     # Réception / statut
     received_qty: Decimal = Decimal("0")
+    accepted_qty: Decimal = Decimal("0")
     status: str = "OPEN"  # OPEN, PARTIAL, CLOSED
     def compute_amounts(self) -> None:
         """Calcule amount_ttc_estimated, qty_rounded_pack, moq_ok sur la ligne."""
@@ -51,6 +52,29 @@ class PurchaseOrder:
     supplier_id: str
     lines: list[POLine]
     created_on: date
+
+
+@dataclass
+class GoodsReceiptLine:
+    ingredient_id: str
+    qty_ordered: Decimal
+    qty_delivered: Decimal
+    qty_accepted: Decimal
+    unit_price_ht: Decimal
+    vat_rate: Decimal
+    supplier_id: str
+    pack_size: Decimal
+    lots: list[StockLot]
+    comment: str | None = None
+
+
+@dataclass
+class GoodsReceipt:
+    date: date
+    lines: list[GoodsReceiptLine]
+    total_ht: Decimal
+    total_ttc: Decimal
+    status: str  # OPEN / PARTIAL / CLOSED
 
 
 @dataclass(frozen=True)
@@ -81,7 +105,7 @@ class ProcurementPlanner:
         Besoin brut = Σ (ventes prévues × qty_brute_par_portion)
         Besoin net = max(0, besoin_brut - stock_dispo_non_perime)
         """
-        requirements: Dict[str, Decimal] = {}
+        requirements: dict[str, Decimal] = {}
 
         # Agréger les besoins par ingrédient
         for recipe in active_recipes:
@@ -94,7 +118,7 @@ class ProcurementPlanner:
                 requirements[item.ingredient_id] = requirements.get(item.ingredient_id, Decimal("0")) + qty
 
         # Déduire le stock disponible non périmé
-        net_requirements: Dict[str, Decimal] = {}
+        net_requirements: dict[str, Decimal] = {}
         for ingredient_id, gross_need in requirements.items():
             available = stock.get_available_quantity(ingredient_id, exclude_expired=True)
             net = gross_need - available
@@ -115,11 +139,11 @@ class ProcurementPlanner:
         Propose des lignes d'achat optimisées par coût total (prix, pack, MOQ).
         """
         safety_stock = safety_stock or {}
-        lines: List[POLine] = []
+        lines: list[POLine] = []
 
         for ingredient_id, need in requirements.items():
             target = need + safety_stock.get(ingredient_id, Decimal("0"))
-            best: Optional[Tuple[Decimal, POLine]] = None  # (score, line)
+            best: tuple[Decimal, POLine] | None = None  # (score, line)
 
             if ingredient_id not in suppliers_catalog:
                 continue
@@ -171,21 +195,21 @@ class ProcurementPlanner:
 class ReceivingService:
     """Conversion des livraisons en lots de stock (FEFO)."""
 
-    def __init__(self, shelf_life_rules: Dict[int, int] | None = None) -> None:
+    def __init__(self, shelf_life_rules: dict[int, int] | None = None) -> None:
         # Ajustement DLUO par niveau de qualité (jours). Ex: {1: -2, 3: 0, 5: +2}
         self.shelf_life_rules = shelf_life_rules or {}
 
     def receive(
         self,
-        deliveries: List[DeliveryLine],
+        deliveries: list[DeliveryLine],
         received_date: date,
         default_shelf_life_days: int = 5,
-    ) -> List[StockLot]:
+    ) -> list[StockLot]:
         """
         Convertit des DeliveryLine en StockLot en calculant une DLC.
         DLC = received_date + default_shelf_life +/- ajustement qualité.
         """
-        lots: List[StockLot] = []
+        lots: list[StockLot] = []
         for d in deliveries:
             adjust = self.shelf_life_rules.get(d.quality_level or 2, 0)
             dlc = received_date + timedelta(days=default_shelf_life_days + adjust)
