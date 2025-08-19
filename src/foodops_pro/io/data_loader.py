@@ -175,16 +175,20 @@ class DataLoader:
     
     def load_scenario(self, scenario_path: Path) -> Scenario:
         """
-        Charge un scénario depuis un fichier YAML.
-        
+        Charge un scénario depuis un fichier JSON.
+
         Args:
             scenario_path: Chemin vers le fichier de scénario
-            
+
         Returns:
             Scénario chargé
         """
-        with open(scenario_path, 'r', encoding='utf-8') as file:
-            data = yaml.safe_load(file)
+        # Si c'est un fichier .yaml, on utilise la configuration par défaut
+        if str(scenario_path).endswith('.yaml'):
+            data = self._get_default_scenario_config()
+        else:
+            with open(scenario_path, 'r', encoding='utf-8') as file:
+                data = json.load(file)
         
         # Conversion des segments
         segments = []
@@ -237,7 +241,86 @@ class DataLoader:
         )
         
         return scenario
-    
+
+    def _get_default_scenario_config(self) -> Dict:
+        """Retourne la configuration par défaut du scénario."""
+        return {
+            "name": "Scénario Standard",
+            "description": "Configuration équilibrée pour apprentissage général",
+            "difficulty": "normal",
+            "market": {
+                "base_demand": 420,
+                "demand_noise": 0.15,
+                "price_sensitivity": 1.2,
+                "quality_importance": 1.0
+            },
+            "segments": {
+                "étudiants": {
+                    "size": 150,
+                    "budget": 11.0,
+                    "price_sensitivity": 1.8,
+                    "quality_sensitivity": 0.7,
+                    "description": "Étudiants avec budget limité"
+                },
+                "familles": {
+                    "size": 180,
+                    "budget": 17.0,
+                    "price_sensitivity": 1.2,
+                    "quality_sensitivity": 1.1,
+                    "description": "Familles recherchant bon rapport qualité/prix"
+                },
+                "foodies": {
+                    "size": 90,
+                    "budget": 25.0,
+                    "price_sensitivity": 0.6,
+                    "quality_sensitivity": 1.8,
+                    "description": "Amateurs de gastronomie privilégiant la qualité"
+                }
+            },
+            "restaurant": {
+                "initial_budget": 10000,
+                "base_capacity": 150,
+                "base_staff_cost": 2800,
+                "base_overhead": 1200
+            },
+            "competitors": [
+                {
+                    "name": "Resto Rapide",
+                    "strategy": "prix_bas",
+                    "base_price": 9.50,
+                    "quality_level": 1
+                },
+                {
+                    "name": "Bistrot Central",
+                    "strategy": "equilibre",
+                    "base_price": 13.20,
+                    "quality_level": 3
+                },
+                {
+                    "name": "Table Gourmande",
+                    "strategy": "premium",
+                    "base_price": 18.80,
+                    "quality_level": 4
+                }
+            ],
+            "game": {
+                "max_turns": 10,
+                "starting_month": 1,
+                "enable_seasonality": True,
+                "enable_events": True,
+                "enable_marketing": True,
+                "enable_advanced_finance": True
+            },
+            "objectives": {
+                "primary": "Réaliser un profit total de 5000€",
+                "secondary": [
+                    "Maintenir une satisfaction client > 3.5",
+                    "Atteindre 25% de part de marché",
+                    "Survivre aux 10 tours"
+                ]
+            }
+        }
+
     def get_default_scenario_path(self) -> Path:
         """
         Retourne le chemin vers le scénario par défaut.
