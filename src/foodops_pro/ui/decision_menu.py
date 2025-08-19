@@ -686,68 +686,165 @@ class DecisionMenu:
     def _receiving_interface(self, restaurant: Restaurant) -> None:
         """Réceptionne les lignes en attente et crée des lots FEFO."""
         self.ui.clear_screen()
-        lines: List[POLine] = getattr(restaurant, "pending_po_lines", [])
+        from decimal import Decimal
+        lines: list[POLine] = getattr(restaurant, "pending_po_lines", [])
         if not lines:
             self.ui.show_info("Aucune commande en attente.")
             self.ui.pause()
             return
 
-        print("📥 RÉCEPTION DE COMMANDE:")
-        deliveries = []
+        view = ["📥 RÉCEPTION DE COMMANDES:", ""]
         for i, l in enumerate(lines, 1):
-            default_recv = l.quantity
-            try:
-                qty = self.ui.get_input(f"Quantité reçue pour {l.ingredient_id} (commandé {l.quantity}): ", Decimal, min_val=Decimal("0"), default=default_recv)
-            except Exception:
-                qty = default_recv
-            deliveries.append({
-                "ingredient_id": l.ingredient_id,
-                "quantity_received": qty,
-                "unit_price_ht": l.unit_price_ht,
-                "vat_rate": l.vat_rate,
-                "supplier_id": l.supplier_id,
-                "pack_size": l.pack_size,
-                "lot_number": None,
-                "quality_level": 2,
-            })
+            view.append(f"{i}. {l.ingredient_id} — Cmd: {l.quantity} | Acc: {l.accepted_qty} | Statut: {l.status}")
+        self.ui.print_box(view, "BON DE COMMANDE EN ATTENTE", "info")
 
-        # Conversion vers DeliveryLine dataclass
-        from ..core.procurement import DeliveryLine, ReceivingService
+        # Saisie réception par ligne: accepter/refuser et split lots
+        from ..core.procurement import DeliveryLine, ReceivingService, GoodsReceipt, GoodsReceiptLine
         from datetime import date
-        dl_lines = []
-        for d in deliveries:
-            # Saisie multi-lots optionnelle
-            nb_lots = self.ui.ask_int(f"Nombre de lots pour {d['ingredient_id']} (1 par défaut)", min_val=1, max_val=10, default=1)
-            if nb_lots <= 1:
-                dl_lines.append(DeliveryLine(**d))
+
+        gr_lines: list[GoodsReceiptLine] = []
+        remaining_lines: list[POLine] = []
+        all_lots: list = []
+
+        for l in lines:
+            # Choix action
+            action = self.ui.show_menu(
+                f"Ligne {l.ingredient_id} (Cmd {l.quantity}, Acc {l.accepted_qty})",
+                ["Accepter (total/partiel)", "Refuser"]
+            )
+            if action == 0:
+                remaining_lines.append(l)
+                continue
+
+            if action == 2:
+                # Refus: on garde la ligne en attente, aucun lot
+                gr_lines.append(GoodsReceiptLine(
+                    ingredient_id=l.ingredient_id,
+                    qty_ordered=l.quantity,
+                    qty_delivered=Decimal("0"),
+                    qty_accepted=Decimal("0"),
+                    unit_price_ht=l.unit_price_ht,
+                    vat_rate=l.vat_rate,
+                    supplier_id=l.supplier_id,
+                    pack_size=l.pack_size,
+                    lots=[],
+                    comment="Refusé"
+                ))
+                remaining_lines.append(l)  # reste en attente
+                continue
+
+            # Accepter (total/partiel)
+            # Proposer une quantité livrée (par défaut = quantité commandée restante)
+            to_receive_default = l.quantity - l.accepted_qty
+            if to_receive_default < 0:
+                to_receive_default = Decimal("0")
+            qty_delivered = self.ui.get_input(
+                f"Quantité livrée pour {l.ingredient_id} (reste {to_receive_default} à recevoir): ",
+                Decimal, min_val=Decimal("0"), default=to_receive_default
+            ) or Decimal("0")
+
+            # Option de split lots
+            deliveries: list[DeliveryLine] = []
+            if qty_delivered > 0:
+                nb_lots = self.ui.ask_int(
+                    f"Nombre de lots pour {l.ingredient_id} (1 par défaut)", min_val=1, max_val=10, default=1
+                )
+                if nb_lots <= 1:
+                    deliveries.append(DeliveryLine(
+                        ingredient_id=l.ingredient_id,
+                        quantity_received=qty_delivered,
+                        unit_price_ht=l.unit_price_ht,
+                        vat_rate=l.vat_rate,
+                        supplier_id=l.supplier_id,
+                        pack_size=l.pack_size,
+                        lot_number=None,
+                        quality_level=l.quality_level or 2
+                    ))
+                else:
+                    qty_remaining = qty_delivered
+                    for i in range(nb_lots):
+                        if i == nb_lots - 1:
+                            q = qty_remaining
+                        else:
+                            q = self.ui.get_input(
+                                f"  Quantité lot {i+1} (reste {qty_remaining})",
+                                Decimal, min_val=Decimal('0.001'), max_val=qty_remaining,
+                                default=(qty_remaining/Decimal(str(nb_lots-i)))
+                            )
+                        qty_remaining -= q
+                        deliveries.append(DeliveryLine(
+                            ingredient_id=l.ingredient_id,
+                            quantity_received=q,
+                            unit_price_ht=l.unit_price_ht,
+                            vat_rate=l.vat_rate,
+                            supplier_id=l.supplier_id,
+                            pack_size=l.pack_size,
+                            lot_number=self.ui.get_input(
+                                f"  Numéro lot {i+1} (optionnel)", str, default=f"{l.ingredient_id}-{i+1}"
+                            ),
+                            quality_level=l.quality_level or 2
+                        ))
+
+            # Calcul lots et ajout en stock
+            receiver = ReceivingService(shelf_life_rules={1: -2, 3: 0, 5: 2})
+            lots = receiver.receive(deliveries, date.today(), default_shelf_life_days=5) if deliveries else []
+            for lot in lots:
+                restaurant.stock_manager.add_lot(lot)
+            all_lots.extend(lots)
+
+            qty_accepted = sum([lt.quantity for lt in lots], Decimal("0"))
+            l.accepted_qty += qty_accepted
+            # Statut de ligne
+            if l.accepted_qty <= 0:
+                l.status = "OPEN"
+            elif l.accepted_qty < l.quantity:
+                l.status = "PARTIAL"
             else:
-                qty_remaining = d['quantity_received']
-                for i in range(nb_lots):
-                    if i == nb_lots - 1:
-                        q = qty_remaining
-                    else:
-                        q = self.ui.get_input(f"  Quantité lot {i+1} (reste {qty_remaining})", Decimal, min_val=Decimal('0.001'), max_val=qty_remaining, default=(qty_remaining/Decimal(str(nb_lots-i))) )
-                    qty_remaining -= q
-                    d_copy = dict(d)
-                    d_copy['quantity_received'] = q
-                    d_copy['lot_number'] = self.ui.get_input(f"  Numéro lot {i+1} (optionnel)", str, default=f"{d['ingredient_id']}-{i+1}")
-                    dl_lines.append(DeliveryLine(**d_copy))
+                l.status = "CLOSED"
 
-        receiver = ReceivingService(shelf_life_rules={1: -2, 3: 0, 5: 2})
-        lots = receiver.receive(dl_lines, date.today(), default_shelf_life_days=5)
+            gr_lines.append(GoodsReceiptLine(
+                ingredient_id=l.ingredient_id,
+                qty_ordered=l.quantity,
+                qty_delivered=qty_delivered,
+                qty_accepted=qty_accepted,
+                unit_price_ht=l.unit_price_ht,
+                vat_rate=l.vat_rate,
+                supplier_id=l.supplier_id,
+                pack_size=l.pack_size,
+                lots=lots,
+                comment=None
+            ))
 
-        for lot in lots:
-            restaurant.stock_manager.add_lot(lot)
-        # Archiver et vider la commande en attente
-        restaurant._last_received_lots = lots
-        restaurant.pending_po_lines = []
+            if l.status != "CLOSED":
+                remaining_lines.append(l)
 
-        self.ui.show_success(f"{len(lots)} lots ajoutés en stock (FEFO)")
-        # Alertes DLC immédiates
+        # Mettre à jour pending_po_lines en gardant seulement les lignes non CLOSED
+        restaurant.pending_po_lines = remaining_lines
+
+        total_ht = sum([(ln.qty_accepted * ln.unit_price_ht) for ln in gr_lines], Decimal("0"))
+        total_ttc = sum([(ln.qty_accepted * ln.unit_price_ht) * (Decimal('1') + ln.vat_rate) for ln in gr_lines], Decimal("0"))
+        po_status = "CLOSED" if not remaining_lines else ("PARTIAL" if any(l.accepted_qty > 0 for l in remaining_lines) else "OPEN")
+        gr = GoodsReceipt(date=date.today(), lines=gr_lines, total_ht=total_ht, total_ttc=total_ttc, status=po_status)
+        restaurant._last_goods_receipt = gr
+
+        # Récap et alertes DLC
+        view = [
+            f"GR du {gr.date} — Statut PO: {gr.status}",
+            f"Total accepté HT: {gr.total_ht:.2f}€ | TTC: {gr.total_ttc:.2f}€",
+            "",
+            "Détail par ligne:",
+        ]
+        for ln in gr.lines:
+            view.append(
+                f"• {ln.ingredient_id}: Cmd {ln.qty_ordered} | Livr {ln.qty_delivered} | Acc {ln.qty_accepted}"
+            )
+        self.ui.print_box(view, "BON DE RÉCEPTION", "success")
+
         expiring = restaurant.stock_manager.get_expiring_lots(days=3)
         if expiring:
             msg = ["⚠️ LOTS PROCHE DLC:"] + [f"• {lt.ingredient_id} ({lt.quantity}) — DLC {lt.dlc}" for lt in expiring]
             self.ui.print_box(msg, "ALERTES DLC", "warning")
+
         self.ui.pause()
 
     def _place_order_interface(self, restaurant: Restaurant, decisions: Dict) -> None:

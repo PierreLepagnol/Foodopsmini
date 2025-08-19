@@ -1,0 +1,122 @@
+{
+  "export_info": {
+    "exported_at": "2025-08-19T21:23:03.045935",
+    "game_id": "20250819_212303",
+    "scenario_name": "Scénario de Base"
+  },
+  "game_summary": {
+    "turns_played": 0,
+    "total_turns": 12,
+    "players_count": 0,
+    "ai_competitors_count": 2,
+    "completed": false
+  },
+  "restaurants": [
+    {
+      "id": "ai_1",
+      "name": "Chez Mario",
+      "type": "fast",
+      "capacity_base": 45,
+      "speed_service": 1.4,
+      "menu": {
+        "burger_classic": 10.5,
+        "burger_chicken": 11.0,
+        "menu_enfant": 8.5
+      },
+      "employees": [
+        {
+          "id": "player_ai_1_emp_1",
+          "name": "Cuisine 1",
+          "position": "cuisine",
+          "contract": "cdi",
+          "salary_gross_monthly": 2000.0,
+          "productivity": 1.0,
+          "experience_months": 12,
+          "is_part_time": false,
+          "part_time_ratio": 1.0,
+          "sunday_work": false,
+          "overtime_eligible": true
+        },
+        {
+          "id": "player_ai_1_emp_2",
+          "name": "Caisse 2",
+          "position": "caisse",
+          "contract": "cdi",
+          "salary_gross_monthly": 1700.0,
+          "productivity": 1.0,
+          "experience_months": 12,
+          "is_part_time": false,
+          "part_time_ratio": 1.0,
+          "sunday_work": false,
+          "overtime_eligible": true
+        }
+      ],
+      "cash": -18240.0,
+      "equipment_value": 50000.0,
+      "rent_monthly": 2800.0,
+      "fixed_costs_monthly": 840.0,
+      "staffing_level": 3,
+      "active_recipes": [
+        "burger_classic",
+        "burger_chicken",
+        "menu_enfant"
+      ]
+    },
+    {
+      "id": "ai_2",
+      "name": "Quick Burger",
+      "type": "fast",
+      "capacity_base": 45,
+      "speed_service": 1.4,
+      "menu": {
+        "burger_classic": 10.5,
+        "burger_chicken": 11.0,
+        "menu_enfant": 8.5
+      },
+      "employees": [
+        {
+          "id": "player_ai_2_emp_1",
+          "name": "Cuisine 1",
+          "position": "cuisine",
+          "contract": "cdi",
+          "salary_gross_monthly": 2000.0,
+          "productivity": 1.0,
+          "experience_months": 12,
+          "is_part_time": false,
+          "part_time_ratio": 1.0,
+          "sunday_work": false,
+          "overtime_eligible": true
+        },
+        {
+          "id": "player_ai_2_emp_2",
+          "name": "Caisse 2",
+          "position": "caisse",
+          "contract": "cdi",
+          "salary_gross_monthly": 1700.0,
+          "productivity": 1.0,
+          "experience_months": 12,
+          "is_part_time": false,
+          "part_time_ratio": 1.0,
+          "sunday_work": false,
+          "overtime_eligible": true
+        }
+      ],
+      "cash": -18240.0,
+      "equipment_value": 50000.0,
+      "rent_monthly": 2800.0,
+      "fixed_costs_monthly": 840.0,
+      "staffing_level": 3,
+      "active_recipes": [
+        "burger_classic",
+        "burger_chicken",
+        "menu_enfant"
+      ]
+    }
+  ],
+  "restaurant_kpis": {
+    "ai_1": {},
+    "ai_2": {}
+  },
+  "market_kpis": {},
+  "turn_history": []
+}
