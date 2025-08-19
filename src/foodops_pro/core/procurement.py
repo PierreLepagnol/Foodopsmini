@@ -87,6 +87,7 @@ class ProcurementPlanner:
 
         return net_requirements
 
+
     def propose_purchase_orders(
         self,
         requirements: Dict[str, Decimal],
@@ -96,17 +97,15 @@ class ProcurementPlanner:
     ) -> List[POLine]:
         """
         Propose des lignes d'achat optimisées par coût total (prix, pack, MOQ).
-        Retourne des POLine (pas groupées par fournisseur ici pour simplicité UI).
         """
         safety_stock = safety_stock or {}
         lines: List[POLine] = []
 
         for ingredient_id, need in requirements.items():
             target = need + safety_stock.get(ingredient_id, Decimal("0"))
-            best: Optional[Tuple[Decimal, POLine]] = None  # (total_value_ht, line)
+            best: Optional[Tuple[Decimal, POLine]] = None  # (score, line)
 
             if ingredient_id not in suppliers_catalog:
-                # Pas d'offre connue → ignorer (ou lever une alerte côté UI)
                 continue
 
             for supplier_id, offer in suppliers_catalog[ingredient_id].items():
@@ -114,13 +113,13 @@ class ProcurementPlanner:
                 vat = Decimal(str(offer.get("vat", 0.10)))
                 pack = Decimal(str(offer.get("pack", 1)))
                 moq_value = Decimal(str(offer.get("moq_value", 0)))
+                lead_time = offer.get("lead_time_days")
+                reliability = offer.get("reliability")
 
-                # Quantité arrondie au pack minimal couvrant le besoin
                 packs_needed = (target / pack).to_integral_value(rounding="ROUND_CEILING")
                 qty = packs_needed * pack
                 order_value = qty * price
 
-                # Appliquer MOQ valeur: si en-dessous, forcer à atteindre le MOQ
                 if order_value < moq_value and price > 0:
                     deficit_value = moq_value - order_value
                     extra_qty = (deficit_value / price).to_integral_value(rounding="ROUND_CEILING")
@@ -136,14 +135,21 @@ class ProcurementPlanner:
                     pack_size=pack,
                 )
 
-                total_value = order_value  # sans frais de port pour simplicité
-                if best is None or total_value < best[0]:
-                    best = (total_value, line)
+                score = self._score_offer(qty, price, lead_time, reliability)
+                if best is None or score < best[0]:
+                    best = (score, line)
 
             if best:
                 lines.append(best[1])
 
         return lines
+
+    def _score_offer(self, qty: Decimal, price: Decimal, lead_time: Optional[Decimal], reliability: Optional[Decimal]) -> Decimal:
+        """Score simple: valeur HT + pénalité délai - bonus fiabilité."""
+        total_value = qty * price
+        penalty = (Decimal(str(lead_time)) if lead_time is not None else Decimal('0')) * Decimal('0.5')
+        bonus = (Decimal(str(reliability)) if reliability is not None else Decimal('0')) * Decimal('10')
+        return total_value + penalty - bonus
 
 
 class ReceivingService:

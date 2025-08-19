@@ -20,11 +20,11 @@ class DataLoader:
     """
     Chargeur de données depuis les fichiers CSV, JSON et YAML.
     """
-    
+
     def __init__(self, data_path: Optional[Path] = None) -> None:
         """
         Initialise le chargeur de données.
-        
+
         Args:
             data_path: Chemin vers le dossier de données
         """
@@ -33,17 +33,17 @@ class DataLoader:
             self.data_path = Path(__file__).parent.parent / "data"
         else:
             self.data_path = data_path
-    
+
     def load_ingredients(self) -> Dict[str, Ingredient]:
         """
         Charge les ingrédients depuis le fichier CSV.
-        
+
         Returns:
             Dictionnaire des ingrédients par ID
         """
         ingredients = {}
         csv_path = self.data_path / "ingredients.csv"
-        
+
         with open(csv_path, 'r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             for row in reader:
@@ -58,9 +58,9 @@ class DataLoader:
                     density=Decimal(row['density']) if row['density'] else None
                 )
                 ingredients[ingredient.id] = ingredient
-        
+
         return ingredients
-    
+
     def load_recipes(self) -> Dict[str, Recipe]:
         """
         Charge les recettes depuis les fichiers CSV.
@@ -85,18 +85,18 @@ class DataLoader:
                     'difficulty': int(row['difficulty']),
                     'description': row['description']
                 }
-        
+
         # Chargement des ingrédients des recettes
         items_csv = self.data_path / "recipe_items.csv"
         recipe_items = {}
-        
+
         with open(items_csv, 'r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 recipe_id = row['recipe_id']
                 if recipe_id not in recipe_items:
                     recipe_items[recipe_id] = []
-                
+
                 item = RecipeItem(
                     ingredient_id=row['ingredient_id'],
                     qty_brute=Decimal(row['qty_brute']),
@@ -104,7 +104,7 @@ class DataLoader:
                     rendement_cuisson=Decimal(row['rendement_cuisson'])
                 )
                 recipe_items[recipe_id].append(item)
-        
+
         # Création des recettes finales avec ingrédients
         recipes = {}
         for recipe_id, metadata in recipe_metadata.items():
@@ -124,17 +124,17 @@ class DataLoader:
                 recipes[recipe_id] = recipe
 
         return recipes
-    
+
     def load_suppliers(self) -> Dict[str, Supplier]:
         """
         Charge les fournisseurs depuis le fichier CSV.
-        
+
         Returns:
             Dictionnaire des fournisseurs par ID
         """
         suppliers = {}
         csv_path = self.data_path / "suppliers.csv"
-        
+
         with open(csv_path, 'r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             for row in reader:
@@ -150,29 +150,85 @@ class DataLoader:
                     discount_rate=Decimal(row['discount_rate']) if row['discount_rate'] else None
                 )
                 suppliers[supplier.id] = supplier
-        
         return suppliers
-    
+
+    def load_supplier_prices(self) -> Dict[str, List[Dict]]:
+        """Charge la mercuriale (prix fournisseurs par ingrédient)."""
+        prices_csv = self.data_path / "supplier_prices.csv"
+        catalog: Dict[str, List[Dict]] = {}
+        if not prices_csv.exists():
+            return catalog
+        with open(prices_csv, 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                ing = row['ingredient_id']
+                entry = {
+                    'supplier_id': row['supplier_id'],
+                    'quality_level': int(row['quality_level']),
+                    'pack_size': Decimal(row['pack_size']),
+                    'pack_unit': row['pack_unit'],
+                    'unit_price_ht': Decimal(row['unit_price_ht']),
+                    'vat_rate': Decimal(row['vat_rate']),
+                    'moq_qty': Decimal(row['moq_qty']) if row.get('moq_qty') else Decimal('0'),
+                    'moq_value': Decimal(row['moq_value']) if row.get('moq_value') else Decimal('0'),
+                }
+                catalog.setdefault(ing, []).append(entry)
+
+        def build_suppliers_catalog(self, suppliers: Dict[str, Supplier], prices: Dict[str, List[Dict]]) -> Dict[str, List[Dict]]:
+            """Construit un catalogue enrichi avec lead_time et fiabilité."""
+            catalog: Dict[str, List[Dict]] = {}
+            for ing_id, entries in prices.items():
+                for e in entries:
+                    sup = suppliers.get(e['supplier_id'])
+                    offer = dict(e)
+                    if sup:
+                        offer['lead_time_days'] = sup.lead_time_days
+                        offer['reliability'] = sup.reliability
+                    catalog.setdefault(ing_id, []).append(offer)
+            return catalog
+
+        return catalog
+
+    def load_ingredient_gammes(self) -> Dict[str, List[Dict]]:
+        """Charge les gammes par ingrédient (optionnel)."""
+        gammes_csv = self.data_path / "ingredients_gammes.csv"
+        gammes: Dict[str, List[Dict]] = {}
+        if not gammes_csv.exists():
+            return gammes
+        with open(gammes_csv, 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                ing = row['ingredient_id']
+                entry = {
+                    'quality_level': int(row['quality_level']),
+                    'price_multiplier': Decimal(row['price_multiplier']),
+                    'shelf_life_factor': Decimal(row['shelf_life_factor']),
+                    'quality_score': Decimal(row['quality_score'])
+                }
+                gammes.setdefault(ing, []).append(entry)
+        return gammes
+        return suppliers
+
     def load_hr_tables(self) -> Dict:
         """
         Charge les tables RH depuis le fichier JSON.
-        
+
         Returns:
             Configuration RH complète
         """
         json_path = self.data_path / "hr_tables.json"
-        
+
         with open(json_path, 'r', encoding='utf-8') as file:
             hr_data = json.load(file)
-        
+
         # Conversion des valeurs numériques en Decimal
         for contract_type, rates in hr_data.get('social_charges', {}).items():
             for rate_type, value in rates.items():
                 if isinstance(value, (int, float)):
                     hr_data['social_charges'][contract_type][rate_type] = Decimal(str(value))
-        
+
         return hr_data
-    
+
     def load_scenario(self, scenario_path: Path) -> Scenario:
         """
         Charge un scénario depuis un fichier JSON.
@@ -190,7 +246,7 @@ class DataLoader:
         else:
             with open(scenario_path, 'r', encoding='utf-8') as file:
                 data = json.load(file)
-        
+
         # Conversion des segments
         segments = []
         for segment_data in data['segments']:
@@ -199,13 +255,13 @@ class DataLoader:
             for type_name, affinity in segment_data['type_affinity'].items():
                 restaurant_type = RestaurantType(type_name)
                 type_affinity[restaurant_type] = Decimal(str(affinity))
-            
+
             # Conversion de la saisonnalité
             seasonality = {}
             if 'seasonality' in segment_data:
                 for month, factor in segment_data['seasonality'].items():
                     seasonality[int(month)] = Decimal(str(factor))
-            
+
             segment = MarketSegment(
                 name=segment_data['name'],
                 share=Decimal(str(segment_data['share'])),
@@ -216,17 +272,17 @@ class DataLoader:
                 seasonality=seasonality
             )
             segments.append(segment)
-        
+
         # Conversion des taux de TVA
         vat_rates = {}
         for category, rate in data.get('vat_rates', {}).items():
             vat_rates[category] = Decimal(str(rate))
-        
+
         # Conversion des charges sociales
         social_charges = {}
         for contract_type, rate in data.get('social_charges', {}).items():
             social_charges[contract_type] = Decimal(str(rate))
-        
+
         scenario = Scenario(
             name=data['name'],
             description=data['description'],
@@ -240,7 +296,7 @@ class DataLoader:
             ai_competitors=data.get('ai_competitors', 2),
             random_seed=data.get('random_seed')
         )
-        
+
         return scenario
 
     def _get_default_scenario_config(self) -> Dict:
@@ -325,29 +381,34 @@ class DataLoader:
     def get_default_scenario_path(self) -> Path:
         """
         Retourne le chemin vers le scénario par défaut.
-        
+
         Returns:
             Chemin vers base.yaml
         """
         return Path(__file__).parent.parent.parent.parent / "examples" / "scenarios" / "base.yaml"
-    
+
     def load_all_data(self, scenario_path: Optional[Path] = None) -> Dict:
         """
         Charge toutes les données nécessaires au jeu.
-        
+
         Args:
             scenario_path: Chemin vers le scénario (optionnel)
-            
+
         Returns:
             Dict avec toutes les données chargées
         """
         if scenario_path is None:
             scenario_path = self.get_default_scenario_path()
-        
+
+        suppliers = self.load_suppliers()
+        supplier_prices = self.load_supplier_prices()
+        suppliers_catalog = self.build_suppliers_catalog(suppliers, supplier_prices)
         return {
             'ingredients': self.load_ingredients(),
             'recipes': self.load_recipes(),
-            'suppliers': self.load_suppliers(),
+            'suppliers': suppliers,
+            'suppliers_catalog': suppliers_catalog,
+            'ingredient_gammes': self.load_ingredient_gammes(),
             'hr_tables': self.load_hr_tables(),
             'scenario': self.load_scenario(scenario_path)
         }

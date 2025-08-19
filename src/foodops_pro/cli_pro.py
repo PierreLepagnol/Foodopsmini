@@ -51,6 +51,8 @@ class FoodOpsProGame:
         self.ingredients = self.game_data['ingredients']
         self.recipes = self.game_data['recipes']
         self.suppliers = self.game_data['suppliers']
+        self.suppliers_catalog = self.game_data.get('suppliers_catalog', {})
+        self.ingredient_gammes = self.game_data.get('ingredient_gammes', {})
         self.hr_tables = self.game_data['hr_tables']
         
         # Gestionnaires
@@ -60,7 +62,10 @@ class FoodOpsProGame:
         self.market_engine = MarketEngine(self.scenario, self.scenario.random_seed)
         self.cost_calculator = RecipeCostCalculator(self.ingredients)
         self.decision_menu = DecisionMenu(self.ui, self.cost_calculator)
-        
+        # Injection des catalogues et paramètres admin
+        self.decision_menu.set_suppliers_catalog(self.suppliers_catalog)
+        self.decision_menu.set_admin_settings(self.admin_settings)
+
         self.ui.show_progress_bar(4, 5, "Finalisation")
         
         # État du jeu

@@ -23,6 +23,21 @@ class DecisionMenu:
         self.ui = ui
         self.cost_calculator = cost_calculator
         self.financial_reports = FinancialReports(ui)
+        # Catalogues et paramètres (injectés depuis le jeu/CLI)
+        self._suppliers_catalog: Dict[str, List[Dict]] = {}
+        self._available_recipes_cache: Dict[str, any] = {}
+        self._admin_settings = None
+
+    def set_suppliers_catalog(self, suppliers_catalog: Dict[str, List[Dict]]):
+        """Injection de la mercuriale (offres par ingrédient)."""
+        self._suppliers_catalog = suppliers_catalog or {}
+
+    def set_admin_settings(self, settings):
+        """Injection des paramètres admin (auto_* et confirmations)."""
+        self._admin_settings = settings
+
+    def cache_available_recipes(self, recipes: Dict[str, any]) -> None:
+        self._available_recipes_cache = recipes or {}
 
     def show_decision_menu(self, restaurant: Restaurant, turn: int,
                           available_recipes: Dict, available_employees: List = None) -> Dict[str, any]:
@@ -321,11 +336,10 @@ class DecisionMenu:
 
             submenu_options = [
                 "📋 Prévision & Besoins",
-                "🛒 Proposer une commande",
+                "🛒 Composer ma commande (manuel)",
+                "🤖 Proposer une commande (auto, revue ligne)",
                 "📥 Réception de commandes",
                 "📦 État des stocks & alertes",
-                "🏪 Analyser les fournisseurs",
-                "📊 Rapport qualité/prix",
                 "🔙 Retour"
             ]
 
@@ -334,16 +348,14 @@ class DecisionMenu:
             if choice == 1:
                 self._forecast_and_requirements(restaurant)
             elif choice == 2:
-                self._propose_purchase_order(restaurant, decisions)
+                self._compose_manual_order(restaurant)
             elif choice == 3:
-                self._receiving_interface(restaurant)
+                self._review_auto_order(restaurant)
             elif choice == 4:
-                self._stock_management_interface(restaurant)
+                self._receiving_interface(restaurant)
             elif choice == 5:
-                self._supplier_analysis_interface(restaurant)
+                self._stock_management_interface(restaurant)
             elif choice == 6:
-                self._quality_price_report(restaurant)
-            elif choice == 7:
                 break
 
         # --- Achats & Stocks: Prévision, besoins, PO, réception ---
@@ -367,20 +379,219 @@ class DecisionMenu:
             return
 
         print("📋 PRÉVISION DES VENTES (prochain tour):")
+        auto = getattr(self._admin_settings, 'auto_forecast_enabled', False)
         for rid in active.keys():
             cur = int(restaurant.sales_forecast.get(rid, 0))
+            default_qty = cur if cur else (20 if auto else 0)
             try:
-                qty = self.ui.ask_int(f"  Portions prévues pour {rid} (actuel {cur}): ", min_val=0, max_val=1000, default=cur)
+                qty = self.ui.ask_int(f"  Portions prévues pour {rid} (actuel {cur}): ", min_val=0, max_val=1000, default=default_qty)
                 restaurant.sales_forecast[rid] = qty
             except Exception:
                 continue
 
         # Calcul besoins avec ProcurementPlanner
         planner = ProcurementPlanner()
-        # Il faut la définition des recettes: dans ce contexte, on ne l'a pas directement ici.
-        # On reconstruit une liste de Recipe depuis available_recipes si accessible via self.cost_calculator
-        # Hypothèse: DecisionMenu est construit avec cost_calculator et l'appelant lui passera available_recipes ailleurs pour analyse.
-        # Ici on fait un calcul simple basé sur les IDs seulement si les recettes ne sont pas accessibles (affichage d'une info).
+        active_recipes = [self._available_recipes_cache[rid] for rid in restaurant.active_recipes if hasattr(self, "_available_recipes_cache") and rid in self._available_recipes_cache]
+        requirements = planner.compute_requirements(active_recipes, getattr(restaurant, "sales_forecast", {}), restaurant.stock_manager)
+
+        # Affichage synthétique des besoins
+        lines = ["📦 BESOINS NETS:", ""]
+        if not requirements:
+            lines.append("Aucun besoin (stock suffisant ou prévision 0)")
+        else:
+            for ing_id, qty in requirements.items():
+                lines.append(f"• {ing_id}: {qty}")
+        self.ui.print_box(lines, "BESOINS", "info")
+        self.ui.pause()
+
+    def _compose_manual_order(self, restaurant: Restaurant) -> None:
+        """Mode MANUEL: composer une commande multi-lignes à partir des besoins."""
+        planner = ProcurementPlanner()
+        active_recipes = [self._available_recipes_cache[rid] for rid in restaurant.active_recipes if hasattr(self, "_available_recipes_cache") and rid in self._available_recipes_cache]
+        requirements = planner.compute_requirements(active_recipes, getattr(restaurant, "sales_forecast", {}), restaurant.stock_manager)
+
+        if not requirements:
+            self.ui.show_info("Aucun besoin net détecté.")
+            self.ui.pause()
+            return
+
+        pending: List[POLine] = []
+        for ing_id, need in requirements.items():
+            self.ui.print_box([f"Ingrédient: {ing_id}", f"Besoin net estimé: {need}"], "COMPOSER COMMANDE", "info")
+            # Catalogue simple: issu du cost_calculator (fallback) + suppliers_catalog du jeu si dispo
+            offers = []
+            if hasattr(self, "_suppliers_catalog") and ing_id in self._suppliers_catalog:
+                offers = self._suppliers_catalog[ing_id]
+            else:
+                if ing_id in self.cost_calculator.ingredients:
+                    ing = self.cost_calculator.ingredients[ing_id]
+                    offers = [{
+                        'supplier_id': 'metro_pro', 'quality_level': 2,
+                        'pack_size': Decimal('1'), 'unit_price_ht': ing.cost_ht, 'vat_rate': ing.vat_rate,
+                        'moq_qty': Decimal('0'), 'moq_value': Decimal('0')
+                    }]
+
+            if not offers:
+                continue
+
+            added_any = False
+            while True:
+                # Liste des offres (fournisseur + gamme) avec infos complètes
+                options = [
+                    f"{o['supplier_id']} | gamme {o['quality_level']} | pack {o['pack_size']} {o.get('pack_unit','')} | "
+                    f"{o['unit_price_ht']:.2f}€ HT | TVA {o['vat_rate']:.1%} | LT {o.get('lead_time_days','?')}j | F {o.get('reliability','?')}"
+                    for o in offers
+                ]
+                choice = self.ui.show_menu(f"Choisir une offre pour {ing_id}", options)
+                if choice == 0:
+                    break
+                offer = offers[choice - 1]
+
+                qty_wanted = self.ui.get_input(
+                    f"Quantité souhaitée (peut être > besoin {need})",
+                    Decimal, min_val=Decimal('0'), default=need
+                )
+                if qty_wanted is None:
+                    break
+
+                # Arrondi pack vers le haut
+                packs = (qty_wanted / offer['pack_size']).to_integral_value(rounding='ROUND_CEILING')
+                qty_final = packs * offer['pack_size']
+
+                # MOQ quantité & valeur
+                if offer.get('moq_qty', Decimal('0')) > 0 and qty_final < offer['moq_qty']:
+                    self.ui.show_info(f"MOQ quantité {offer['moq_qty']} appliqué → ajustement")
+                    qty_final = offer['moq_qty']
+                order_value = qty_final * offer['unit_price_ht']
+                if offer.get('moq_value', Decimal('0')) > 0 and order_value < offer['moq_value']:
+                    deficit_value = offer['moq_value'] - order_value
+                    extra_units = (deficit_value / offer['unit_price_ht']).to_integral_value(rounding='ROUND_CEILING')
+                    qty_final += extra_units
+                    order_value = qty_final * offer['unit_price_ht']
+
+                line = POLine(
+                    ingredient_id=ing_id,
+                    quantity=qty_final,
+                    unit_price_ht=offer['unit_price_ht'],
+                    vat_rate=offer['vat_rate'],
+                    supplier_id=offer['supplier_id'],
+                    pack_size=offer['pack_size'],
+                )
+                pending.append(line)
+                added_any = True
+
+                # Infos coût TTC & ETA
+                cost_ttc = order_value * (Decimal('1') + offer['vat_rate'])
+                eta_days = offer.get('lead_time_days', None)
+                self.ui.show_info(f"Ligne ajoutée: {qty_final} @ {offer['unit_price_ht']:.2f}€ (HT={order_value:.2f}€, TTC={cost_ttc:.2f}€) | ETA {eta_days}j")
+
+                if not self.ui.confirm("Ajouter une autre ligne (autre offre) pour cet ingrédient ?"):
+                    break
+
+            if added_any and not self.ui.confirm("Passer à l'ingrédient suivant ?"):
+                break
+
+        if pending:
+            restaurant.pending_po_lines = pending
+            self.ui.show_success(f"{len(pending)} lignes de commande enregistrées (à réceptionner)")
+        else:
+            self.ui.show_info("Aucune ligne créée.")
+        self.ui.pause()
+
+    def _review_auto_order(self, restaurant: Restaurant) -> None:
+        """Mode AUTO: propose un PO mais oblige revue par ligne (fournisseur/gamme/quantité)."""
+        planner = ProcurementPlanner()
+        active_recipes = [self._available_recipes_cache[rid] for rid in restaurant.active_recipes if hasattr(self, "_available_recipes_cache") and rid in self._available_recipes_cache]
+        requirements = planner.compute_requirements(active_recipes, getattr(restaurant, "sales_forecast", {}), restaurant.stock_manager)
+
+        # Appliquer requirement de confirmation par ligne
+        if getattr(self._admin_settings, 'require_line_confirmation', True):
+            reviewed: List[POLine] = []
+            for i, l in enumerate(pending, 1):
+                self.ui.print_box([
+                    f"{i}. {l.ingredient_id}: {l.quantity} @ {l.unit_price_ht:.2f}€ (pack {l.pack_size}) chez {l.supplier_id}"
+                ], "REVUE LIGNE", "warning")
+                # Permettre un override quantité (sur-stock autorisé)
+                new_qty = self.ui.get_input("Quantité souhaitée (arrondi pack ensuite)", Decimal, min_val=Decimal('0'), default=l.quantity)
+                if new_qty is not None:
+                    packs = (new_qty / l.pack_size).to_integral_value(rounding='ROUND_CEILING')
+                    l = POLine(
+                        ingredient_id=l.ingredient_id,
+                        quantity=packs * l.pack_size,
+                        unit_price_ht=l.unit_price_ht,
+                        vat_rate=l.vat_rate,
+                        supplier_id=l.supplier_id,
+                        pack_size=l.pack_size
+                    )
+                reviewed.append(l)
+            pending = reviewed
+
+
+        # Construire catalogue à partir du cache
+        suppliers_catalog = {}
+        if hasattr(self, "_suppliers_catalog"):
+            # Transformer la liste d'offres en dict supplier->offer struct pour planner
+            for ing_id, offers in self._suppliers_catalog.items():
+                suppliers_catalog[ing_id] = {}
+                for o in offers:
+                    suppliers_catalog[ing_id][o['supplier_id']] = {
+                        'price_ht': o['unit_price_ht'], 'vat': o['vat_rate'], 'pack': o['pack_size'], 'moq_value': o.get('moq_value', Decimal('0'))
+                    }
+
+        auto_lines = planner.propose_purchase_orders(requirements, suppliers_catalog)
+        if not auto_lines:
+            self.ui.show_info("Aucune proposition automatique disponible.")
+            self.ui.pause()
+            return
+
+        reviewed: List[POLine] = []
+        for i, l in enumerate(auto_lines, 1):
+            need = requirements.get(l.ingredient_id, Decimal('0'))
+            order_value = l.quantity * l.unit_price_ht
+            self.ui.print_box([
+                f"{i}. {l.ingredient_id} → besoin {need}",
+                f"Proposition: {l.quantity} @ {l.unit_price_ht:.2f}€ HT (pack {l.pack_size}) chez {l.supplier_id} | HT={order_value:.2f}€"
+            ], "REVUE LIGNE", "warning")
+
+            # Choix fournisseur+gamme parmi offres
+            offers = self._suppliers_catalog.get(l.ingredient_id, []) if hasattr(self, "_suppliers_catalog") else []
+            if offers:
+                options = [
+                    f"{o['supplier_id']} | gamme {o['quality_level']} | pack {o['pack_size']} {o.get('pack_unit','')} | {o['unit_price_ht']:.2f}€ HT | TVA {o['vat_rate']:.1%} | LT {o.get('lead_time_days','?')}j | F {o.get('reliability','?')}"
+                    for o in offers
+                ]
+                ch = self.ui.show_menu("Choisir fournisseur/gamme (ou retour pour garder)", options)
+                if ch > 0:
+                    o = offers[ch - 1]
+                    l = POLine(
+                        ingredient_id=l.ingredient_id,
+                        quantity=l.quantity,
+                        unit_price_ht=o['unit_price_ht'],
+                        vat_rate=o['vat_rate'],
+                        supplier_id=o['supplier_id'],
+                        pack_size=o['pack_size']
+                    )
+
+            # Modifier quantité (sur-stock autorisé) + arrondi pack
+            new_qty = self.ui.get_input("Quantité souhaitée (arrondi pack ensuite)", Decimal, min_val=Decimal('0'), default=l.quantity)
+            if new_qty is not None:
+                packs = (new_qty / l.pack_size).to_integral_value(rounding='ROUND_CEILING')
+                l = POLine(
+                    ingredient_id=l.ingredient_id,
+                    quantity=packs * l.pack_size,
+                    unit_price_ht=l.unit_price_ht,
+                    vat_rate=l.vat_rate,
+                    supplier_id=l.supplier_id,
+                    pack_size=l.pack_size
+                )
+
+            reviewed.append(l)
+
+        restaurant.pending_po_lines = reviewed
+        self.ui.show_success("Commande automatique revue et enregistrée (à réceptionner)")
+        self.ui.pause()
+
+        # Note: les recettes doivent être en cache pour calculs précis
         if not hasattr(self, "_available_recipes_cache"):
             self.ui.show_info("Note: pour le calcul précis des besoins, les recettes doivent être connues. Cette version affichera le stock uniquement si non disponible.")
             self.ui.pause()
@@ -482,12 +693,33 @@ class DecisionMenu:
 
         # Conversion vers DeliveryLine dataclass
         from ..core.procurement import DeliveryLine, ReceivingService
-        dl_lines = [DeliveryLine(**d) for d in deliveries]
-        receiver = ReceivingService()
+        from datetime import date
+        dl_lines = []
+        for d in deliveries:
+            # Saisie multi-lots optionnelle
+            nb_lots = self.ui.ask_int(f"Nombre de lots pour {d['ingredient_id']} (1 par défaut)", min_val=1, max_val=10, default=1)
+            if nb_lots <= 1:
+                dl_lines.append(DeliveryLine(**d))
+            else:
+                qty_remaining = d['quantity_received']
+                for i in range(nb_lots):
+                    if i == nb_lots - 1:
+                        q = qty_remaining
+                    else:
+                        q = self.ui.get_input(f"  Quantité lot {i+1} (reste {qty_remaining})", Decimal, min_val=Decimal('0.001'), max_val=qty_remaining, default=(qty_remaining/Decimal(str(nb_lots-i))) )
+                    qty_remaining -= q
+                    d_copy = dict(d)
+                    d_copy['quantity_received'] = q
+                    d_copy['lot_number'] = self.ui.get_input(f"  Numéro lot {i+1} (optionnel)", str, default=f"{d['ingredient_id']}-{i+1}")
+                    dl_lines.append(DeliveryLine(**d_copy))
+
+        receiver = ReceivingService(shelf_life_rules={1: -2, 3: 0, 5: 2})
         lots = receiver.receive(dl_lines, date.today(), default_shelf_life_days=5)
 
         for lot in lots:
             restaurant.stock_manager.add_lot(lot)
+        # Archiver et vider la commande en attente
+        restaurant._last_received_lots = lots
         restaurant.pending_po_lines = []
 
         self.ui.show_success(f"{len(lots)} lots ajoutés en stock (FEFO)")
