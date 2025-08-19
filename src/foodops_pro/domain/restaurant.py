@@ -9,6 +9,7 @@ from decimal import Decimal
 
 from .employee import Employee
 from .recipe import Recipe
+from .ingredient_quality import IngredientQualityManager, QualityLevel
 
 
 class RestaurantType(Enum):
@@ -53,6 +54,12 @@ class Restaurant:
     # État du tour courant
     staffing_level: int = 2  # 0=fermé, 1=léger, 2=normal, 3=renforcé
     active_recipes: List[str] = field(default_factory=list)
+
+    # NOUVEAU: Système qualité et réputation
+    quality_manager: IngredientQualityManager = field(default_factory=IngredientQualityManager)
+    ingredient_choices: Dict[str, int] = field(default_factory=dict)  # ingredient_id -> quality_level
+    reputation: Decimal = Decimal("5.0")  # Réputation sur 10
+    customer_satisfaction_history: List[Decimal] = field(default_factory=list)
     
     def __post_init__(self) -> None:
         """Validation des données."""
@@ -198,12 +205,170 @@ class Restaurant:
     def update_cash(self, amount: Decimal, description: str = "") -> None:
         """
         Met à jour la trésorerie.
-        
+
         Args:
             amount: Montant (positif ou négatif)
             description: Description de l'opération
         """
         self.cash += amount
-    
+
+    # === MÉTHODES QUALITÉ ===
+
+    def set_ingredient_quality(self, ingredient_id: str, quality_level: int) -> None:
+        """
+        Définit le niveau de qualité pour un ingrédient.
+
+        Args:
+            ingredient_id: ID de l'ingrédient
+            quality_level: Niveau de qualité (1-5)
+        """
+        if not (1 <= quality_level <= 5):
+            raise ValueError(f"Le niveau de qualité doit être entre 1 et 5: {quality_level}")
+
+        self.ingredient_choices[ingredient_id] = quality_level
+
+    def get_overall_quality_score(self) -> Decimal:
+        """
+        Calcule le score de qualité global du restaurant.
+
+        Returns:
+            Score de qualité (1.0 à 5.0)
+        """
+        if not self.ingredient_choices:
+            # Score de base selon le type de restaurant
+            base_scores = {
+                RestaurantType.FAST: Decimal("2.0"),
+                RestaurantType.CLASSIC: Decimal("2.5"),
+                RestaurantType.BRASSERIE: Decimal("3.0"),
+                RestaurantType.GASTRONOMIQUE: Decimal("3.5")
+            }
+            return base_scores.get(self.type, Decimal("2.5"))
+
+        # Score moyen des ingrédients choisis
+        avg_ingredient_quality = sum(self.ingredient_choices.values()) / len(self.ingredient_choices)
+
+        # Score de base selon le type
+        base_quality = {
+            RestaurantType.FAST: 1.5,
+            RestaurantType.CLASSIC: 2.0,
+            RestaurantType.BRASSERIE: 2.5,
+            RestaurantType.GASTRONOMIQUE: 3.0
+        }.get(self.type, 2.0)
+
+        # Bonus staff (formation)
+        staff_bonus = (self.staffing_level - 1) * 0.2
+
+        # Score final
+        final_score = base_quality + (avg_ingredient_quality - 2.0) * 0.6 + staff_bonus
+        return Decimal(str(min(5.0, max(1.0, final_score))))
+
+    def get_quality_description(self) -> str:
+        """Retourne une description textuelle de la qualité."""
+        score = float(self.get_overall_quality_score())
+
+        if score >= 4.5:
+            return "⭐⭐⭐⭐⭐ Luxe"
+        elif score >= 3.5:
+            return "⭐⭐⭐⭐ Premium"
+        elif score >= 2.5:
+            return "⭐⭐⭐ Supérieur"
+        elif score >= 1.5:
+            return "⭐⭐ Standard"
+        else:
+            return "⭐ Économique"
+
+    def update_customer_satisfaction(self, satisfaction: Decimal) -> None:
+        """
+        Met à jour la satisfaction client et la réputation.
+
+        Args:
+            satisfaction: Score de satisfaction (0-5)
+        """
+        # Ajouter à l'historique
+        self.customer_satisfaction_history.append(satisfaction)
+
+        # Garder seulement les 10 dernières mesures
+        if len(self.customer_satisfaction_history) > 10:
+            self.customer_satisfaction_history = self.customer_satisfaction_history[-10:]
+
+        # Mise à jour progressive de la réputation
+        target_reputation = satisfaction * 2  # Satisfaction 0-5 -> Réputation 0-10
+        reputation_change = (target_reputation - self.reputation) * Decimal("0.15")
+        self.reputation = max(Decimal("0"), min(Decimal("10"), self.reputation + reputation_change))
+
+    def get_average_satisfaction(self) -> Decimal:
+        """Retourne la satisfaction moyenne récente."""
+        if not self.customer_satisfaction_history:
+            return Decimal("2.5")  # Neutre par défaut
+
+        return sum(self.customer_satisfaction_history) / len(self.customer_satisfaction_history)
+
+    def calculate_quality_cost_impact(self) -> Decimal:
+        """
+        Calcule l'impact de la qualité sur les coûts.
+
+        Returns:
+            Multiplicateur de coût (ex: 1.25 = +25%)
+        """
+        if not self.ingredient_choices:
+            return Decimal("1.0")
+
+        # Multiplicateurs de coût par niveau de qualité
+        cost_multipliers = {
+            1: Decimal("0.70"),  # -30%
+            2: Decimal("1.00"),  # Standard
+            3: Decimal("1.25"),  # +25%
+            4: Decimal("1.50"),  # +50%
+            5: Decimal("2.00")   # +100%
+        }
+
+        # Moyenne pondérée des multiplicateurs
+        total_multiplier = Decimal("0")
+        for quality_level in self.ingredient_choices.values():
+            total_multiplier += cost_multipliers.get(quality_level, Decimal("1.0"))
+
+        return total_multiplier / len(self.ingredient_choices)
+
+    def get_quality_attractiveness_factor(self, customer_segment: str = "general") -> Decimal:
+        """
+        Calcule le facteur d'attractivité basé sur la qualité.
+
+        Args:
+            customer_segment: Segment de clientèle
+
+        Returns:
+            Multiplicateur d'attractivité
+        """
+        quality_score = float(self.get_overall_quality_score())
+
+        # Sensibilité à la qualité par segment
+        quality_sensitivity = {
+            "students": 0.5,    # Moins sensibles
+            "families": 1.0,    # Sensibilité normale
+            "foodies": 1.5,     # Très sensibles
+            "general": 1.0      # Par défaut
+        }.get(customer_segment, 1.0)
+
+        # Facteur de base selon le score
+        if quality_score <= 1.5:
+            base_factor = 0.80  # -20%
+        elif quality_score <= 2.5:
+            base_factor = 1.00  # Neutre
+        elif quality_score <= 3.5:
+            base_factor = 1.15  # +15%
+        elif quality_score <= 4.5:
+            base_factor = 1.30  # +30%
+        else:
+            base_factor = 1.50  # +50%
+
+        # Ajustement selon la sensibilité
+        if base_factor > 1.0:
+            bonus = (base_factor - 1.0) * quality_sensitivity
+            return Decimal(str(1.0 + bonus))
+        else:
+            malus = (1.0 - base_factor) * quality_sensitivity
+            return Decimal(str(1.0 - malus))
+
     def __str__(self) -> str:
-        return f"{self.name} ({self.type.value}, {self.capacity_current} couverts)"
+        quality_desc = self.get_quality_description()
+        return f"{self.name} ({self.type.value}, {self.capacity_current} couverts, {quality_desc})"

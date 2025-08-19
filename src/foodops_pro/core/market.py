@@ -9,6 +9,7 @@ import random
 
 from ..domain.restaurant import Restaurant
 from ..domain.scenario import Scenario, MarketSegment
+from ..domain.seasonality import SeasonalityManager
 
 
 @dataclass
@@ -53,7 +54,7 @@ class MarketEngine:
     def __init__(self, scenario: Scenario, random_seed: Optional[int] = None) -> None:
         """
         Initialise le moteur de marché.
-        
+
         Args:
             scenario: Scénario de jeu
             random_seed: Graine aléatoire pour reproductibilité
@@ -61,6 +62,7 @@ class MarketEngine:
         self.scenario = scenario
         self.rng = random.Random(random_seed or scenario.random_seed)
         self.turn_history: List[Dict[str, AllocationResult]] = []
+        self.seasonality_manager = SeasonalityManager()  # NOUVEAU: Gestionnaire saisonnalité
     
     def allocate_demand(self, restaurants: List[Restaurant], 
                        turn: int, month: int = 1) -> Dict[str, AllocationResult]:
@@ -86,7 +88,12 @@ class MarketEngine:
         total_allocated = 0
         
         for segment in self.scenario.segments:
-            segment_demand = int(total_demand * segment.share)
+            base_segment_demand = int(total_demand * segment.share)
+
+            # NOUVEAU: Application de la saisonnalité
+            seasonal_bonus = self._get_seasonal_demand_bonus(segment.name, month)
+            segment_demand = int(base_segment_demand * seasonal_bonus)
+
             segment_allocation = self._allocate_segment_demand(
                 restaurants, segment, segment_demand
             )
@@ -234,40 +241,92 @@ class MarketEngine:
     def _calculate_quality_factor(self, restaurant: Restaurant,
                                 segment: MarketSegment) -> Decimal:
         """
-        Calcule le facteur qualité perçue.
+        Calcule le facteur qualité perçue avec le nouveau système qualité.
 
         Args:
             restaurant: Restaurant évalué
             segment: Segment de marché
 
         Returns:
-            Facteur qualité (0.5 à 1.5)
+            Facteur qualité (0.5 à 2.0)
         """
-        # Proxy qualité basé sur le type de restaurant et le staffing
-        base_quality = {
-            'fast': Decimal("0.8"),
-            'classic': Decimal("1.0"),
-            'gastronomique': Decimal("1.3"),
-            'brasserie': Decimal("1.1")
+        # NOUVEAU: Utilisation du score de qualité du restaurant
+        quality_score = restaurant.get_overall_quality_score()
+
+        # Conversion du score qualité (1-5) en facteur d'attractivité
+        if quality_score <= Decimal("1.5"):
+            base_factor = Decimal("0.70")  # -30%
+        elif quality_score <= Decimal("2.5"):
+            base_factor = Decimal("1.00")  # Neutre
+        elif quality_score <= Decimal("3.5"):
+            base_factor = Decimal("1.20")  # +20%
+        elif quality_score <= Decimal("4.5"):
+            base_factor = Decimal("1.40")  # +40%
+        else:
+            base_factor = Decimal("1.60")  # +60%
+
+        # NOUVEAU: Sensibilité à la qualité par segment
+        segment_name = segment.name.lower()
+        quality_sensitivity = Decimal("1.0")
+
+        if "student" in segment_name or "étudiant" in segment_name:
+            quality_sensitivity = Decimal("0.6")  # Moins sensibles
+        elif "foodie" in segment_name or "gourmet" in segment_name:
+            quality_sensitivity = Decimal("1.4")  # Très sensibles
+        elif "family" in segment_name or "famille" in segment_name:
+            quality_sensitivity = Decimal("1.0")  # Sensibilité normale
+
+        # Ajustement selon la sensibilité du segment
+        if base_factor > Decimal("1.0"):
+            bonus = (base_factor - Decimal("1.0")) * quality_sensitivity
+            final_factor = Decimal("1.0") + bonus
+        else:
+            malus = (Decimal("1.0") - base_factor) * quality_sensitivity
+            final_factor = Decimal("1.0") - malus
+
+        # NOUVEAU: Impact de la réputation
+        reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
+        reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
+
+        final_factor += reputation_bonus
+
+        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
+
+    def _get_seasonal_demand_bonus(self, segment_name: str, month: int) -> Decimal:
+        """
+        Calcule le bonus de demande saisonnier pour un segment.
+
+        Args:
+            segment_name: Nom du segment
+            month: Mois de l'année (1-12)
+
+        Returns:
+            Multiplicateur saisonnier (0.8 à 1.3)
+        """
+        # Bonus saisonniers par segment et mois
+        seasonal_bonuses = {
+            "étudiants": {
+                1: 0.9, 2: 0.9, 3: 1.0, 4: 1.0, 5: 1.0, 6: 1.1,
+                7: 1.2, 8: 1.2, 9: 1.0, 10: 1.0, 11: 0.9, 12: 0.9
+            },
+            "familles": {
+                1: 1.0, 2: 1.0, 3: 1.0, 4: 1.1, 5: 1.1, 6: 1.2,
+                7: 1.3, 8: 1.3, 9: 1.0, 10: 1.0, 11: 1.0, 12: 1.1
+            },
+            "foodies": {
+                1: 1.0, 2: 1.0, 3: 1.1, 4: 1.2, 5: 1.2, 6: 1.1,
+                7: 1.0, 8: 1.0, 9: 1.1, 10: 1.2, 11: 1.1, 12: 1.2
+            }
         }
 
-        quality = base_quality.get(restaurant.type.value, Decimal("1.0"))
+        # Recherche par nom de segment (insensible à la casse)
+        segment_lower = segment_name.lower()
+        for key, bonuses in seasonal_bonuses.items():
+            if key in segment_lower:
+                return Decimal(str(bonuses.get(month, 1.0)))
 
-        # Ajustement selon le staffing
-        staffing_quality = {
-            0: Decimal("0.5"),   # Fermé
-            1: Decimal("0.8"),   # Léger
-            2: Decimal("1.0"),   # Normal
-            3: Decimal("1.2")    # Renforcé
-        }
-
-        quality *= staffing_quality.get(restaurant.staffing_level, Decimal("1.0"))
-
-        # Application de la sensibilité qualité du segment
-        sensitivity = segment.quality_sensitivity
-        adjusted_quality = Decimal("1.0") + (quality - Decimal("1.0")) * sensitivity
-
-        return max(Decimal("0.5"), min(Decimal("1.5"), adjusted_quality))
+        # Par défaut, pas de bonus saisonnier
+        return Decimal("1.0")
 
     def _apply_capacity_constraints(self, restaurants: List[Restaurant],
                                   results: Dict[str, AllocationResult]) -> Dict[str, AllocationResult]:
@@ -365,6 +424,30 @@ class MarketEngine:
                 total_revenue += price * recipe_customers
 
         result.revenue = total_revenue
+
+        # NOUVEAU: Calcul et mise à jour de la satisfaction client
+        if result.served_customers > 0:
+            # Satisfaction basée sur le rapport qualité/prix
+            quality_score = restaurant.get_overall_quality_score()
+            average_ticket = result.revenue / Decimal(result.served_customers)
+
+            # Ratio prix/qualité (prix par étoile de qualité)
+            price_quality_ratio = average_ticket / quality_score if quality_score > 0 else average_ticket
+
+            # Calcul de la satisfaction (0-5)
+            if price_quality_ratio <= Decimal("2.5"):  # Excellent rapport
+                satisfaction = Decimal("5.0")
+            elif price_quality_ratio <= Decimal("3.5"):  # Bon rapport
+                satisfaction = Decimal("4.0")
+            elif price_quality_ratio <= Decimal("4.5"):  # Correct
+                satisfaction = Decimal("3.0")
+            elif price_quality_ratio <= Decimal("6.0"):  # Cher
+                satisfaction = Decimal("2.0")
+            else:  # Très cher
+                satisfaction = Decimal("1.0")
+
+            # Mise à jour de la satisfaction et réputation du restaurant
+            restaurant.update_customer_satisfaction(satisfaction)
 
         # Recalculer les métriques dérivées
         if result.capacity > 0:

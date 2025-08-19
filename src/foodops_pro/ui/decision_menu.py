@@ -321,6 +321,8 @@ class DecisionMenu:
                 "🏪 Analyser les fournisseurs",
                 "📊 Rapport qualité/prix",
                 "⚠️ Alertes et promotions",
+                "📈 Marketing & Communication",
+                "💰 Finance avancée",
                 "🔙 Retour"
             ]
 
@@ -337,38 +339,81 @@ class DecisionMenu:
             elif choice == 5:
                 self._alerts_promotions_interface(restaurant)
             elif choice == 6:
+                self._marketing_interface(restaurant, decisions)
+            elif choice == 7:
+                self._finance_interface(restaurant, decisions)
+            elif choice == 8:
                 break
 
     def _place_order_interface(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Interface de commande avec choix de qualité."""
-        self.ui.show_info("🛒 COMMANDE D'INGRÉDIENTS")
+        self.ui.clear_screen()
+        self.ui.show_info("🛒 CHOIX QUALITÉ DES INGRÉDIENTS")
 
-        # Simuler l'affichage des options de qualité
-        example_ingredients = [
-            {
-                'name': 'Steak haché',
-                'variants': [
-                    {'quality': '⭐ Surgelé', 'price': '5.95€/kg', 'supplier': 'Davigel'},
-                    {'quality': '⭐⭐ Frais standard', 'price': '8.50€/kg', 'supplier': 'Metro Pro'},
-                    {'quality': '⭐⭐⭐⭐ Bio', 'price': '12.75€/kg', 'supplier': 'Bio France'},
-                ]
-            },
-            {
-                'name': 'Tomates',
-                'variants': [
-                    {'quality': '⭐ Conserve', 'price': '2.24€/kg', 'supplier': 'Metro Pro'},
-                    {'quality': '⭐⭐ Frais import', 'price': '3.20€/kg', 'supplier': 'Rungis Direct'},
-                    {'quality': '⭐⭐⭐⭐⭐ Terroir', 'price': '6.40€/kg', 'supplier': 'Ferme Locale'},
-                ]
-            }
+        # Affichage de l'état actuel
+        current_quality = restaurant.get_overall_quality_score()
+        print(f"\n📊 QUALITÉ ACTUELLE: {restaurant.get_quality_description()} ({current_quality:.1f}/5)")
+        print(f"💰 Impact coût: {restaurant.calculate_quality_cost_impact():.0%}")
+        print(f"⭐ Réputation: {restaurant.reputation:.1f}/10")
+
+        # Choix des ingrédients principaux
+        ingredients_to_configure = [
+            ("beef_ground", "🥩 Viande (bœuf haché)"),
+            ("tomato", "🍅 Légumes (tomates)"),
+            ("cheese_mozzarella", "🧀 Fromage (mozzarella)"),
+            ("flour", "🌾 Féculents (farine)")
         ]
 
-        for ingredient in example_ingredients:
-            self.ui.print_section(f"📋 {ingredient['name']}")
-            for variant in ingredient['variants']:
-                print(f"   {variant['quality']} - {variant['price']} ({variant['supplier']})")
+        print(f"\n🎯 NIVEAUX DE QUALITÉ DISPONIBLES:")
+        print(f"   1⭐ Économique (-30% coût, -20% satisfaction)")
+        print(f"   2⭐ Standard (prix de référence)")
+        print(f"   3⭐ Supérieur (+25% coût, +15% satisfaction)")
+        print(f"   4⭐ Premium (+50% coût, +30% satisfaction)")
+        print(f"   5⭐ Luxe (+100% coût, +50% satisfaction)")
 
-        self.ui.show_info("💡 Choisissez vos ingrédients selon votre stratégie qualité/prix")
+        changes_made = False
+
+        for ingredient_id, ingredient_name in ingredients_to_configure:
+            current_level = restaurant.ingredient_choices.get(ingredient_id, 2)
+            print(f"\n{ingredient_name} (actuel: {current_level}⭐)")
+
+            try:
+                new_level = self.ui.ask_int(
+                    f"   Nouveau niveau (1-5) [actuel: {current_level}]: ",
+                    min_val=1, max_val=5, default=current_level
+                )
+
+                if new_level != current_level:
+                    restaurant.set_ingredient_quality(ingredient_id, new_level)
+                    changes_made = True
+                    print(f"   ✅ {ingredient_name} mis à jour: {current_level}⭐ → {new_level}⭐")
+
+            except (ValueError, KeyboardInterrupt):
+                print(f"   ⏭️ {ingredient_name} inchangé")
+                continue
+
+        if changes_made:
+            # Recalcul des métriques
+            new_quality = restaurant.get_overall_quality_score()
+            new_cost_impact = restaurant.calculate_quality_cost_impact()
+
+            print(f"\n📈 IMPACT DES CHANGEMENTS:")
+            print(f"   Qualité: {current_quality:.1f}/5 → {new_quality:.1f}/5")
+            print(f"   Coût matières: {restaurant.calculate_quality_cost_impact():.0%}")
+            print(f"   Description: {restaurant.get_quality_description()}")
+
+            # Sauvegarde dans les décisions
+            decisions['ingredient_quality_changes'] = {
+                'previous_score': float(current_quality),
+                'new_score': float(new_quality),
+                'cost_impact': float(new_cost_impact),
+                'ingredients': dict(restaurant.ingredient_choices)
+            }
+
+            self.ui.show_success("✅ Choix de qualité enregistrés !")
+        else:
+            self.ui.show_info("ℹ️ Aucun changement effectué")
+
         self.ui.pause()
 
     def _stock_management_interface(self, restaurant: Restaurant) -> None:
@@ -423,26 +468,97 @@ class DecisionMenu:
         self.ui.pause()
 
     def _quality_price_report(self, restaurant: Restaurant) -> None:
-        """Rapport qualité/prix."""
-        self.ui.show_info("📊 RAPPORT QUALITÉ/PRIX")
+        """Rapport qualité/prix détaillé."""
+        self.ui.clear_screen()
+        self.ui.show_info("📊 RAPPORT QUALITÉ/PRIX DÉTAILLÉ")
+
+        # Métriques actuelles
+        quality_score = restaurant.get_overall_quality_score()
+        cost_impact = restaurant.calculate_quality_cost_impact()
+        avg_satisfaction = restaurant.get_average_satisfaction()
+        avg_ticket = restaurant.get_average_ticket()
+
+        # Facteurs d'attractivité par segment
+        segments = ["students", "families", "foodies"]
+        attractiveness_factors = {}
+        for segment in segments:
+            factor = restaurant.get_quality_attractiveness_factor(segment)
+            attractiveness_factors[segment] = factor
 
         report_data = [
-            "📈 IMPACT QUALITÉ SUR VOS VENTES:",
+            "📈 MÉTRIQUES QUALITÉ ACTUELLES:",
             "",
-            "Score qualité actuel: ⭐⭐⭐ (3.2/5)",
-            "Impact sur attractivité: +15%",
+            f"Score qualité global: {restaurant.get_quality_description()} ({quality_score:.1f}/5)",
+            f"Impact sur coûts: {cost_impact:.0%}",
+            f"Satisfaction client: {avg_satisfaction:.1f}/5",
+            f"Réputation: {restaurant.reputation:.1f}/10",
+            f"Ticket moyen: {avg_ticket:.2f}€",
+            "",
+            "🎯 ATTRACTIVITÉ PAR SEGMENT:",
+            "",
+            f"• Étudiants: {attractiveness_factors['students']:.0%} (sensibilité faible)",
+            f"• Familles: {attractiveness_factors['families']:.0%} (sensibilité normale)",
+            f"• Foodies: {attractiveness_factors['foodies']:.0%} (sensibilité élevée)",
             "",
             "💰 ANALYSE COÛT/BÉNÉFICE:",
-            "• Passer en bio (+50% coût) = +30% satisfaction",
-            "• ROI estimé: +12% de marge sur 6 mois",
-            "",
-            "🎯 RECOMMANDATIONS:",
-            "• Privilégier le bio sur 2-3 ingrédients clés",
-            "• Garder l'économique sur les accompagnements",
-            "• Communiquer sur la qualité pour justifier les prix"
+            ""
         ]
 
-        self.ui.print_box(report_data, "QUALITÉ/PRIX")
+        # Simulation d'amélioration qualité
+        if quality_score < 4.0:
+            target_quality = min(5.0, quality_score + 1.0)
+            cost_increase = 25  # Estimation +25% pour +1 niveau
+            satisfaction_increase = 15  # Estimation +15% satisfaction
+
+            report_data.extend([
+                f"📈 SIMULATION AMÉLIORATION (+1 niveau qualité):",
+                f"• Coût supplémentaire estimé: +{cost_increase}%",
+                f"• Satisfaction supplémentaire: +{satisfaction_increase}%",
+                f"• Nouvelle attractivité foodies: +{satisfaction_increase * 1.5:.0f}%",
+                ""
+            ])
+
+        # Recommandations personnalisées
+        recommendations = []
+
+        if quality_score < 2.5:
+            recommendations.append("🔴 PRIORITÉ: Améliorer la qualité de base")
+            recommendations.append("• Passer au moins 2 ingrédients en niveau 3⭐")
+        elif quality_score < 3.5:
+            recommendations.append("🟡 OPPORTUNITÉ: Différenciation qualité")
+            recommendations.append("• Cibler les foodies avec du premium (4⭐)")
+        else:
+            recommendations.append("🟢 EXCELLENCE: Maintenir la qualité")
+            recommendations.append("• Optimiser les coûts sans perdre en qualité")
+
+        if restaurant.reputation < 6.0:
+            recommendations.append("• Améliorer la satisfaction pour la réputation")
+
+        if avg_ticket > 0 and quality_score > 0:
+            price_quality_ratio = float(avg_ticket / quality_score)
+            if price_quality_ratio > 4.0:
+                recommendations.append("• Prix élevé vs qualité: risque de perte clients")
+            elif price_quality_ratio < 2.5:
+                recommendations.append("• Excellent rapport qualité/prix: potentiel hausse prix")
+
+        report_data.extend(["🎯 RECOMMANDATIONS PERSONNALISÉES:", ""])
+        report_data.extend(recommendations)
+
+        # Détail des ingrédients
+        if restaurant.ingredient_choices:
+            report_data.extend(["", "🥘 DÉTAIL INGRÉDIENTS:", ""])
+            for ingredient_id, level in restaurant.ingredient_choices.items():
+                ingredient_name = {
+                    "beef_ground": "Viande",
+                    "tomato": "Légumes",
+                    "cheese_mozzarella": "Fromage",
+                    "flour": "Féculents"
+                }.get(ingredient_id, ingredient_id)
+
+                stars = "⭐" * level
+                report_data.append(f"• {ingredient_name}: {stars} (niveau {level})")
+
+        self.ui.print_box(report_data, "RAPPORT QUALITÉ/PRIX")
         self.ui.pause()
 
     def _alerts_promotions_interface(self, restaurant: Restaurant) -> None:
@@ -468,6 +584,169 @@ class DecisionMenu:
         ]
 
         self.ui.print_box(alerts_data, "ALERTES")
+        self.ui.pause()
+
+    def _marketing_interface(self, restaurant: Restaurant, decisions: Dict) -> None:
+        """Interface marketing et communication."""
+        self.ui.clear_screen()
+        self.ui.show_info("📈 MARKETING & COMMUNICATION")
+
+        # Simuler l'état marketing actuel
+        print(f"\n📊 ÉTAT MARKETING ACTUEL:")
+        print(f"   Réputation en ligne: 4.2/5 ⭐ (127 avis)")
+        print(f"   Budget marketing mensuel: 850€")
+        print(f"   Campagnes actives: 2")
+        print(f"   ROI marketing: 3.2x")
+
+        # Options de campagnes
+        print(f"\n🎯 CAMPAGNES DISPONIBLES:")
+        campaigns = [
+            {"name": "Réseaux sociaux", "cost": "50€/jour", "reach": "1000 personnes", "conversion": "2.5%"},
+            {"name": "Publicité locale", "cost": "80€/jour", "reach": "750 personnes", "conversion": "3.5%"},
+            {"name": "Programme fidélité", "cost": "30€/jour", "reach": "150 clients", "conversion": "15%"},
+            {"name": "Événement spécial", "cost": "200€/jour", "reach": "400 personnes", "conversion": "8%"},
+        ]
+
+        for i, campaign in enumerate(campaigns, 1):
+            print(f"   {i}. {campaign['name']}: {campaign['cost']} - {campaign['reach']} - {campaign['conversion']}")
+
+        print(f"\n💡 RECOMMANDATIONS:")
+        print(f"   • Augmenter présence réseaux sociaux (+20% clients jeunes)")
+        print(f"   • Lancer programme fidélité (rétention +30%)")
+        print(f"   • Répondre aux avis négatifs (réputation +0.3)")
+
+        # Choix de campagne
+        try:
+            choice = self.ui.ask_int("Lancer une campagne (1-4) ou 0 pour passer: ", min_val=0, max_val=4, default=0)
+            if choice > 0:
+                campaign = campaigns[choice - 1]
+                duration = self.ui.ask_int(f"Durée en jours pour '{campaign['name']}': ", min_val=1, max_val=30, default=7)
+
+                decisions['marketing_campaign'] = {
+                    'type': campaign['name'],
+                    'cost_per_day': campaign['cost'],
+                    'duration': duration,
+                    'expected_reach': campaign['reach'],
+                    'expected_conversion': campaign['conversion']
+                }
+
+                self.ui.show_success(f"✅ Campagne '{campaign['name']}' programmée pour {duration} jours")
+            else:
+                self.ui.show_info("ℹ️ Aucune campagne lancée")
+
+        except (ValueError, KeyboardInterrupt):
+            self.ui.show_info("ℹ️ Aucune campagne lancée")
+
+        self.ui.pause()
+
+    def _finance_interface(self, restaurant: Restaurant, decisions: Dict) -> None:
+        """Interface finance avancée."""
+        self.ui.clear_screen()
+        self.ui.show_info("💰 FINANCE AVANCÉE")
+
+        # Simuler les données financières
+        print(f"\n📊 TABLEAU DE BORD FINANCIER:")
+        print(f"   Trésorerie: 12,450€")
+        print(f"   CA mensuel: 28,750€")
+        print(f"   Marge brute: 65.2%")
+        print(f"   Résultat net: 4,320€ (15.0%)")
+
+        print(f"\n📈 RATIOS FINANCIERS:")
+        print(f"   Liquidité: 2.1 (Bon)")
+        print(f"   Endettement: 35% (Acceptable)")
+        print(f"   ROE: 18.5% (Excellent)")
+        print(f"   Rotation stocks: 12x/an (Optimal)")
+
+        print(f"\n🍽️ RENTABILITÉ PAR PLAT:")
+        dishes = [
+            {"name": "Burger Classic", "price": "12.50€", "cost": "4.20€", "margin": "66.4%", "volume": 145},
+            {"name": "Salade César", "price": "9.80€", "cost": "3.10€", "margin": "68.4%", "volume": 89},
+            {"name": "Pizza Margherita", "price": "11.00€", "cost": "3.80€", "margin": "65.5%", "volume": 112},
+            {"name": "Pâtes Carbonara", "price": "10.50€", "cost": "2.90€", "margin": "72.4%", "volume": 78}
+        ]
+
+        for dish in dishes:
+            print(f"   • {dish['name']}: {dish['price']} (coût: {dish['cost']}, marge: {dish['margin']}, vol: {dish['volume']})")
+
+        print(f"\n💡 RECOMMANDATIONS FINANCIÈRES:")
+        print(f"   • Augmenter prix Burger Classic (+0.50€ = +290€/mois)")
+        print(f"   • Promouvoir Pâtes Carbonara (marge la plus élevée)")
+        print(f"   • Optimiser coûts Pizza Margherita (-0.20€ coût)")
+        print(f"   • Négocier délais fournisseurs (trésorerie +15%)")
+
+        # Options financières
+        print(f"\n🎯 ACTIONS DISPONIBLES:")
+        print(f"   1. Demander un prêt bancaire")
+        print(f"   2. Investir dans du matériel")
+        print(f"   3. Optimiser la trésorerie")
+        print(f"   4. Analyser un investissement")
+
+        try:
+            choice = self.ui.ask_int("Choisir une action (1-4) ou 0 pour passer: ", min_val=0, max_val=4, default=0)
+
+            if choice == 1:
+                amount = self.ui.ask_float("Montant du prêt souhaité (€): ", min_val=1000, max_val=50000, default=10000)
+                decisions['loan_request'] = {
+                    'amount': amount,
+                    'purpose': 'expansion',
+                    'estimated_rate': '4.5%'
+                }
+                self.ui.show_success(f"✅ Demande de prêt de {amount:,.0f}€ enregistrée")
+
+            elif choice == 2:
+                equipment_options = [
+                    {"name": "Four professionnel", "cost": 8500, "benefit": "+20% capacité"},
+                    {"name": "Système de caisse", "cost": 2200, "benefit": "+15% efficacité"},
+                    {"name": "Frigo supplémentaire", "cost": 3800, "benefit": "+30% stocks"}
+                ]
+
+                print(f"\n🔧 ÉQUIPEMENTS DISPONIBLES:")
+                for i, eq in enumerate(equipment_options, 1):
+                    print(f"   {i}. {eq['name']}: {eq['cost']}€ ({eq['benefit']})")
+
+                eq_choice = self.ui.ask_int("Choisir équipement (1-3): ", min_val=1, max_val=3, default=1)
+                equipment = equipment_options[eq_choice - 1]
+
+                decisions['equipment_purchase'] = {
+                    'name': equipment['name'],
+                    'cost': equipment['cost'],
+                    'benefit': equipment['benefit']
+                }
+                self.ui.show_success(f"✅ Achat {equipment['name']} programmé")
+
+            elif choice == 3:
+                print(f"\n💰 OPTIMISATION TRÉSORERIE:")
+                print(f"   • Négocier délais paiement fournisseurs: +2,100€")
+                print(f"   • Accélérer encaissements clients: +850€")
+                print(f"   • Optimiser niveau stocks: +1,200€")
+
+                decisions['cash_optimization'] = True
+                self.ui.show_success("✅ Plan d'optimisation trésorerie activé")
+
+            elif choice == 4:
+                investment_amount = self.ui.ask_float("Montant investissement (€): ", min_val=1000, max_val=30000, default=5000)
+                expected_return = investment_amount * 0.15  # 15% de retour estimé
+                payback_months = investment_amount / (expected_return / 12)
+
+                print(f"\n📊 ANALYSE INVESTISSEMENT:")
+                print(f"   Investissement: {investment_amount:,.0f}€")
+                print(f"   Retour annuel estimé: {expected_return:,.0f}€")
+                print(f"   Retour sur investissement: 15%")
+                print(f"   Période de retour: {payback_months:.1f} mois")
+
+                decisions['investment_analysis'] = {
+                    'amount': investment_amount,
+                    'expected_return': expected_return,
+                    'roi': 0.15,
+                    'payback_months': payback_months
+                }
+
+            else:
+                self.ui.show_info("ℹ️ Aucune action financière")
+
+        except (ValueError, KeyboardInterrupt):
+            self.ui.show_info("ℹ️ Aucune action financière")
+
         self.ui.pause()
     
     def _marketing_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
