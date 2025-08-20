@@ -317,3 +317,52 @@ class GameStatePersistence:
 
         with open(output_path, "w", encoding="utf-8") as file:
             json.dump(summary, file, cls=DecimalEncoder, indent=2, ensure_ascii=False)
+
+
+@dataclass
+class CampaignProgress:
+    """Représente la progression d'une campagne de scénarios."""
+
+    campaign_name: str
+    scenario_names: List[str]
+    current_index: int = 0
+
+    def to_dict(self) -> Dict:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> "CampaignProgress":
+        return cls(**data)
+
+
+class CampaignPersistence:
+    """Gestion de la persistance des campagnes."""
+
+    def __init__(self, save_directory: Optional[Path] = None) -> None:
+        if save_directory is None:
+            self.save_directory = Path.home() / ".foodops_pro" / "campaigns"
+        else:
+            self.save_directory = save_directory
+        self.save_directory.mkdir(parents=True, exist_ok=True)
+
+    def _get_path(self, campaign_name: str) -> Path:
+        return self.save_directory / f"campaign_{campaign_name}.json"
+
+    def save_progress(self, progress: CampaignProgress) -> Path:
+        """Sauvegarde la progression de campagne."""
+        filepath = self._get_path(progress.campaign_name)
+        with open(filepath, "w", encoding="utf-8") as file:
+            json.dump(progress.to_dict(), file, indent=2, ensure_ascii=False)
+        return filepath
+
+    def load_progress(self, campaign_name: str) -> Optional[CampaignProgress]:
+        """Charge la progression d'une campagne."""
+        filepath = self._get_path(campaign_name)
+        if not filepath.exists():
+            return None
+        try:
+            with open(filepath, "r", encoding="utf-8") as file:
+                data = json.load(file)
+            return CampaignProgress.from_dict(data)
+        except (json.JSONDecodeError, KeyError, TypeError):
+            return None
