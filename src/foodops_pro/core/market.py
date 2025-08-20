@@ -17,7 +17,7 @@ from ..domain.competition import CompetitionManager
 class AllocationResult:
     """
     Résultat de l'allocation de marché pour un restaurant.
-    
+
     Attributes:
         restaurant_id: ID du restaurant
         allocated_demand: Demande allouée
@@ -28,7 +28,7 @@ class AllocationResult:
         revenue: Chiffre d'affaires généré
         average_ticket: Ticket moyen
     """
-    
+
     restaurant_id: str
     allocated_demand: int = 0
     served_customers: int = 0
@@ -37,21 +37,31 @@ class AllocationResult:
     lost_customers: int = 0
     revenue: Decimal = Decimal("0")
     average_ticket: Decimal = Decimal("0")
-    
+
     def __post_init__(self) -> None:
         """Calcule les métriques dérivées."""
         if self.capacity > 0:
-            object.__setattr__(self, 'utilization_rate', Decimal(self.served_customers) / Decimal(self.capacity))
-        object.__setattr__(self, 'lost_customers', max(0, self.allocated_demand - self.served_customers))
+            object.__setattr__(
+                self,
+                "utilization_rate",
+                Decimal(self.served_customers) / Decimal(self.capacity),
+            )
+        object.__setattr__(
+            self,
+            "lost_customers",
+            max(0, self.allocated_demand - self.served_customers),
+        )
         if self.served_customers > 0:
-            object.__setattr__(self, 'average_ticket', self.revenue / Decimal(self.served_customers))
+            object.__setattr__(
+                self, "average_ticket", self.revenue / Decimal(self.served_customers)
+            )
 
 
 class MarketEngine:
     """
     Moteur de simulation du marché avec allocation de la demande.
     """
-    
+
     def __init__(self, scenario: Scenario, random_seed: Optional[int] = None) -> None:
         """
         Initialise le moteur de marché.
@@ -64,18 +74,21 @@ class MarketEngine:
         self.rng = random.Random(random_seed or scenario.random_seed)
         self.turn_history: List[Dict[str, AllocationResult]] = []
         self.seasonality_manager = SeasonalityManager()  # Gestionnaire saisonnalité
-        self.competition_manager = CompetitionManager(random_seed)  # NOUVEAU: Gestionnaire concurrence
-    
-    def allocate_demand(self, restaurants: List[Restaurant], 
-                       turn: int, month: int = 1) -> Dict[str, AllocationResult]:
+        self.competition_manager = CompetitionManager(
+            random_seed
+        )  # NOUVEAU: Gestionnaire concurrence
+
+    def allocate_demand(
+        self, restaurants: List[Restaurant], turn: int, month: int = 1
+    ) -> Dict[str, AllocationResult]:
         """
         Alloue la demande entre les restaurants selon leurs caractéristiques.
-        
+
         Args:
             restaurants: Liste des restaurants en concurrence
             turn: Numéro du tour
             month: Mois de l'année (pour saisonnalité)
-            
+
         Returns:
             Dict des résultats d'allocation par restaurant
         """
@@ -86,15 +99,16 @@ class MarketEngine:
 
         # Calcul de la demande totale avec bruit et événements
         base_demand = self.scenario.calculate_total_demand(turn, month)
-        noise_factor = 1 + self.rng.uniform(-float(self.scenario.demand_noise),
-                                           float(self.scenario.demand_noise))
+        noise_factor = 1 + self.rng.uniform(
+            -float(self.scenario.demand_noise), float(self.scenario.demand_noise)
+        )
         event_demand_modifier = float(market_modifiers["demand_modifier"])
         total_demand = int(base_demand * noise_factor * event_demand_modifier)
-        
+
         # Allocation par segment de marché
         results = {}
         total_allocated = 0
-        
+
         for segment in self.scenario.segments:
             base_segment_demand = int(total_demand * segment.share)
 
@@ -105,15 +119,17 @@ class MarketEngine:
             segment_allocation = self._allocate_segment_demand(
                 restaurants, segment, segment_demand
             )
-            
+
             # Agrégation des résultats
             for restaurant_id, allocation in segment_allocation.items():
                 if restaurant_id not in results:
-                    results[restaurant_id] = AllocationResult(restaurant_id=restaurant_id)
-                
-                results[restaurant_id].allocated_demand += allocation['demand']
-                total_allocated += allocation['demand']
-        
+                    results[restaurant_id] = AllocationResult(
+                        restaurant_id=restaurant_id
+                    )
+
+                results[restaurant_id].allocated_demand += allocation["demand"]
+                total_allocated += allocation["demand"]
+
         # Application des contraintes de capacité et redistribution
         results = self._apply_capacity_constraints(restaurants, results)
 
@@ -121,28 +137,30 @@ class MarketEngine:
         for restaurant in restaurants:
             if restaurant.id in results:
                 results[restaurant.id].capacity = restaurant.capacity_current
-        
+
         # Calcul des revenus
         for restaurant in restaurants:
             if restaurant.id in results:
-                results[restaurant.id] = self._calculate_revenue(restaurant, results[restaurant.id])
-        
+                results[restaurant.id] = self._calculate_revenue(
+                    restaurant, results[restaurant.id]
+                )
+
         # Sauvegarde de l'historique
         self.turn_history.append(results.copy())
-        
+
         return results
-    
-    def _allocate_segment_demand(self, restaurants: List[Restaurant], 
-                               segment: MarketSegment, 
-                               segment_demand: int) -> Dict[str, Dict[str, int]]:
+
+    def _allocate_segment_demand(
+        self, restaurants: List[Restaurant], segment: MarketSegment, segment_demand: int
+    ) -> Dict[str, Dict[str, int]]:
         """
         Alloue la demande d'un segment spécifique.
-        
+
         Args:
             restaurants: Liste des restaurants
             segment: Segment de marché
             segment_demand: Demande du segment
-            
+
         Returns:
             Allocation par restaurant
         """
@@ -152,28 +170,29 @@ class MarketEngine:
             if restaurant.staffing_level == 0:  # Restaurant fermé
                 scores[restaurant.id] = 0
                 continue
-            
+
             score = self._calculate_attraction_score(restaurant, segment)
             scores[restaurant.id] = score
-        
+
         total_score = sum(scores.values())
         if total_score == 0:
             # Aucun restaurant attractif pour ce segment
-            return {r.id: {'demand': 0} for r in restaurants}
-        
+            return {r.id: {"demand": 0} for r in restaurants}
+
         # Répartition proportionnelle
         allocation = {}
         for restaurant in restaurants:
             if scores[restaurant.id] > 0:
                 allocated = int(segment_demand * scores[restaurant.id] / total_score)
-                allocation[restaurant.id] = {'demand': allocated}
+                allocation[restaurant.id] = {"demand": allocated}
             else:
-                allocation[restaurant.id] = {'demand': 0}
-        
+                allocation[restaurant.id] = {"demand": 0}
+
         return allocation
 
-    def _calculate_attraction_score(self, restaurant: Restaurant,
-                                  segment: MarketSegment) -> Decimal:
+    def _calculate_attraction_score(
+        self, restaurant: Restaurant, segment: MarketSegment
+    ) -> Decimal:
         """
         Calcule le score d'attractivité d'un restaurant pour un segment.
 
@@ -199,18 +218,19 @@ class MarketEngine:
 
         # Bonus/malus selon le niveau de staffing
         staffing_bonus = {
-            0: Decimal("0"),     # Fermé
-            1: Decimal("0.8"),   # Léger
-            2: Decimal("1.0"),   # Normal
-            3: Decimal("1.2")    # Renforcé
+            0: Decimal("0"),  # Fermé
+            1: Decimal("0.8"),  # Léger
+            2: Decimal("1.0"),  # Normal
+            3: Decimal("1.2"),  # Renforcé
         }
 
         score *= staffing_bonus.get(restaurant.staffing_level, Decimal("1.0"))
 
         return max(Decimal("0"), score)
 
-    def _calculate_price_factor(self, average_ticket: Decimal,
-                              segment: MarketSegment) -> Decimal:
+    def _calculate_price_factor(
+        self, average_ticket: Decimal, segment: MarketSegment
+    ) -> Decimal:
         """
         Calcule le facteur d'attractivité lié au prix.
 
@@ -246,8 +266,9 @@ class MarketEngine:
             # Prix trop élevé
             return Decimal("0.1") * (2 - sensitivity)
 
-    def _calculate_quality_factor(self, restaurant: Restaurant,
-                                segment: MarketSegment) -> Decimal:
+    def _calculate_quality_factor(
+        self, restaurant: Restaurant, segment: MarketSegment
+    ) -> Decimal:
         """
         Calcule le facteur qualité perçue avec le nouveau système qualité.
 
@@ -325,17 +346,47 @@ class MarketEngine:
         # Bonus saisonniers par segment et mois
         seasonal_bonuses = {
             "étudiants": {
-                1: 0.9, 2: 0.9, 3: 1.0, 4: 1.0, 5: 1.0, 6: 1.1,
-                7: 1.2, 8: 1.2, 9: 1.0, 10: 1.0, 11: 0.9, 12: 0.9
+                1: 0.9,
+                2: 0.9,
+                3: 1.0,
+                4: 1.0,
+                5: 1.0,
+                6: 1.1,
+                7: 1.2,
+                8: 1.2,
+                9: 1.0,
+                10: 1.0,
+                11: 0.9,
+                12: 0.9,
             },
             "familles": {
-                1: 1.0, 2: 1.0, 3: 1.0, 4: 1.1, 5: 1.1, 6: 1.2,
-                7: 1.3, 8: 1.3, 9: 1.0, 10: 1.0, 11: 1.0, 12: 1.1
+                1: 1.0,
+                2: 1.0,
+                3: 1.0,
+                4: 1.1,
+                5: 1.1,
+                6: 1.2,
+                7: 1.3,
+                8: 1.3,
+                9: 1.0,
+                10: 1.0,
+                11: 1.0,
+                12: 1.1,
             },
             "foodies": {
-                1: 1.0, 2: 1.0, 3: 1.1, 4: 1.2, 5: 1.2, 6: 1.1,
-                7: 1.0, 8: 1.0, 9: 1.1, 10: 1.2, 11: 1.1, 12: 1.2
-            }
+                1: 1.0,
+                2: 1.0,
+                3: 1.1,
+                4: 1.2,
+                5: 1.2,
+                6: 1.1,
+                7: 1.0,
+                8: 1.0,
+                9: 1.1,
+                10: 1.2,
+                11: 1.1,
+                12: 1.2,
+            },
         }
 
         # Recherche par nom de segment (insensible à la casse)
@@ -347,8 +398,9 @@ class MarketEngine:
         # Par défaut, pas de bonus saisonnier
         return Decimal("1.0")
 
-    def _apply_capacity_constraints(self, restaurants: List[Restaurant],
-                                  results: Dict[str, AllocationResult]) -> Dict[str, AllocationResult]:
+    def _apply_capacity_constraints(
+        self, restaurants: List[Restaurant], results: Dict[str, AllocationResult]
+    ) -> Dict[str, AllocationResult]:
         """
         Applique les contraintes de capacité et redistribue la demande excédentaire.
 
@@ -405,8 +457,9 @@ class MarketEngine:
 
         return results
 
-    def _calculate_revenue(self, restaurant: Restaurant,
-                         result: AllocationResult) -> AllocationResult:
+    def _calculate_revenue(
+        self, restaurant: Restaurant, result: AllocationResult
+    ) -> AllocationResult:
         """
         Calcule le chiffre d'affaires d'un restaurant.
 
@@ -451,7 +504,9 @@ class MarketEngine:
             average_ticket = result.revenue / Decimal(result.served_customers)
 
             # Ratio prix/qualité (prix par étoile de qualité)
-            price_quality_ratio = average_ticket / quality_score if quality_score > 0 else average_ticket
+            price_quality_ratio = (
+                average_ticket / quality_score if quality_score > 0 else average_ticket
+            )
 
             # Calcul de la satisfaction (0-5)
             if price_quality_ratio <= Decimal("2.5"):  # Excellent rapport
@@ -470,8 +525,12 @@ class MarketEngine:
 
         # Recalculer les métriques dérivées
         if result.capacity > 0:
-            result.utilization_rate = Decimal(result.served_customers) / Decimal(result.capacity)
-        result.lost_customers = max(0, result.allocated_demand - result.served_customers)
+            result.utilization_rate = Decimal(result.served_customers) / Decimal(
+                result.capacity
+            )
+        result.lost_customers = max(
+            0, result.allocated_demand - result.served_customers
+        )
         if result.served_customers > 0:
             result.average_ticket = result.revenue / Decimal(result.served_customers)
 
@@ -497,7 +556,9 @@ class MarketEngine:
         if total_customers == 0:
             return Decimal("0")
 
-        restaurant_customers = turn_data.get(restaurant_id, AllocationResult(restaurant_id)).served_customers
+        restaurant_customers = turn_data.get(
+            restaurant_id, AllocationResult(restaurant_id)
+        ).served_customers
         return Decimal(restaurant_customers) / Decimal(total_customers)
 
     def get_market_analysis(self, turn: int = -1) -> Dict[str, any]:
@@ -521,11 +582,17 @@ class MarketEngine:
         total_revenue = sum(result.revenue for result in turn_data.values())
 
         return {
-            'total_demand': total_demand,
-            'total_served': total_served,
-            'total_capacity': total_capacity,
-            'total_revenue': float(total_revenue),
-            'market_utilization': float(Decimal(total_served) / Decimal(total_capacity)) if total_capacity > 0 else 0,
-            'demand_satisfaction': float(Decimal(total_served) / Decimal(total_demand)) if total_demand > 0 else 0,
-            'average_ticket': float(total_revenue / Decimal(total_served)) if total_served > 0 else 0
+            "total_demand": total_demand,
+            "total_served": total_served,
+            "total_capacity": total_capacity,
+            "total_revenue": float(total_revenue),
+            "market_utilization": float(Decimal(total_served) / Decimal(total_capacity))
+            if total_capacity > 0
+            else 0,
+            "demand_satisfaction": float(Decimal(total_served) / Decimal(total_demand))
+            if total_demand > 0
+            else 0,
+            "average_ticket": float(total_revenue / Decimal(total_served))
+            if total_served > 0
+            else 0,
         }

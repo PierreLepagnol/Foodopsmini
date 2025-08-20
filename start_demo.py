@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 def main():
     """Lance une démo rapide avec preset."""
     print("🎮 LANCEMENT DÉMO FOODOPS PRO")
@@ -14,12 +15,12 @@ def main():
     print("Configuration: 1 joueur, 3 tours, budget 40-60k€")
     print("IA: 2 concurrents moyens")
     print("=" * 40)
-    
+
     # Vérifier que nous sommes dans le bon dossier
     if not Path("src/foodops_pro").exists():
         print("❌ Erreur: Lancez ce script depuis le dossier racine du projet")
         sys.exit(1)
-    
+
     # Lancer le jeu Pro directement (sans preset pour l'instant)
     try:
         cmd = [sys.executable, "-m", "src.foodops_pro.cli_pro"]
@@ -29,6 +30,7 @@ def main():
         sys.exit(1)
     except KeyboardInterrupt:
         print("\n👋 Démo interrompue")
+
 
 if __name__ == "__main__":
     main()

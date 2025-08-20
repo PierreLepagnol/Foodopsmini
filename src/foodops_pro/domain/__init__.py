@@ -16,7 +16,7 @@ from .scenario import Scenario, MarketSegment
 __all__ = [
     "Ingredient",
     "Recipe",
-    "RecipeItem", 
+    "RecipeItem",
     "Supplier",
     "StockLot",
     "Restaurant",

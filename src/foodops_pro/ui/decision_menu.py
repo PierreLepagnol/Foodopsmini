@@ -39,8 +39,13 @@ class DecisionMenu:
     def cache_available_recipes(self, recipes: Dict[str, any]) -> None:
         self._available_recipes_cache = recipes or {}
 
-    def show_decision_menu(self, restaurant: Restaurant, turn: int,
-                          available_recipes: Dict, available_employees: List = None) -> Dict[str, any]:
+    def show_decision_menu(
+        self,
+        restaurant: Restaurant,
+        turn: int,
+        available_recipes: Dict,
+        available_employees: List = None,
+    ) -> Dict[str, any]:
         """
         Affiche le menu de décisions principal et retourne les choix du joueur.
 
@@ -61,13 +66,13 @@ class DecisionMenu:
                 "🏗️ Investissements",
                 "💰 Finance & Comptabilité",
                 "📊 Rapports & Analyses",
-                "✅ Valider et passer au tour suivant"
+                "✅ Valider et passer au tour suivant",
             ]
 
             choice = self.ui.show_menu(
                 f"DÉCISIONS - TOUR {turn} - {restaurant.name}",
                 menu_options,
-                allow_back=False
+                allow_back=False,
             )
 
             if choice == 1:
@@ -98,7 +103,7 @@ class DecisionMenu:
             f"👥 Employés: {len(restaurant.employees)}",
             f"🍽️ Capacité: {restaurant.capacity_current} couverts",
             f"📊 Niveau staffing: {restaurant.staffing_level}/3",
-            f"🍴 Recettes actives: {len(restaurant.get_active_menu())}"
+            f"🍴 Recettes actives: {len(restaurant.get_active_menu())}",
         ]
 
         # Couleur selon la santé financière
@@ -111,8 +116,9 @@ class DecisionMenu:
 
         self.ui.print_box(status, f"STATUT - TOUR {turn}", style)
 
-    def _menu_pricing_decisions(self, restaurant: Restaurant,
-                               available_recipes: Dict, decisions: Dict) -> None:
+    def _menu_pricing_decisions(
+        self, restaurant: Restaurant, available_recipes: Dict, decisions: Dict
+    ) -> None:
         """Gestion du menu et des prix."""
         while True:
             self.ui.clear_screen()
@@ -123,7 +129,7 @@ class DecisionMenu:
                 "➖ Retirer des plats du menu",
                 "📊 Analyser la rentabilité par plat",
                 "🍽️ Créer un menu du jour",
-                "📈 Voir l'historique des ventes"
+                "📈 Voir l'historique des ventes",
             ]
 
             choice = self.ui.show_menu("MENU & PRICING", submenu_options)
@@ -160,7 +166,9 @@ class DecisionMenu:
         for recipe_id, current_price in active_menu.items():
             if recipe_id in self.cost_calculator.ingredients:  # Vérification simplifiée
                 # Calcul du coût (simplifié pour la démo)
-                estimated_cost = current_price * Decimal("0.35")  # 35% de food cost estimé
+                estimated_cost = current_price * Decimal(
+                    "0.35"
+                )  # 35% de food cost estimé
                 margin = current_price - estimated_cost
                 margin_pct = (margin / current_price * 100) if current_price > 0 else 0
 
@@ -175,7 +183,10 @@ class DecisionMenu:
         recipe_list = list(active_menu.keys())
         recipe_choice = self.ui.show_menu(
             "Quelle recette modifier ?",
-            [f"{recipe_id} - {active_menu[recipe_id]:.2f}€" for recipe_id in recipe_list]
+            [
+                f"{recipe_id} - {active_menu[recipe_id]:.2f}€"
+                for recipe_id in recipe_list
+            ],
         )
 
         if recipe_choice == 0:
@@ -190,26 +201,29 @@ class DecisionMenu:
             Decimal,
             min_val=Decimal("1.0"),
             max_val=Decimal("100.0"),
-            default=current_price
+            default=current_price,
         )
 
         if new_price and new_price != current_price:
-            if 'price_changes' not in decisions:
-                decisions['price_changes'] = {}
-            decisions['price_changes'][selected_recipe] = new_price
+            if "price_changes" not in decisions:
+                decisions["price_changes"] = {}
+            decisions["price_changes"][selected_recipe] = new_price
 
             # Calcul de l'impact
-            change_pct = ((new_price - current_price) / current_price * 100)
+            change_pct = (new_price - current_price) / current_price * 100
             impact_msg = f"Prix modifié: {current_price:.2f}€ → {new_price:.2f}€ ({change_pct:+.1f}%)"
 
             if abs(change_pct) > 10:
-                impact_msg += "\n⚠️ Changement important - Impact sur la clientèle attendu"
+                impact_msg += (
+                    "\n⚠️ Changement important - Impact sur la clientèle attendu"
+                )
 
             self.ui.show_success(impact_msg)
             self.ui.pause()
 
-    def _hr_decisions(self, restaurant: Restaurant,
-                     available_employees: List, decisions: Dict) -> None:
+    def _hr_decisions(
+        self, restaurant: Restaurant, available_employees: List, decisions: Dict
+    ) -> None:
         """Gestion des ressources humaines."""
         while True:
             self.ui.clear_screen()
@@ -219,7 +233,9 @@ class DecisionMenu:
 
             total_cost = Decimal("0")
             for emp in restaurant.employees:
-                monthly_cost = emp.salary_gross_monthly * Decimal("1.42")  # Avec charges
+                monthly_cost = emp.salary_gross_monthly * Decimal(
+                    "1.42"
+                )  # Avec charges
                 total_cost += monthly_cost
                 team_info.append(
                     f"• {emp.name} ({emp.position.value}) - "
@@ -237,7 +253,7 @@ class DecisionMenu:
                 "📚 Former le personnel",
                 "⏰ Ajuster les horaires",
                 "💰 Négocier les salaires",
-                "📊 Analyser la productivité"
+                "📊 Analyser la productivité",
             ]
 
             choice = self.ui.show_menu("RESSOURCES HUMAINES", submenu_options)
@@ -288,7 +304,7 @@ class DecisionMenu:
             EmployeePosition.SALLE: (1700, 2500),
             EmployeePosition.MANAGER: (2500, 4000),
             EmployeePosition.PLONGE: (1650, 1900),
-            EmployeePosition.CAISSE: (1650, 2200)
+            EmployeePosition.CAISSE: (1650, 2200),
         }
 
         min_salary, max_salary = salary_ranges.get(selected_position, (1650, 3000))
@@ -298,7 +314,7 @@ class DecisionMenu:
             Decimal,
             min_val=Decimal(str(min_salary)),
             max_val=Decimal(str(max_salary)),
-            default=Decimal(str((min_salary + max_salary) // 2))
+            default=Decimal(str((min_salary + max_salary) // 2)),
         )
 
         if salary:
@@ -314,14 +330,16 @@ class DecisionMenu:
                     return
 
             # Enregistrement de la décision
-            if 'recruitments' not in decisions:
-                decisions['recruitments'] = []
+            if "recruitments" not in decisions:
+                decisions["recruitments"] = []
 
-            decisions['recruitments'].append({
-                'position': selected_position,
-                'contract': selected_contract,
-                'salary': salary
-            })
+            decisions["recruitments"].append(
+                {
+                    "position": selected_position,
+                    "contract": selected_contract,
+                    "salary": salary,
+                }
+            )
 
             self.ui.show_success(
                 f"Recrutement programmé: {selected_position.value} "
@@ -348,7 +366,7 @@ class DecisionMenu:
                 "🤖 Proposer une commande (auto, revue ligne)",
                 "📥 Réception de commandes",
                 "📦 État des stocks & alertes",
-                "🔙 Retour"
+                "🔙 Retour",
             ]
 
             choice = self.ui.show_menu("ACHATS & STOCKS", submenu_options)
@@ -387,20 +405,34 @@ class DecisionMenu:
             return
 
         print("📋 PRÉVISION DES VENTES (prochain tour):")
-        auto = getattr(self._admin_settings, 'auto_forecast_enabled', False)
+        auto = getattr(self._admin_settings, "auto_forecast_enabled", False)
         for rid in active.keys():
             cur = int(restaurant.sales_forecast.get(rid, 0))
             default_qty = cur if cur else (20 if auto else 0)
             try:
-                qty = self.ui.ask_int(f"  Portions prévues pour {rid} (actuel {cur}): ", min_val=0, max_val=1000, default=default_qty)
+                qty = self.ui.ask_int(
+                    f"  Portions prévues pour {rid} (actuel {cur}): ",
+                    min_val=0,
+                    max_val=1000,
+                    default=default_qty,
+                )
                 restaurant.sales_forecast[rid] = qty
             except Exception:
                 continue
 
         # Calcul besoins avec ProcurementPlanner
         planner = ProcurementPlanner()
-        active_recipes = [self._available_recipes_cache[rid] for rid in restaurant.active_recipes if hasattr(self, "_available_recipes_cache") and rid in self._available_recipes_cache]
-        requirements = planner.compute_requirements(active_recipes, getattr(restaurant, "sales_forecast", {}), restaurant.stock_manager)
+        active_recipes = [
+            self._available_recipes_cache[rid]
+            for rid in restaurant.active_recipes
+            if hasattr(self, "_available_recipes_cache")
+            and rid in self._available_recipes_cache
+        ]
+        requirements = planner.compute_requirements(
+            active_recipes,
+            getattr(restaurant, "sales_forecast", {}),
+            restaurant.stock_manager,
+        )
 
         # Affichage synthétique des besoins
         lines = ["📦 BESOINS NETS:", ""]
@@ -415,8 +447,17 @@ class DecisionMenu:
     def _compose_manual_order(self, restaurant: Restaurant) -> None:
         """Mode MANUEL: composer une commande multi-lignes à partir des besoins."""
         planner = ProcurementPlanner()
-        active_recipes = [self._available_recipes_cache[rid] for rid in restaurant.active_recipes if hasattr(self, "_available_recipes_cache") and rid in self._available_recipes_cache]
-        requirements = planner.compute_requirements(active_recipes, getattr(restaurant, "sales_forecast", {}), restaurant.stock_manager)
+        active_recipes = [
+            self._available_recipes_cache[rid]
+            for rid in restaurant.active_recipes
+            if hasattr(self, "_available_recipes_cache")
+            and rid in self._available_recipes_cache
+        ]
+        requirements = planner.compute_requirements(
+            active_recipes,
+            getattr(restaurant, "sales_forecast", {}),
+            restaurant.stock_manager,
+        )
 
         if not requirements:
             self.ui.show_info("Aucun besoin net détecté.")
@@ -425,19 +466,32 @@ class DecisionMenu:
 
         pending: List[POLine] = []
         for ing_id, need in requirements.items():
-            self.ui.print_box([f"Ingrédient: {ing_id}", f"Besoin net estimé: {need}"], "COMPOSER COMMANDE", "info")
+            self.ui.print_box(
+                [f"Ingrédient: {ing_id}", f"Besoin net estimé: {need}"],
+                "COMPOSER COMMANDE",
+                "info",
+            )
             # Catalogue simple: issu du cost_calculator (fallback) + suppliers_catalog du jeu si dispo
             offers = []
-            if hasattr(self, "_suppliers_catalog") and ing_id in self._suppliers_catalog:
+            if (
+                hasattr(self, "_suppliers_catalog")
+                and ing_id in self._suppliers_catalog
+            ):
                 offers = self._suppliers_catalog[ing_id]
             else:
                 if ing_id in self.cost_calculator.ingredients:
                     ing = self.cost_calculator.ingredients[ing_id]
-                    offers = [{
-                        'supplier_id': 'metro_pro', 'quality_level': 2,
-                        'pack_size': Decimal('1'), 'unit_price_ht': ing.cost_ht, 'vat_rate': ing.vat_rate,
-                        'moq_qty': Decimal('0'), 'moq_value': Decimal('0')
-                    }]
+                    offers = [
+                        {
+                            "supplier_id": "metro_pro",
+                            "quality_level": 2,
+                            "pack_size": Decimal("1"),
+                            "unit_price_ht": ing.cost_ht,
+                            "vat_rate": ing.vat_rate,
+                            "moq_qty": Decimal("0"),
+                            "moq_value": Decimal("0"),
+                        }
+                    ]
 
             if not offers:
                 continue
@@ -446,8 +500,8 @@ class DecisionMenu:
             while True:
                 # Liste des offres (fournisseur + gamme) avec infos complètes
                 options = [
-                    f"{o['supplier_id']} | gamme {o['quality_level']} | pack {o['pack_size']} {o.get('pack_unit','')} | "
-                    f"{o['unit_price_ht']:.2f}€ HT | TVA {o['vat_rate']:.1%} | LT {o.get('lead_time_days','?')}j | F {o.get('reliability','?')}"
+                    f"{o['supplier_id']} | gamme {o['quality_level']} | pack {o['pack_size']} {o.get('pack_unit', '')} | "
+                    f"{o['unit_price_ht']:.2f}€ HT | TVA {o['vat_rate']:.1%} | LT {o.get('lead_time_days', '?')}j | F {o.get('reliability', '?')}"
                     for o in offers
                 ]
                 choice = self.ui.show_menu(f"Choisir une offre pour {ing_id}", options)
@@ -457,55 +511,74 @@ class DecisionMenu:
 
                 qty_wanted = self.ui.get_input(
                     f"Quantité souhaitée (peut être > besoin {need})",
-                    Decimal, min_val=Decimal('0'), default=need
+                    Decimal,
+                    min_val=Decimal("0"),
+                    default=need,
                 )
                 if qty_wanted is None:
                     break
 
                 # Arrondi pack vers le haut
-                packs = (qty_wanted / offer['pack_size']).to_integral_value(rounding='ROUND_CEILING')
-                qty_final = packs * offer['pack_size']
+                packs = (qty_wanted / offer["pack_size"]).to_integral_value(
+                    rounding="ROUND_CEILING"
+                )
+                qty_final = packs * offer["pack_size"]
 
                 # MOQ quantité & valeur
-                if offer.get('moq_qty', Decimal('0')) > 0 and qty_final < offer['moq_qty']:
-                    self.ui.show_info(f"MOQ quantité {offer['moq_qty']} appliqué → ajustement")
-                    qty_final = offer['moq_qty']
-                order_value = qty_final * offer['unit_price_ht']
-                if offer.get('moq_value', Decimal('0')) > 0 and order_value < offer['moq_value']:
-                    deficit_value = offer['moq_value'] - order_value
-                    extra_units = (deficit_value / offer['unit_price_ht']).to_integral_value(rounding='ROUND_CEILING')
+                if (
+                    offer.get("moq_qty", Decimal("0")) > 0
+                    and qty_final < offer["moq_qty"]
+                ):
+                    self.ui.show_info(
+                        f"MOQ quantité {offer['moq_qty']} appliqué → ajustement"
+                    )
+                    qty_final = offer["moq_qty"]
+                order_value = qty_final * offer["unit_price_ht"]
+                if (
+                    offer.get("moq_value", Decimal("0")) > 0
+                    and order_value < offer["moq_value"]
+                ):
+                    deficit_value = offer["moq_value"] - order_value
+                    extra_units = (
+                        deficit_value / offer["unit_price_ht"]
+                    ).to_integral_value(rounding="ROUND_CEILING")
                     qty_final += extra_units
-                    order_value = qty_final * offer['unit_price_ht']
+                    order_value = qty_final * offer["unit_price_ht"]
 
                 line = POLine(
                     ingredient_id=ing_id,
                     quantity=qty_final,
-                    unit_price_ht=offer['unit_price_ht'],
-                    vat_rate=offer['vat_rate'],
-                    supplier_id=offer['supplier_id'],
-                    pack_size=offer['pack_size'],
-                    pack_unit=offer.get('pack_unit'),
-                    quality_level=offer.get('quality_level'),
-                    eta_days=offer.get('lead_time_days'),
+                    unit_price_ht=offer["unit_price_ht"],
+                    vat_rate=offer["vat_rate"],
+                    supplier_id=offer["supplier_id"],
+                    pack_size=offer["pack_size"],
+                    pack_unit=offer.get("pack_unit"),
+                    quality_level=offer.get("quality_level"),
+                    eta_days=offer.get("lead_time_days"),
                     qty_rounded_pack=qty_final,
                     moq_ok=True,
-                    amount_ttc_estimated=(qty_final * offer['unit_price_ht']) * (Decimal('1') + offer['vat_rate'])
+                    amount_ttc_estimated=(qty_final * offer["unit_price_ht"])
+                    * (Decimal("1") + offer["vat_rate"]),
                 )
                 pending.append(line)
                 added_any = True
 
                 # Infos coût TTC & ETA
-                cost_ttc = order_value * (Decimal('1') + offer['vat_rate'])
-                eta_days = offer.get('lead_time_days', None)
+                cost_ttc = order_value * (Decimal("1") + offer["vat_rate"])
+                eta_days = offer.get("lead_time_days", None)
                 moq_msg = []
-                if offer.get('moq_qty', Decimal('0')) > 0:
+                if offer.get("moq_qty", Decimal("0")) > 0:
                     moq_msg.append(f"MOQ qty {offer['moq_qty']}")
-                if offer.get('moq_value', Decimal('0')) > 0:
+                if offer.get("moq_value", Decimal("0")) > 0:
                     moq_msg.append(f"MOQ valeur {offer['moq_value']:.2f}€")
                 moq_str = f" ({', '.join(moq_msg)})" if moq_msg else ""
-                self.ui.show_info(f"Ligne ajoutée: {qty_final} @ {offer['unit_price_ht']:.2f}€ (HT={order_value:.2f}€, TTC={cost_ttc:.2f}€){moq_str} | ETA {eta_days}j")
+                self.ui.show_info(
+                    f"Ligne ajoutée: {qty_final} @ {offer['unit_price_ht']:.2f}€ (HT={order_value:.2f}€, TTC={cost_ttc:.2f}€){moq_str} | ETA {eta_days}j"
+                )
 
-                if not self.ui.confirm("Ajouter une autre ligne (autre offre) pour cet ingrédient ?"):
+                if not self.ui.confirm(
+                    "Ajouter une autre ligne (autre offre) pour cet ingrédient ?"
+                ):
                     break
 
             if added_any and not self.ui.confirm("Passer à l'ingrédient suivant ?"):
@@ -513,7 +586,9 @@ class DecisionMenu:
 
         if pending:
             restaurant.pending_po_lines = pending
-            self.ui.show_success(f"{len(pending)} lignes de commande enregistrées (à réceptionner)")
+            self.ui.show_success(
+                f"{len(pending)} lignes de commande enregistrées (à réceptionner)"
+            )
         else:
             self.ui.show_info("Aucune ligne créée.")
         self.ui.pause()
@@ -521,31 +596,50 @@ class DecisionMenu:
     def _review_auto_order(self, restaurant: Restaurant) -> None:
         """Mode AUTO: propose un PO mais oblige revue par ligne (fournisseur/gamme/quantité)."""
         planner = ProcurementPlanner()
-        active_recipes = [self._available_recipes_cache[rid] for rid in restaurant.active_recipes if hasattr(self, "_available_recipes_cache") and rid in self._available_recipes_cache]
-        requirements = planner.compute_requirements(active_recipes, getattr(restaurant, "sales_forecast", {}), restaurant.stock_manager)
+        active_recipes = [
+            self._available_recipes_cache[rid]
+            for rid in restaurant.active_recipes
+            if hasattr(self, "_available_recipes_cache")
+            and rid in self._available_recipes_cache
+        ]
+        requirements = planner.compute_requirements(
+            active_recipes,
+            getattr(restaurant, "sales_forecast", {}),
+            restaurant.stock_manager,
+        )
 
         # Appliquer requirement de confirmation par ligne
-        if getattr(self._admin_settings, 'require_line_confirmation', True):
+        if getattr(self._admin_settings, "require_line_confirmation", True):
             reviewed: List[POLine] = []
             for i, l in enumerate(pending, 1):
-                self.ui.print_box([
-                    f"{i}. {l.ingredient_id}: {l.quantity} @ {l.unit_price_ht:.2f}€ (pack {l.pack_size}) chez {l.supplier_id}"
-                ], "REVUE LIGNE", "warning")
+                self.ui.print_box(
+                    [
+                        f"{i}. {l.ingredient_id}: {l.quantity} @ {l.unit_price_ht:.2f}€ (pack {l.pack_size}) chez {l.supplier_id}"
+                    ],
+                    "REVUE LIGNE",
+                    "warning",
+                )
                 # Permettre un override quantité (sur-stock autorisé)
-                new_qty = self.ui.get_input("Quantité souhaitée (arrondi pack ensuite)", Decimal, min_val=Decimal('0'), default=l.quantity)
+                new_qty = self.ui.get_input(
+                    "Quantité souhaitée (arrondi pack ensuite)",
+                    Decimal,
+                    min_val=Decimal("0"),
+                    default=l.quantity,
+                )
                 if new_qty is not None:
-                    packs = (new_qty / l.pack_size).to_integral_value(rounding='ROUND_CEILING')
+                    packs = (new_qty / l.pack_size).to_integral_value(
+                        rounding="ROUND_CEILING"
+                    )
                     l = POLine(
                         ingredient_id=l.ingredient_id,
                         quantity=packs * l.pack_size,
                         unit_price_ht=l.unit_price_ht,
                         vat_rate=l.vat_rate,
                         supplier_id=l.supplier_id,
-                        pack_size=l.pack_size
+                        pack_size=l.pack_size,
                     )
                 reviewed.append(l)
             pending = reviewed
-
 
         # Construire catalogue à partir du cache
         suppliers_catalog = {}
@@ -554,8 +648,11 @@ class DecisionMenu:
             for ing_id, offers in self._suppliers_catalog.items():
                 suppliers_catalog[ing_id] = {}
                 for o in offers:
-                    suppliers_catalog[ing_id][o['supplier_id']] = {
-                        'price_ht': o['unit_price_ht'], 'vat': o['vat_rate'], 'pack': o['pack_size'], 'moq_value': o.get('moq_value', Decimal('0'))
+                    suppliers_catalog[ing_id][o["supplier_id"]] = {
+                        "price_ht": o["unit_price_ht"],
+                        "vat": o["vat_rate"],
+                        "pack": o["pack_size"],
+                        "moq_value": o.get("moq_value", Decimal("0")),
                     }
 
         auto_lines = planner.propose_purchase_orders(requirements, suppliers_catalog)
@@ -566,54 +663,75 @@ class DecisionMenu:
 
         reviewed: List[POLine] = []
         for i, l in enumerate(auto_lines, 1):
-            need = requirements.get(l.ingredient_id, Decimal('0'))
+            need = requirements.get(l.ingredient_id, Decimal("0"))
             order_value = l.quantity * l.unit_price_ht
-            self.ui.print_box([
-                f"{i}. {l.ingredient_id} → besoin {need}",
-                f"Proposition: {l.quantity} @ {l.unit_price_ht:.2f}€ HT (pack {l.pack_size}) chez {l.supplier_id} | HT={order_value:.2f}€"
-            ], "REVUE LIGNE", "warning")
+            self.ui.print_box(
+                [
+                    f"{i}. {l.ingredient_id} → besoin {need}",
+                    f"Proposition: {l.quantity} @ {l.unit_price_ht:.2f}€ HT (pack {l.pack_size}) chez {l.supplier_id} | HT={order_value:.2f}€",
+                ],
+                "REVUE LIGNE",
+                "warning",
+            )
 
             # Choix fournisseur+gamme parmi offres
-            offers = self._suppliers_catalog.get(l.ingredient_id, []) if hasattr(self, "_suppliers_catalog") else []
+            offers = (
+                self._suppliers_catalog.get(l.ingredient_id, [])
+                if hasattr(self, "_suppliers_catalog")
+                else []
+            )
             if offers:
                 options = [
-                    f"{o['supplier_id']} | gamme {o['quality_level']} | pack {o['pack_size']} {o.get('pack_unit','')} | {o['unit_price_ht']:.2f}€ HT | TVA {o['vat_rate']:.1%} | LT {o.get('lead_time_days','?')}j | F {o.get('reliability','?')}"
+                    f"{o['supplier_id']} | gamme {o['quality_level']} | pack {o['pack_size']} {o.get('pack_unit', '')} | {o['unit_price_ht']:.2f}€ HT | TVA {o['vat_rate']:.1%} | LT {o.get('lead_time_days', '?')}j | F {o.get('reliability', '?')}"
                     for o in offers
                 ]
-                ch = self.ui.show_menu("Choisir fournisseur/gamme (ou retour pour garder)", options)
+                ch = self.ui.show_menu(
+                    "Choisir fournisseur/gamme (ou retour pour garder)", options
+                )
                 if ch > 0:
                     o = offers[ch - 1]
                     l = POLine(
                         ingredient_id=l.ingredient_id,
                         quantity=l.quantity,
-                        unit_price_ht=o['unit_price_ht'],
-                        vat_rate=o['vat_rate'],
-                        supplier_id=o['supplier_id'],
-                        pack_size=o['pack_size']
+                        unit_price_ht=o["unit_price_ht"],
+                        vat_rate=o["vat_rate"],
+                        supplier_id=o["supplier_id"],
+                        pack_size=o["pack_size"],
                     )
 
             # Modifier quantité (sur-stock autorisé) + arrondi pack
-            new_qty = self.ui.get_input("Quantité souhaitée (arrondi pack ensuite)", Decimal, min_val=Decimal('0'), default=l.quantity)
+            new_qty = self.ui.get_input(
+                "Quantité souhaitée (arrondi pack ensuite)",
+                Decimal,
+                min_val=Decimal("0"),
+                default=l.quantity,
+            )
             if new_qty is not None:
-                packs = (new_qty / l.pack_size).to_integral_value(rounding='ROUND_CEILING')
+                packs = (new_qty / l.pack_size).to_integral_value(
+                    rounding="ROUND_CEILING"
+                )
                 l = POLine(
                     ingredient_id=l.ingredient_id,
                     quantity=packs * l.pack_size,
                     unit_price_ht=l.unit_price_ht,
                     vat_rate=l.vat_rate,
                     supplier_id=l.supplier_id,
-                    pack_size=l.pack_size
+                    pack_size=l.pack_size,
                 )
 
             reviewed.append(l)
 
         restaurant.pending_po_lines = reviewed
-        self.ui.show_success("Commande automatique revue et enregistrée (à réceptionner)")
+        self.ui.show_success(
+            "Commande automatique revue et enregistrée (à réceptionner)"
+        )
         self.ui.pause()
 
         # Note: les recettes doivent être en cache pour calculs précis
         if not hasattr(self, "_available_recipes_cache"):
-            self.ui.show_info("Note: pour le calcul précis des besoins, les recettes doivent être connues. Cette version affichera le stock uniquement si non disponible.")
+            self.ui.show_info(
+                "Note: pour le calcul précis des besoins, les recettes doivent être connues. Cette version affichera le stock uniquement si non disponible."
+            )
             self.ui.pause()
             return
 
@@ -625,16 +743,26 @@ class DecisionMenu:
         """Propose un PO en fonction des besoins et permet édition simple."""
         self.ui.clear_screen()
         if not hasattr(self, "_available_recipes_cache"):
-            self.ui.show_error("Recettes non disponibles pour proposer une commande. Activez des recettes et revenez.")
+            self.ui.show_error(
+                "Recettes non disponibles pour proposer une commande. Activez des recettes et revenez."
+            )
             self.ui.pause()
             return
 
-        active_recipes = [self._available_recipes_cache[rid] for rid in restaurant.active_recipes if rid in self._available_recipes_cache]
+        active_recipes = [
+            self._available_recipes_cache[rid]
+            for rid in restaurant.active_recipes
+            if rid in self._available_recipes_cache
+        ]
         planner = ProcurementPlanner()
-        requirements = planner.compute_requirements(active_recipes, restaurant.sales_forecast, restaurant.stock_manager)
+        requirements = planner.compute_requirements(
+            active_recipes, restaurant.sales_forecast, restaurant.stock_manager
+        )
 
         if not requirements:
-            self.ui.show_info("Aucun besoin net détecté (stock suffisant ou prévision nulle).")
+            self.ui.show_info(
+                "Aucun besoin net détecté (stock suffisant ou prévision nulle)."
+            )
             self.ui.pause()
             return
 
@@ -645,12 +773,19 @@ class DecisionMenu:
             if ing_id in self.cost_calculator.ingredients:
                 ing = self.cost_calculator.ingredients[ing_id]
                 suppliers_catalog[ing_id] = {
-                    "metro_pro": {"price_ht": ing.cost_ht, "vat": ing.vat_rate, "pack": Decimal("1"), "moq_value": Decimal("0")}
+                    "metro_pro": {
+                        "price_ht": ing.cost_ht,
+                        "vat": ing.vat_rate,
+                        "pack": Decimal("1"),
+                        "moq_value": Decimal("0"),
+                    }
                 }
 
         lines = planner.propose_purchase_orders(requirements, suppliers_catalog)
         if not lines:
-            self.ui.show_info("Aucune proposition de commande possible (catalogue incomplet).")
+            self.ui.show_info(
+                "Aucune proposition de commande possible (catalogue incomplet)."
+            )
             self.ui.pause()
             return
 
@@ -660,7 +795,9 @@ class DecisionMenu:
         for i, line in enumerate(lines, 1):
             line_value = line.quantity * line.unit_price_ht
             total_value += line_value
-            view.append(f"{i}. {line.ingredient_id} — {line.quantity} @ {line.unit_price_ht:.2f}€ (HT) = {line_value:.2f}€ — {line.supplier_id}")
+            view.append(
+                f"{i}. {line.ingredient_id} — {line.quantity} @ {line.unit_price_ht:.2f}€ (HT) = {line_value:.2f}€ — {line.supplier_id}"
+            )
 
         view.append("")
         view.append(f"Total HT estimé: {total_value:.2f}€")
@@ -669,15 +806,20 @@ class DecisionMenu:
         if self.ui.confirm("Valider cette commande ?"):
             # Enregistrer comme en attente
             restaurant.pending_po_lines = lines
-            decisions.setdefault("purchase_orders", []).append({
-                "lines": [{
-                    "ingredient_id": l.ingredient_id,
-                    "qty": str(l.quantity),
-                    "price_ht": str(l.unit_price_ht),
-                    "supplier": l.supplier_id,
-                } for l in lines],
-                "total_ht": str(total_value)
-            })
+            decisions.setdefault("purchase_orders", []).append(
+                {
+                    "lines": [
+                        {
+                            "ingredient_id": l.ingredient_id,
+                            "qty": str(l.quantity),
+                            "price_ht": str(l.unit_price_ht),
+                            "supplier": l.supplier_id,
+                        }
+                        for l in lines
+                    ],
+                    "total_ht": str(total_value),
+                }
+            )
             self.ui.show_success("Commande enregistrée (à réceptionner)")
         else:
             self.ui.show_info("Commande annulée")
@@ -687,6 +829,7 @@ class DecisionMenu:
         """Réceptionne les lignes en attente et crée des lots FEFO."""
         self.ui.clear_screen()
         from decimal import Decimal
+
         lines: list[POLine] = getattr(restaurant, "pending_po_lines", [])
         if not lines:
             self.ui.show_info("Aucune commande en attente.")
@@ -695,11 +838,18 @@ class DecisionMenu:
 
         view = ["📥 RÉCEPTION DE COMMANDES:", ""]
         for i, l in enumerate(lines, 1):
-            view.append(f"{i}. {l.ingredient_id} — Cmd: {l.quantity} | Acc: {l.accepted_qty} | Statut: {l.status}")
+            view.append(
+                f"{i}. {l.ingredient_id} — Cmd: {l.quantity} | Acc: {l.accepted_qty} | Statut: {l.status}"
+            )
         self.ui.print_box(view, "BON DE COMMANDE EN ATTENTE", "info")
 
         # Saisie réception par ligne: accepter/refuser et split lots
-        from ..core.procurement import DeliveryLine, ReceivingService, GoodsReceipt, GoodsReceiptLine
+        from ..core.procurement import (
+            DeliveryLine,
+            ReceivingService,
+            GoodsReceipt,
+            GoodsReceiptLine,
+        )
         from datetime import date
 
         gr_lines: list[GoodsReceiptLine] = []
@@ -710,7 +860,7 @@ class DecisionMenu:
             # Choix action
             action = self.ui.show_menu(
                 f"Ligne {l.ingredient_id} (Cmd {l.quantity}, Acc {l.accepted_qty})",
-                ["Accepter (total/partiel)", "Refuser"]
+                ["Accepter (total/partiel)", "Refuser"],
             )
             if action == 0:
                 remaining_lines.append(l)
@@ -718,18 +868,20 @@ class DecisionMenu:
 
             if action == 2:
                 # Refus: on garde la ligne en attente, aucun lot
-                gr_lines.append(GoodsReceiptLine(
-                    ingredient_id=l.ingredient_id,
-                    qty_ordered=l.quantity,
-                    qty_delivered=Decimal("0"),
-                    qty_accepted=Decimal("0"),
-                    unit_price_ht=l.unit_price_ht,
-                    vat_rate=l.vat_rate,
-                    supplier_id=l.supplier_id,
-                    pack_size=l.pack_size,
-                    lots=[],
-                    comment="Refusé"
-                ))
+                gr_lines.append(
+                    GoodsReceiptLine(
+                        ingredient_id=l.ingredient_id,
+                        qty_ordered=l.quantity,
+                        qty_delivered=Decimal("0"),
+                        qty_accepted=Decimal("0"),
+                        unit_price_ht=l.unit_price_ht,
+                        vat_rate=l.vat_rate,
+                        supplier_id=l.supplier_id,
+                        pack_size=l.pack_size,
+                        lots=[],
+                        comment="Refusé",
+                    )
+                )
                 remaining_lines.append(l)  # reste en attente
                 continue
 
@@ -740,26 +892,33 @@ class DecisionMenu:
                 to_receive_default = Decimal("0")
             qty_delivered = self.ui.get_input(
                 f"Quantité livrée pour {l.ingredient_id} (reste {to_receive_default} à recevoir): ",
-                Decimal, min_val=Decimal("0"), default=to_receive_default
+                Decimal,
+                min_val=Decimal("0"),
+                default=to_receive_default,
             ) or Decimal("0")
 
             # Option de split lots
             deliveries: list[DeliveryLine] = []
             if qty_delivered > 0:
                 nb_lots = self.ui.ask_int(
-                    f"Nombre de lots pour {l.ingredient_id} (1 par défaut)", min_val=1, max_val=10, default=1
+                    f"Nombre de lots pour {l.ingredient_id} (1 par défaut)",
+                    min_val=1,
+                    max_val=10,
+                    default=1,
                 )
                 if nb_lots <= 1:
-                    deliveries.append(DeliveryLine(
-                        ingredient_id=l.ingredient_id,
-                        quantity_received=qty_delivered,
-                        unit_price_ht=l.unit_price_ht,
-                        vat_rate=l.vat_rate,
-                        supplier_id=l.supplier_id,
-                        pack_size=l.pack_size,
-                        lot_number=None,
-                        quality_level=l.quality_level or 2
-                    ))
+                    deliveries.append(
+                        DeliveryLine(
+                            ingredient_id=l.ingredient_id,
+                            quantity_received=qty_delivered,
+                            unit_price_ht=l.unit_price_ht,
+                            vat_rate=l.vat_rate,
+                            supplier_id=l.supplier_id,
+                            pack_size=l.pack_size,
+                            lot_number=None,
+                            quality_level=l.quality_level or 2,
+                        )
+                    )
                 else:
                     qty_remaining = qty_delivered
                     for i in range(nb_lots):
@@ -767,27 +926,37 @@ class DecisionMenu:
                             q = qty_remaining
                         else:
                             q = self.ui.get_input(
-                                f"  Quantité lot {i+1} (reste {qty_remaining})",
-                                Decimal, min_val=Decimal('0.001'), max_val=qty_remaining,
-                                default=(qty_remaining/Decimal(str(nb_lots-i)))
+                                f"  Quantité lot {i + 1} (reste {qty_remaining})",
+                                Decimal,
+                                min_val=Decimal("0.001"),
+                                max_val=qty_remaining,
+                                default=(qty_remaining / Decimal(str(nb_lots - i))),
                             )
                         qty_remaining -= q
-                        deliveries.append(DeliveryLine(
-                            ingredient_id=l.ingredient_id,
-                            quantity_received=q,
-                            unit_price_ht=l.unit_price_ht,
-                            vat_rate=l.vat_rate,
-                            supplier_id=l.supplier_id,
-                            pack_size=l.pack_size,
-                            lot_number=self.ui.get_input(
-                                f"  Numéro lot {i+1} (optionnel)", str, default=f"{l.ingredient_id}-{i+1}"
-                            ),
-                            quality_level=l.quality_level or 2
-                        ))
+                        deliveries.append(
+                            DeliveryLine(
+                                ingredient_id=l.ingredient_id,
+                                quantity_received=q,
+                                unit_price_ht=l.unit_price_ht,
+                                vat_rate=l.vat_rate,
+                                supplier_id=l.supplier_id,
+                                pack_size=l.pack_size,
+                                lot_number=self.ui.get_input(
+                                    f"  Numéro lot {i + 1} (optionnel)",
+                                    str,
+                                    default=f"{l.ingredient_id}-{i + 1}",
+                                ),
+                                quality_level=l.quality_level or 2,
+                            )
+                        )
 
             # Calcul lots et ajout en stock
             receiver = ReceivingService(shelf_life_rules={1: -2, 3: 0, 5: 2})
-            lots = receiver.receive(deliveries, date.today(), default_shelf_life_days=5) if deliveries else []
+            lots = (
+                receiver.receive(deliveries, date.today(), default_shelf_life_days=5)
+                if deliveries
+                else []
+            )
             for lot in lots:
                 restaurant.stock_manager.add_lot(lot)
             all_lots.extend(lots)
@@ -802,18 +971,20 @@ class DecisionMenu:
             else:
                 l.status = "CLOSED"
 
-            gr_lines.append(GoodsReceiptLine(
-                ingredient_id=l.ingredient_id,
-                qty_ordered=l.quantity,
-                qty_delivered=qty_delivered,
-                qty_accepted=qty_accepted,
-                unit_price_ht=l.unit_price_ht,
-                vat_rate=l.vat_rate,
-                supplier_id=l.supplier_id,
-                pack_size=l.pack_size,
-                lots=lots,
-                comment=None
-            ))
+            gr_lines.append(
+                GoodsReceiptLine(
+                    ingredient_id=l.ingredient_id,
+                    qty_ordered=l.quantity,
+                    qty_delivered=qty_delivered,
+                    qty_accepted=qty_accepted,
+                    unit_price_ht=l.unit_price_ht,
+                    vat_rate=l.vat_rate,
+                    supplier_id=l.supplier_id,
+                    pack_size=l.pack_size,
+                    lots=lots,
+                    comment=None,
+                )
+            )
 
             if l.status != "CLOSED":
                 remaining_lines.append(l)
@@ -821,10 +992,32 @@ class DecisionMenu:
         # Mettre à jour pending_po_lines en gardant seulement les lignes non CLOSED
         restaurant.pending_po_lines = remaining_lines
 
-        total_ht = sum([(ln.qty_accepted * ln.unit_price_ht) for ln in gr_lines], Decimal("0"))
-        total_ttc = sum([(ln.qty_accepted * ln.unit_price_ht) * (Decimal('1') + ln.vat_rate) for ln in gr_lines], Decimal("0"))
-        po_status = "CLOSED" if not remaining_lines else ("PARTIAL" if any(l.accepted_qty > 0 for l in remaining_lines) else "OPEN")
-        gr = GoodsReceipt(date=date.today(), lines=gr_lines, total_ht=total_ht, total_ttc=total_ttc, status=po_status)
+        total_ht = sum(
+            [(ln.qty_accepted * ln.unit_price_ht) for ln in gr_lines], Decimal("0")
+        )
+        total_ttc = sum(
+            [
+                (ln.qty_accepted * ln.unit_price_ht) * (Decimal("1") + ln.vat_rate)
+                for ln in gr_lines
+            ],
+            Decimal("0"),
+        )
+        po_status = (
+            "CLOSED"
+            if not remaining_lines
+            else (
+                "PARTIAL"
+                if any(l.accepted_qty > 0 for l in remaining_lines)
+                else "OPEN"
+            )
+        )
+        gr = GoodsReceipt(
+            date=date.today(),
+            lines=gr_lines,
+            total_ht=total_ht,
+            total_ttc=total_ttc,
+            status=po_status,
+        )
         restaurant._last_goods_receipt = gr
 
         # Récap et alertes DLC
@@ -842,7 +1035,10 @@ class DecisionMenu:
 
         expiring = restaurant.stock_manager.get_expiring_lots(days=3)
         if expiring:
-            msg = ["⚠️ LOTS PROCHE DLC:"] + [f"• {lt.ingredient_id} ({lt.quantity}) — DLC {lt.dlc}" for lt in expiring]
+            msg = ["⚠️ LOTS PROCHE DLC:"] + [
+                f"• {lt.ingredient_id} ({lt.quantity}) — DLC {lt.dlc}"
+                for lt in expiring
+            ]
             self.ui.print_box(msg, "ALERTES DLC", "warning")
 
         self.ui.pause()
@@ -854,7 +1050,9 @@ class DecisionMenu:
 
         # Affichage de l'état actuel
         current_quality = restaurant.get_overall_quality_score()
-        print(f"\n📊 QUALITÉ ACTUELLE: {restaurant.get_quality_description()} ({current_quality:.1f}/5)")
+        print(
+            f"\n📊 QUALITÉ ACTUELLE: {restaurant.get_quality_description()} ({current_quality:.1f}/5)"
+        )
         print(f"💰 Impact coût: {restaurant.calculate_quality_cost_impact():.0%}")
         print(f"⭐ Réputation: {restaurant.reputation:.1f}/10")
 
@@ -863,7 +1061,7 @@ class DecisionMenu:
             ("beef_ground", "🥩 Viande (bœuf haché)"),
             ("tomato", "🍅 Légumes (tomates)"),
             ("cheese_mozzarella", "🧀 Fromage (mozzarella)"),
-            ("flour", "🌾 Féculents (farine)")
+            ("flour", "🌾 Féculents (farine)"),
         ]
 
         print(f"\n🎯 NIVEAUX DE QUALITÉ DISPONIBLES:")
@@ -882,13 +1080,17 @@ class DecisionMenu:
             try:
                 new_level = self.ui.ask_int(
                     f"   Nouveau niveau (1-5) [actuel: {current_level}]: ",
-                    min_val=1, max_val=5, default=current_level
+                    min_val=1,
+                    max_val=5,
+                    default=current_level,
                 )
 
                 if new_level != current_level:
                     restaurant.set_ingredient_quality(ingredient_id, new_level)
                     changes_made = True
-                    print(f"   ✅ {ingredient_name} mis à jour: {current_level}⭐ → {new_level}⭐")
+                    print(
+                        f"   ✅ {ingredient_name} mis à jour: {current_level}⭐ → {new_level}⭐"
+                    )
 
             except (ValueError, KeyboardInterrupt):
                 print(f"   ⏭️ {ingredient_name} inchangé")
@@ -905,11 +1107,11 @@ class DecisionMenu:
             print(f"   Description: {restaurant.get_quality_description()}")
 
             # Sauvegarde dans les décisions
-            decisions['ingredient_quality_changes'] = {
-                'previous_score': float(current_quality),
-                'new_score': float(new_quality),
-                'cost_impact': float(new_cost_impact),
-                'ingredients': dict(restaurant.ingredient_choices)
+            decisions["ingredient_quality_changes"] = {
+                "previous_score": float(current_quality),
+                "new_score": float(new_quality),
+                "cost_impact": float(new_cost_impact),
+                "ingredients": dict(restaurant.ingredient_choices),
             }
 
             self.ui.show_success("✅ Choix de qualité enregistrés !")
@@ -937,7 +1139,7 @@ class DecisionMenu:
             "💡 Actions recommandées:",
             "• Utiliser le Lot A en priorité (FEFO)",
             "• Promouvoir les tomates du Lot C",
-            "• Commander du steak haché (stock bas)"
+            "• Commander du steak haché (stock bas)",
         ]
 
         self.ui.print_box(stock_info, "STOCKS ACTUELS")
@@ -963,7 +1165,7 @@ class DecisionMenu:
             "   Spécialité: Frais quotidien 2★-4★",
             "",
             "💡 Recommandation: Diversifiez vos sources",
-            "   selon votre positionnement qualité"
+            "   selon votre positionnement qualité",
         ]
 
         self.ui.print_box(suppliers_data, "FOURNISSEURS")
@@ -1003,7 +1205,7 @@ class DecisionMenu:
             f"• Foodies: {attractiveness_factors['foodies']:.0%} (sensibilité élevée)",
             "",
             "💰 ANALYSE COÛT/BÉNÉFICE:",
-            ""
+            "",
         ]
 
         # Simulation d'amélioration qualité
@@ -1012,13 +1214,15 @@ class DecisionMenu:
             cost_increase = 25  # Estimation +25% pour +1 niveau
             satisfaction_increase = 15  # Estimation +15% satisfaction
 
-            report_data.extend([
-                f"📈 SIMULATION AMÉLIORATION (+1 niveau qualité):",
-                f"• Coût supplémentaire estimé: +{cost_increase}%",
-                f"• Satisfaction supplémentaire: +{satisfaction_increase}%",
-                f"• Nouvelle attractivité foodies: +{satisfaction_increase * 1.5:.0f}%",
-                ""
-            ])
+            report_data.extend(
+                [
+                    f"📈 SIMULATION AMÉLIORATION (+1 niveau qualité):",
+                    f"• Coût supplémentaire estimé: +{cost_increase}%",
+                    f"• Satisfaction supplémentaire: +{satisfaction_increase}%",
+                    f"• Nouvelle attractivité foodies: +{satisfaction_increase * 1.5:.0f}%",
+                    "",
+                ]
+            )
 
         # Recommandations personnalisées
         recommendations = []
@@ -1039,9 +1243,13 @@ class DecisionMenu:
         if avg_ticket > 0 and quality_score > 0:
             price_quality_ratio = float(avg_ticket / quality_score)
             if price_quality_ratio > 4.0:
-                recommendations.append("• Prix élevé vs qualité: risque de perte clients")
+                recommendations.append(
+                    "• Prix élevé vs qualité: risque de perte clients"
+                )
             elif price_quality_ratio < 2.5:
-                recommendations.append("• Excellent rapport qualité/prix: potentiel hausse prix")
+                recommendations.append(
+                    "• Excellent rapport qualité/prix: potentiel hausse prix"
+                )
 
         report_data.extend(["🎯 RECOMMANDATIONS PERSONNALISÉES:", ""])
         report_data.extend(recommendations)
@@ -1054,7 +1262,7 @@ class DecisionMenu:
                     "beef_ground": "Viande",
                     "tomato": "Légumes",
                     "cheese_mozzarella": "Fromage",
-                    "flour": "Féculents"
+                    "flour": "Féculents",
                 }.get(ingredient_id, ingredient_id)
 
                 stars = "⭐" * level
@@ -1082,7 +1290,7 @@ class DecisionMenu:
             "  → Qualité +1★ pour même prix",
             "",
             "• Champignons d'automne disponibles",
-            "  → Nouveau plat saisonnier possible"
+            "  → Nouveau plat saisonnier possible",
         ]
 
         self.ui.print_box(alerts_data, "ALERTES")
@@ -1103,14 +1311,36 @@ class DecisionMenu:
         # Options de campagnes
         print(f"\n🎯 CAMPAGNES DISPONIBLES:")
         campaigns = [
-            {"name": "Réseaux sociaux", "cost": "50€/jour", "reach": "1000 personnes", "conversion": "2.5%"},
-            {"name": "Publicité locale", "cost": "80€/jour", "reach": "750 personnes", "conversion": "3.5%"},
-            {"name": "Programme fidélité", "cost": "30€/jour", "reach": "150 clients", "conversion": "15%"},
-            {"name": "Événement spécial", "cost": "200€/jour", "reach": "400 personnes", "conversion": "8%"},
+            {
+                "name": "Réseaux sociaux",
+                "cost": "50€/jour",
+                "reach": "1000 personnes",
+                "conversion": "2.5%",
+            },
+            {
+                "name": "Publicité locale",
+                "cost": "80€/jour",
+                "reach": "750 personnes",
+                "conversion": "3.5%",
+            },
+            {
+                "name": "Programme fidélité",
+                "cost": "30€/jour",
+                "reach": "150 clients",
+                "conversion": "15%",
+            },
+            {
+                "name": "Événement spécial",
+                "cost": "200€/jour",
+                "reach": "400 personnes",
+                "conversion": "8%",
+            },
         ]
 
         for i, campaign in enumerate(campaigns, 1):
-            print(f"   {i}. {campaign['name']}: {campaign['cost']} - {campaign['reach']} - {campaign['conversion']}")
+            print(
+                f"   {i}. {campaign['name']}: {campaign['cost']} - {campaign['reach']} - {campaign['conversion']}"
+            )
 
         print(f"\n💡 RECOMMANDATIONS:")
         print(f"   • Augmenter présence réseaux sociaux (+20% clients jeunes)")
@@ -1119,20 +1349,32 @@ class DecisionMenu:
 
         # Choix de campagne
         try:
-            choice = self.ui.ask_int("Lancer une campagne (1-4) ou 0 pour passer: ", min_val=0, max_val=4, default=0)
+            choice = self.ui.ask_int(
+                "Lancer une campagne (1-4) ou 0 pour passer: ",
+                min_val=0,
+                max_val=4,
+                default=0,
+            )
             if choice > 0:
                 campaign = campaigns[choice - 1]
-                duration = self.ui.ask_int(f"Durée en jours pour '{campaign['name']}': ", min_val=1, max_val=30, default=7)
+                duration = self.ui.ask_int(
+                    f"Durée en jours pour '{campaign['name']}': ",
+                    min_val=1,
+                    max_val=30,
+                    default=7,
+                )
 
-                decisions['marketing_campaign'] = {
-                    'type': campaign['name'],
-                    'cost_per_day': campaign['cost'],
-                    'duration': duration,
-                    'expected_reach': campaign['reach'],
-                    'expected_conversion': campaign['conversion']
+                decisions["marketing_campaign"] = {
+                    "type": campaign["name"],
+                    "cost_per_day": campaign["cost"],
+                    "duration": duration,
+                    "expected_reach": campaign["reach"],
+                    "expected_conversion": campaign["conversion"],
                 }
 
-                self.ui.show_success(f"✅ Campagne '{campaign['name']}' programmée pour {duration} jours")
+                self.ui.show_success(
+                    f"✅ Campagne '{campaign['name']}' programmée pour {duration} jours"
+                )
             else:
                 self.ui.show_info("ℹ️ Aucune campagne lancée")
 
@@ -1161,14 +1403,40 @@ class DecisionMenu:
 
         print(f"\n🍽️ RENTABILITÉ PAR PLAT:")
         dishes = [
-            {"name": "Burger Classic", "price": "12.50€", "cost": "4.20€", "margin": "66.4%", "volume": 145},
-            {"name": "Salade César", "price": "9.80€", "cost": "3.10€", "margin": "68.4%", "volume": 89},
-            {"name": "Pizza Margherita", "price": "11.00€", "cost": "3.80€", "margin": "65.5%", "volume": 112},
-            {"name": "Pâtes Carbonara", "price": "10.50€", "cost": "2.90€", "margin": "72.4%", "volume": 78}
+            {
+                "name": "Burger Classic",
+                "price": "12.50€",
+                "cost": "4.20€",
+                "margin": "66.4%",
+                "volume": 145,
+            },
+            {
+                "name": "Salade César",
+                "price": "9.80€",
+                "cost": "3.10€",
+                "margin": "68.4%",
+                "volume": 89,
+            },
+            {
+                "name": "Pizza Margherita",
+                "price": "11.00€",
+                "cost": "3.80€",
+                "margin": "65.5%",
+                "volume": 112,
+            },
+            {
+                "name": "Pâtes Carbonara",
+                "price": "10.50€",
+                "cost": "2.90€",
+                "margin": "72.4%",
+                "volume": 78,
+            },
         ]
 
         for dish in dishes:
-            print(f"   • {dish['name']}: {dish['price']} (coût: {dish['cost']}, marge: {dish['margin']}, vol: {dish['volume']})")
+            print(
+                f"   • {dish['name']}: {dish['price']} (coût: {dish['cost']}, marge: {dish['margin']}, vol: {dish['volume']})"
+            )
 
         print(f"\n💡 RECOMMANDATIONS FINANCIÈRES:")
         print(f"   • Augmenter prix Burger Classic (+0.50€ = +290€/mois)")
@@ -1184,35 +1452,61 @@ class DecisionMenu:
         print(f"   4. Analyser un investissement")
 
         try:
-            choice = self.ui.ask_int("Choisir une action (1-4) ou 0 pour passer: ", min_val=0, max_val=4, default=0)
+            choice = self.ui.ask_int(
+                "Choisir une action (1-4) ou 0 pour passer: ",
+                min_val=0,
+                max_val=4,
+                default=0,
+            )
 
             if choice == 1:
-                amount = self.ui.ask_float("Montant du prêt souhaité (€): ", min_val=1000, max_val=50000, default=10000)
-                decisions['loan_request'] = {
-                    'amount': amount,
-                    'purpose': 'expansion',
-                    'estimated_rate': '4.5%'
+                amount = self.ui.ask_float(
+                    "Montant du prêt souhaité (€): ",
+                    min_val=1000,
+                    max_val=50000,
+                    default=10000,
+                )
+                decisions["loan_request"] = {
+                    "amount": amount,
+                    "purpose": "expansion",
+                    "estimated_rate": "4.5%",
                 }
-                self.ui.show_success(f"✅ Demande de prêt de {amount:,.0f}€ enregistrée")
+                self.ui.show_success(
+                    f"✅ Demande de prêt de {amount:,.0f}€ enregistrée"
+                )
 
             elif choice == 2:
                 equipment_options = [
-                    {"name": "Four professionnel", "cost": 8500, "benefit": "+20% capacité"},
-                    {"name": "Système de caisse", "cost": 2200, "benefit": "+15% efficacité"},
-                    {"name": "Frigo supplémentaire", "cost": 3800, "benefit": "+30% stocks"}
+                    {
+                        "name": "Four professionnel",
+                        "cost": 8500,
+                        "benefit": "+20% capacité",
+                    },
+                    {
+                        "name": "Système de caisse",
+                        "cost": 2200,
+                        "benefit": "+15% efficacité",
+                    },
+                    {
+                        "name": "Frigo supplémentaire",
+                        "cost": 3800,
+                        "benefit": "+30% stocks",
+                    },
                 ]
 
                 print(f"\n🔧 ÉQUIPEMENTS DISPONIBLES:")
                 for i, eq in enumerate(equipment_options, 1):
                     print(f"   {i}. {eq['name']}: {eq['cost']}€ ({eq['benefit']})")
 
-                eq_choice = self.ui.ask_int("Choisir équipement (1-3): ", min_val=1, max_val=3, default=1)
+                eq_choice = self.ui.ask_int(
+                    "Choisir équipement (1-3): ", min_val=1, max_val=3, default=1
+                )
                 equipment = equipment_options[eq_choice - 1]
 
-                decisions['equipment_purchase'] = {
-                    'name': equipment['name'],
-                    'cost': equipment['cost'],
-                    'benefit': equipment['benefit']
+                decisions["equipment_purchase"] = {
+                    "name": equipment["name"],
+                    "cost": equipment["cost"],
+                    "benefit": equipment["benefit"],
                 }
                 self.ui.show_success(f"✅ Achat {equipment['name']} programmé")
 
@@ -1222,11 +1516,16 @@ class DecisionMenu:
                 print(f"   • Accélérer encaissements clients: +850€")
                 print(f"   • Optimiser niveau stocks: +1,200€")
 
-                decisions['cash_optimization'] = True
+                decisions["cash_optimization"] = True
                 self.ui.show_success("✅ Plan d'optimisation trésorerie activé")
 
             elif choice == 4:
-                investment_amount = self.ui.ask_float("Montant investissement (€): ", min_val=1000, max_val=30000, default=5000)
+                investment_amount = self.ui.ask_float(
+                    "Montant investissement (€): ",
+                    min_val=1000,
+                    max_val=30000,
+                    default=5000,
+                )
                 expected_return = investment_amount * 0.15  # 15% de retour estimé
                 payback_months = investment_amount / (expected_return / 12)
 
@@ -1236,11 +1535,11 @@ class DecisionMenu:
                 print(f"   Retour sur investissement: 15%")
                 print(f"   Période de retour: {payback_months:.1f} mois")
 
-                decisions['investment_analysis'] = {
-                    'amount': investment_amount,
-                    'expected_return': expected_return,
-                    'roi': 0.15,
-                    'payback_months': payback_months
+                decisions["investment_analysis"] = {
+                    "amount": investment_amount,
+                    "expected_return": expected_return,
+                    "roi": 0.15,
+                    "payback_months": payback_months,
                 }
 
             else:
@@ -1262,7 +1561,7 @@ class DecisionMenu:
                 "🎉 Organiser un événement spécial",
                 "🤝 Partenariats locaux",
                 "📱 Présence digitale",
-                "💳 Moyens de paiement"
+                "💳 Moyens de paiement",
             ]
 
             choice = self.ui.show_menu("MARKETING & COMMERCIAL", submenu_options)
@@ -1282,11 +1581,21 @@ class DecisionMenu:
     def _advertising_campaign(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Campagne publicitaire."""
         campaign_types = [
-            ("Flyers quartier", 200, "Faible", "Distribution de flyers dans le quartier"),
+            (
+                "Flyers quartier",
+                200,
+                "Faible",
+                "Distribution de flyers dans le quartier",
+            ),
             ("Radio locale", 800, "Moyen", "Spot radio aux heures de pointe"),
             ("Réseaux sociaux", 300, "Moyen", "Campagne Facebook/Instagram ciblée"),
-            ("Journal local", 500, "Faible", "Encart publicitaire dans la presse locale"),
-            ("Influenceurs", 1200, "Fort", "Collaboration avec des influenceurs food")
+            (
+                "Journal local",
+                500,
+                "Faible",
+                "Encart publicitaire dans la presse locale",
+            ),
+            ("Influenceurs", 1200, "Fort", "Collaboration avec des influenceurs food"),
         ]
 
         self.ui.clear_screen()
@@ -1312,7 +1621,7 @@ class DecisionMenu:
             f"Description: {description}",
             "",
             f"Trésorerie actuelle: {restaurant.cash:.0f}€",
-            f"Trésorerie après campagne: {restaurant.cash - cost:.0f}€"
+            f"Trésorerie après campagne: {restaurant.cash - cost:.0f}€",
         ]
 
         self.ui.print_box(details, style="info")
@@ -1323,14 +1632,12 @@ class DecisionMenu:
             return
 
         if self.ui.confirm(f"Lancer la campagne {name} pour {cost}€ ?"):
-            if 'marketing_campaigns' not in decisions:
-                decisions['marketing_campaigns'] = []
+            if "marketing_campaigns" not in decisions:
+                decisions["marketing_campaigns"] = []
 
-            decisions['marketing_campaigns'].append({
-                'type': name,
-                'cost': cost,
-                'impact': impact
-            })
+            decisions["marketing_campaigns"].append(
+                {"type": name, "cost": cost, "impact": impact}
+            )
 
             self.ui.show_success(f"Campagne {name} programmée !")
             self.ui.pause()
@@ -1345,7 +1652,7 @@ class DecisionMenu:
                 "💰 Rembourser un emprunt",
                 "📈 Placer des excédents",
                 "📊 Analyser la rentabilité",
-                "💸 Gérer la trésorerie"
+                "💸 Gérer la trésorerie",
             ]
 
             choice = self.ui.show_menu("FINANCE", submenu_options)
@@ -1366,7 +1673,7 @@ class DecisionMenu:
                 "💰 Tableau de flux de trésorerie",
                 "📋 Bilan comptable",
                 "📈 Analyse des KPIs",
-                "📉 Évolution des performances"
+                "📉 Évolution des performances",
             ]
 
             choice = self.ui.show_menu("RAPPORTS & ANALYSES", report_options)
@@ -1376,16 +1683,19 @@ class DecisionMenu:
             elif choice == 1:
                 # Pour la démo, on crée un ledger vide
                 from ..core.ledger import Ledger
+
                 ledger = Ledger()
                 self.financial_reports.show_profit_loss_statement(restaurant, ledger)
                 self.ui.pause()
             elif choice == 2:
                 from ..core.ledger import Ledger
+
                 ledger = Ledger()
                 self.financial_reports.show_cash_flow_statement(restaurant, ledger)
                 self.ui.pause()
             elif choice == 3:
                 from ..core.ledger import Ledger
+
                 ledger = Ledger()
                 self.financial_reports.show_balance_sheet(restaurant, ledger)
                 self.ui.pause()
@@ -1401,19 +1711,21 @@ class DecisionMenu:
         # Résumé des décisions
         summary = ["RÉSUMÉ DES DÉCISIONS:"]
 
-        if 'price_changes' in decisions:
+        if "price_changes" in decisions:
             summary.append("💰 Modifications de prix:")
-            for recipe, price in decisions['price_changes'].items():
+            for recipe, price in decisions["price_changes"].items():
                 summary.append(f"  • {recipe}: {price:.2f}€")
 
-        if 'recruitments' in decisions:
+        if "recruitments" in decisions:
             summary.append("👤 Recrutements:")
-            for recruit in decisions['recruitments']:
-                summary.append(f"  • {recruit['position'].value} - {recruit['salary']:.0f}€/mois")
+            for recruit in decisions["recruitments"]:
+                summary.append(
+                    f"  • {recruit['position'].value} - {recruit['salary']:.0f}€/mois"
+                )
 
-        if 'marketing_campaigns' in decisions:
+        if "marketing_campaigns" in decisions:
             summary.append("📢 Campagnes marketing:")
-            for campaign in decisions['marketing_campaigns']:
+            for campaign in decisions["marketing_campaigns"]:
                 summary.append(f"  • {campaign['type']} - {campaign['cost']}€")
 
         self.ui.print_box(summary, "VALIDATION", "warning")
@@ -1421,12 +1733,18 @@ class DecisionMenu:
         return self.ui.confirm("Valider ces décisions et passer au tour suivant ?")
 
     # Méthodes utilitaires (implémentation complète)
-    def _add_recipes(self, restaurant: Restaurant, available_recipes: Dict, decisions: Dict) -> None:
+    def _add_recipes(
+        self, restaurant: Restaurant, available_recipes: Dict, decisions: Dict
+    ) -> None:
         """Ajoute des recettes disponibles au menu actif avec prix TTC."""
         self.ui.clear_screen()
 
         # Recettes non actives
-        inactive = [r for r in available_recipes.values() if r.id not in restaurant.active_recipes]
+        inactive = [
+            r
+            for r in available_recipes.values()
+            if r.id not in restaurant.active_recipes
+        ]
         if not inactive:
             self.ui.show_info("Toutes les recettes sont déjà actives.")
             self.ui.pause()
@@ -1455,7 +1773,9 @@ class DecisionMenu:
             # TVA simplifiée 10%
             vat = Decimal("0.10")
             default_price_ht = cost_per_portion / (Decimal("1.0") - target_margin_pct)
-            default_price_ttc = (default_price_ht * (Decimal("1.0") + vat)).quantize(Decimal("0.10"))
+            default_price_ttc = (default_price_ht * (Decimal("1.0") + vat)).quantize(
+                Decimal("0.10")
+            )
 
             price_ttc = self.ui.get_input(
                 f"Prix TTC pour {recipe.name} (coût/portion ~{cost_per_portion:.2f}€)",
@@ -1471,10 +1791,12 @@ class DecisionMenu:
             restaurant.activate_recipe(recipe.id)
 
             # Enregistrer décision
-            decisions.setdefault("added_recipes", []).append({
-                "recipe_id": recipe.id,
-                "price_ttc": price_ttc,
-            })
+            decisions.setdefault("added_recipes", []).append(
+                {
+                    "recipe_id": recipe.id,
+                    "price_ttc": price_ttc,
+                }
+            )
 
             # Retirer de la liste inactive
             inactive = [r for r in inactive if r.id != recipe.id]
@@ -1500,7 +1822,9 @@ class DecisionMenu:
         self.ui.show_success(f"Recette {selected_id} désactivée")
         self.ui.pause()
 
-    def _analyze_recipe_profitability(self, restaurant: Restaurant, available_recipes: Dict) -> None:
+    def _analyze_recipe_profitability(
+        self, restaurant: Restaurant, available_recipes: Dict
+    ) -> None:
         """Analyse marge et recommandations par recette active."""
         active = restaurant.get_active_menu()
         if not active:
@@ -1514,18 +1838,26 @@ class DecisionMenu:
                 continue
             recipe = available_recipes[rid]
             # TODO: passer les lots de stock réels si disponibles
-            analysis = self.cost_calculator.calculate_margin_analysis(recipe, price_ttc, vat_rate=Decimal("0.10"))
+            analysis = self.cost_calculator.calculate_margin_analysis(
+                recipe, price_ttc, vat_rate=Decimal("0.10")
+            )
             margin_pct = analysis["margin_percentage"] * 100
-            lines.append(f"• {recipe.name}: prix {price_ttc:.2f}€, marge {margin_pct:.1f}% (coût/portion {analysis['cost_per_portion']:.2f}€)")
+            lines.append(
+                f"• {recipe.name}: prix {price_ttc:.2f}€, marge {margin_pct:.1f}% (coût/portion {analysis['cost_per_portion']:.2f}€)"
+            )
 
             # Cibles par type
             targets = {"fast": 70, "classic": 75, "brasserie": 72, "gastronomique": 80}
             target = targets.get(restaurant.type.value, 70)
             if margin_pct < target:
                 # Proposer nouvelle tarification HT -> TTC
-                new_price_ht = analysis["cost_per_portion"] / (Decimal("1.0") - Decimal(str(target/100)))
+                new_price_ht = analysis["cost_per_portion"] / (
+                    Decimal("1.0") - Decimal(str(target / 100))
+                )
                 new_price_ttc = new_price_ht * Decimal("1.10")
-                lines.append(f"   ↳ Suggestion: augmenter à ~{new_price_ttc:.2f}€ pour atteindre {target}%")
+                lines.append(
+                    f"   ↳ Suggestion: augmenter à ~{new_price_ttc:.2f}€ pour atteindre {target}%"
+                )
 
         self.ui.print_box(lines, "ANALYSE RENTABILITÉ", "info")
         self.ui.pause()
@@ -1557,11 +1889,19 @@ class DecisionMenu:
             return
 
         # Prix spéciaux (remise % simple)
-        discount = self.ui.get_input("Remise % (ex: 20 pour -20%)", Decimal, min_val=Decimal("0"), max_val=Decimal("90"), default=Decimal("20"))
+        discount = self.ui.get_input(
+            "Remise % (ex: 20 pour -20%)",
+            Decimal,
+            min_val=Decimal("0"),
+            max_val=Decimal("90"),
+            default=Decimal("20"),
+        )
         specials = {}
         for rid in selection:
             base = active[rid]
-            specials[rid] = (base * (Decimal("1.0") - discount/Decimal("100"))).quantize(Decimal("0.10"))
+            specials[rid] = (
+                base * (Decimal("1.0") - discount / Decimal("100"))
+            ).quantize(Decimal("0.10"))
 
         decisions["daily_menu"] = specials
         self.ui.show_success("Menu du jour créé pour 1 tour")

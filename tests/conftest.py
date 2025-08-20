@@ -34,35 +34,35 @@ def sample_restaurant():
         speed_service=Decimal("1.0"),
         cash=Decimal("10000"),
         rent_monthly=Decimal("3000"),
-        fixed_costs_monthly=Decimal("1500")
+        fixed_costs_monthly=Decimal("1500"),
     )
-    
+
     # Ajout d'employés de base
     chef = Employee(
         id="chef_test",
         name="Chef Test",
         position=EmployeePosition.CUISINE,
         contract=EmployeeContract.CDI,
-        salary_gross_monthly=Decimal("2500")
+        salary_gross_monthly=Decimal("2500"),
     )
-    
+
     serveur = Employee(
         id="serveur_test",
         name="Serveur Test",
         position=EmployeePosition.SALLE,
         contract=EmployeeContract.CDI,
-        salary_gross_monthly=Decimal("2000")
+        salary_gross_monthly=Decimal("2000"),
     )
-    
+
     restaurant.add_employee(chef)
     restaurant.add_employee(serveur)
-    
+
     # Menu de base
     restaurant.set_recipe_price("burger_classic", Decimal("12.50"))
     restaurant.set_recipe_price("pasta_bolognese", Decimal("15.00"))
     restaurant.activate_recipe("burger_classic")
     restaurant.activate_recipe("pasta_bolognese")
-    
+
     return restaurant
 
 
@@ -75,12 +75,6 @@ def decimal_precision():
 # Configuration des markers pytest
 def pytest_configure(config):
     """Configuration des markers personnalisés."""
-    config.addinivalue_line(
-        "markers", "integration: marque les tests d'intégration"
-    )
-    config.addinivalue_line(
-        "markers", "slow: marque les tests lents"
-    )
-    config.addinivalue_line(
-        "markers", "unit: marque les tests unitaires"
-    )
+    config.addinivalue_line("markers", "integration: marque les tests d'intégration")
+    config.addinivalue_line("markers", "slow: marque les tests lents")
+    config.addinivalue_line("markers", "unit: marque les tests unitaires")
