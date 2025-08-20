@@ -12,6 +12,7 @@ from .stock import StockLot
 from .restaurant import Restaurant, RestaurantType
 from .employee import Employee, EmployeeContract, EmployeePosition
 from .scenario import Scenario, MarketSegment
+from .campaign import CampaignManager
 
 __all__ = [
     "Ingredient",
@@ -26,4 +27,5 @@ __all__ = [
     "EmployeePosition",
     "Scenario",
     "MarketSegment",
+    "CampaignManager",
 ]
