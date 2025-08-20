@@ -64,6 +64,7 @@ class FoodOpsProGame:
         self.decision_menu = DecisionMenu(self.ui, self.cost_calculator)
         # Injection des catalogues et paramètres admin
         self.decision_menu.set_suppliers_catalog(self.suppliers_catalog)
+        self.decision_menu.set_suppliers_map(self.suppliers)
         self.decision_menu.set_admin_settings(self.admin_settings)
 
         self.ui.show_progress_bar(4, 5, "Finalisation")

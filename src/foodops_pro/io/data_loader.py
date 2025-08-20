@@ -177,6 +177,7 @@ class DataLoader:
                     'lead_time_days': int(row['lead_time_days']) if row.get('lead_time_days') else None,
                     'reliability': Decimal(row['reliability']) if row.get('reliability') else None,
                     'available': int(row['available']) if row.get('available') else 1,
+                    'typical_shelf_life_days': int(row['typical_shelf_life_days']) if row.get('typical_shelf_life_days') else None,
                 }
                 catalog.setdefault(ing, []).append(entry)
 
