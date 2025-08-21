@@ -455,6 +455,36 @@ class FoodOpsProGame:
                             "Ou saisissez une mise en place dans 👨‍🍳 Production & Mise en place",
                         ], style="warning")
             except Exception as e:
+                if getattr(self, "admin_mode", False):
+                    print(f"[DEBUG] Production planning failed: {e}")
+            # Récap de production réalisé
+            try:
+                for r in self.players + self.ai_competitors:
+                    produced = getattr(r, 'production_units_ready', {}) or {}
+                    # Mémoriser stats du tour (produites connues ici; vendues/perdues après marché)
+                    if not hasattr(r, 'production_stats_history'):
+                        r.production_stats_history = {}
+
+                    consumed = getattr(r, 'production_consumed_ingredients', {}) or {}
+                    cost_map = getattr(r, 'production_cost_per_portion', {}) or {}
+                    if produced:
+                        lines = [f"Production réalisée — {r.name}", ""]
+                        for rid, qty in produced.items():
+                            cost = cost_map.get(rid)
+                            line = f"• {rid}: {qty} portions"
+                            if cost is not None:
+                                line += f" | Coût/portion: {cost:.2f}€ HT"
+                            lines.append(line)
+                            cons = consumed.get(rid, {})
+                            if cons:
+                                parts = ", ".join([f"{ing}:{q}" for ing, q in cons.items()])
+                                lines.append(f"   Ingrédients: {parts}")
+                        self.ui.print_box(lines, style='info')
+            except Exception as e:
+                if self.admin_mode:
+                    print(f"[DEBUG] recap production failed: {e}")
+
+            except Exception as e:
                 # En cas d'échec, on continue sans production-aware
                 if getattr(self, "admin_mode", False):
                     print(f"[DEBUG] Production planning failed: {e}")
@@ -540,6 +570,28 @@ class FoodOpsProGame:
             if restaurant.id in results:
                 result = results[restaurant.id]
                 utilization_pct = f"{result.utilization_rate:.1%}"
+                # Enregistrer stats de production du tour
+                try:
+                    for r in self.players + self.ai_competitors:
+                        stats_turn = {}
+                        produced_map = getattr(r, 'production_produced_units', {}) or {}
+                        cost_map = getattr(r, 'production_cost_per_portion', {}) or {}
+                        sales_map = results.get(r.id).recipe_sales if r.id in results else {}
+                        for rid, produced_qty in produced_map.items():
+                            sold_qty = int(sales_map.get(rid, 0)) if sales_map else 0
+                            lost_qty = max(0, int(produced_qty) - sold_qty)
+                            stats_turn[rid] = {
+                                'produced': int(produced_qty),
+                                'sold': sold_qty,
+                                'lost': lost_qty,
+                                'cost_per_portion': cost_map.get(rid),
+                            }
+                        if hasattr(r, 'production_stats_history'):
+                            r.production_stats_history[self.current_turn] = stats_turn
+                except Exception as e:
+                    if self.admin_mode:
+                        print(f"[DEBUG] Save production stats failed: {e}")
+
 
                 # Marqueur pour les joueurs
                 marker = "👤" if restaurant in self.players else "🤖"

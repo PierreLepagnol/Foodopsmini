@@ -414,6 +414,7 @@ class DecisionMenu:
                 "🛒 Composer ma commande (manuel)",
                 "📚 Catalogues fournisseurs",
                 "🤖 Proposer une commande (auto, revue ligne)",
+                "🏷️ Commander par gamme (fast/bistro/gastro)",
                 "📥 Réception de commandes",
                 "📦 État des stocks & alertes",
                 "🔙 Retour",
@@ -430,10 +431,12 @@ class DecisionMenu:
             elif choice == 4:
                 self._review_auto_order(restaurant)
             elif choice == 5:
-                self._receiving_interface(restaurant)
+                self._auto_order_by_gamme(restaurant)
             elif choice == 6:
-                self._stock_management_interface(restaurant)
+                self._receiving_interface(restaurant)
             elif choice == 7:
+                self._stock_management_interface(restaurant)
+            elif choice == 8:
                 break
 
         # --- Achats & Stocks: Prévision, besoins, PO, réception ---
@@ -1204,6 +1207,57 @@ class DecisionMenu:
         from datetime import date
 
         gr_lines: list[GoodsReceiptLine] = []
+    def _auto_order_by_gamme(self, restaurant: Restaurant) -> None:
+        """Commande auto selon la gamme de l’établissement (fast/bistro/gastro)."""
+        self.ui.clear_screen()
+        ch = self.ui.show_menu("Choisir la gamme de l’établissement", [
+            "Fast-food (QL≈2)", "Bistro (QL≈3)", "Gastro (QL≈4/5)"])
+        if ch == 0:
+            return
+        target_ql = 2 if ch == 1 else 3 if ch == 2 else 4
+        # Calculer besoins nets
+        planner = ProcurementPlanner()
+        active_recipes = [self._available_recipes_cache[rid] for rid in restaurant.active_recipes if rid in getattr(self, '_available_recipes_cache', {})]
+        forecast = getattr(restaurant, 'sales_forecast', {}) or {}
+        requirements = planner.compute_requirements(active_recipes, forecast, restaurant.stock_manager)
+        if not requirements:
+            self.ui.show_info("Aucun besoin net détecté.")
+            self.ui.pause()
+            return
+        # Construire un mini-catalogue orienté gamme
+        suppliers_catalog = {}
+        for ing_id, need in requirements.items():
+            offers = list(self._suppliers_catalog.get(ing_id, [])) if hasattr(self, '_suppliers_catalog') else []
+            if not offers:
+                continue
+            # choisir l’offre dont la QL est la plus proche de target_ql, avec fallback
+            offers_sorted = sorted(offers, key=lambda o: (abs((o.get('quality_level') or 0) - target_ql), o.get('unit_price_ht', Decimal('inf'))))
+            best = offers_sorted[0]
+            suppliers_catalog.setdefault(ing_id, {})[best['supplier_id']] = {
+                'price_ht': best['unit_price_ht'],
+                'vat': best['vat_rate'],
+                'pack': best['pack_size'],
+                'moq_value': best.get('moq_value', Decimal('0')),
+                'lead_time_days': best.get('lead_time_days'),
+                'reliability': best.get('reliability'),
+            }
+        if not suppliers_catalog:
+            self.ui.show_info("Catalogue insuffisant pour construire une commande.")
+            self.ui.pause()
+            return
+        # Proposer lignes
+        lines = planner.propose_purchase_orders(requirements, suppliers_catalog)
+        if not lines:
+            self.ui.show_info("Aucune proposition auto possible.")
+            self.ui.pause()
+            return
+        # Ajouter à la commande en attente
+        if not hasattr(restaurant, 'pending_po_lines'):
+            restaurant.pending_po_lines = []
+        restaurant.pending_po_lines.extend(lines)
+        self.ui.show_success(f"{len(lines)} lignes ajoutées à la commande (gamme).")
+        self.ui.pause()
+
         remaining_lines: list[POLine] = []
         all_lots: list = []
 
@@ -2030,6 +2084,7 @@ class DecisionMenu:
                 "📋 Bilan comptable",
                 "📈 Analyse des KPIs",
                 "📉 Évolution des performances",
+                "🍽️ Production (coûts & volumes)",
             ]
 
             choice = self.ui.show_menu("RAPPORTS & ANALYSES", report_options)
@@ -2037,27 +2092,45 @@ class DecisionMenu:
             if choice == 0:
                 break
             elif choice == 1:
-                # Pour la démo, on crée un ledger vide
                 from ..core.ledger import Ledger
-
                 ledger = Ledger()
                 self.financial_reports.show_profit_loss_statement(restaurant, ledger)
                 self.ui.pause()
             elif choice == 2:
                 from ..core.ledger import Ledger
-
                 ledger = Ledger()
                 self.financial_reports.show_cash_flow_statement(restaurant, ledger)
                 self.ui.pause()
             elif choice == 3:
                 from ..core.ledger import Ledger
-
                 ledger = Ledger()
                 self.financial_reports.show_balance_sheet(restaurant, ledger)
                 self.ui.pause()
-            else:
-                self.ui.show_info(f"Rapport {choice} - En développement")
+            elif choice == 4:
+                self.financial_reports.show_kpi_analysis(restaurant)
                 self.ui.pause()
+            elif choice == 5:
+                self._production_reports(restaurant)
+                self.ui.pause()
+
+    def _production_reports(self, restaurant: Restaurant) -> None:
+        self.ui.clear_screen()
+        turn = getattr(self, 'current_turn', None)
+        # Essayer d'utiliser le dernier tour si non fourni via menu
+        stats = getattr(restaurant, 'production_stats_history', {})
+        if not stats:
+            self.ui.show_info("Aucune production enregistrée pour ce restaurant.")
+            return
+        # Prendre le plus récent
+        latest_turn = max(stats.keys())
+        data = stats[latest_turn]
+        lines = [f"🍽️ Production — Tour {latest_turn}", "", "Recette | Produites | Vendues | Perdues | Coût/portion (HT)", "-"]
+        for rid, d in data.items():
+            cost = d.get('cost_per_portion')
+            cost_str = f"{cost:.2f}€" if cost is not None else "?"
+            lines.append(f"{rid} | {d.get('produced',0)} | {d.get('sold',0)} | {d.get('lost',0)} | {cost_str}")
+        self.ui.print_box(lines, style='info')
+        self.ui.pause()
 
     def _validate_decisions(self, restaurant: Restaurant, decisions: Dict) -> bool:
         """Validation finale des décisions."""

@@ -135,6 +135,9 @@ def execute_manual_production_plan(restaurant, recipes_by_id: Dict[str, Recipe])
     # Préparer une carte unités prêtes
     units_ready = dict(getattr(restaurant, "production_units_ready", {}) or {})
     quality_scores = dict(getattr(restaurant, "production_quality_score", {}) or {})
+    consumed_ings: Dict[str, Dict[str, Decimal]] = {}
+    cost_per_portion: Dict[str, Decimal] = {}
+    produced_units: Dict[str, int] = {}
 
     for recipe_id, params in draft.items():
         if recipe_id not in recipes_by_id:
@@ -161,14 +164,27 @@ def execute_manual_production_plan(restaurant, recipes_by_id: Dict[str, Recipe])
             continue
         # Consommer ingrédients pour max_servings
         final_needs = ProductionPlanner().compute_ingredient_need_for_servings(recipe, max_servings, size)
+        total_cost_ht = Decimal("0")
+        consumed_map: Dict[str, Decimal] = {}
         for ing_id, qty_need in final_needs.items():
             if qty_need > 0:
-                stock_manager.consume_ingredient(ing_id, qty_need)
+                lots_used = stock_manager.consume_ingredient(ing_id, qty_need)
+                consumed_map[ing_id] = qty_need
+                # Coût exact: somme lots consommés
+                for lot in lots_used:
+                    total_cost_ht += lot.total_value_ht
         # Créer unités prêtes
         units_ready[recipe_id] = units_ready.get(recipe_id, 0) + max_servings
         quality_scores[recipe_id] = quality
+        consumed_ings[recipe_id] = consumed_map
+        produced_units[recipe_id] = produced_units.get(recipe_id, 0) + max_servings
+        if max_servings > 0:
+            cost_per_portion[recipe_id] = (total_cost_ht / Decimal(max_servings)).quantize(Decimal("0.01"))
 
     restaurant.production_units_ready = units_ready
     restaurant.production_quality_score = quality_scores
+    restaurant.production_consumed_ingredients = consumed_ings
+    restaurant.production_produced_units = produced_units
+    restaurant.production_cost_per_portion = cost_per_portion
     # On laisse le draft en place pour édition tour suivant; on pourrait aussi le vider.
 

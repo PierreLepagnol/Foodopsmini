@@ -37,6 +37,8 @@ class AllocationResult:
     lost_customers: int = 0
     revenue: Decimal = Decimal("0")
     average_ticket: Decimal = Decimal("0")
+    recipe_sales: Dict[str, int] = field(default_factory=dict)
+
 
     def __post_init__(self) -> None:
         """Calcule les métriques dérivées."""
@@ -129,6 +131,10 @@ class MarketEngine:
 
                 results[restaurant_id].allocated_demand += allocation["demand"]
                 total_allocated += allocation["demand"]
+                # NOUVEAU: ventes par recette si disponibles
+                if "recipe_sales" in allocation:
+                    for rid, sold_qty in allocation["recipe_sales"].items():
+                        results[restaurant_id].recipe_sales[rid] = results[restaurant_id].recipe_sales.get(rid, 0) + int(sold_qty)
 
         # Application des contraintes de capacité et redistribution
         results = self._apply_capacity_constraints(restaurants, results)
@@ -198,6 +204,7 @@ class MarketEngine:
             units_map = {
                 r.id: dict(getattr(r, "production_units_ready", {}) or {}) for r in restaurants
             }
+            recipe_sales_local: Dict[str, Dict[str, int]] = {r.id: {} for r in restaurants}
             # Service client par client (simple)
             for _ in range(int(segment_demand)):
                 served_this = False
@@ -222,12 +229,19 @@ class MarketEngine:
                     umap[chosen] = umap.get(chosen, 0) - 1
                     served[r.id] += 1
                     cap_rem[r.id] -= 1
+                    # trace par recette
+                    sales_map = recipe_sales_local[r.id]
+                    sales_map[chosen] = sales_map.get(chosen, 0) + 1
                     served_this = True
                     break
                 # Si aucun restaurant ne peut servir ce client: abandonné (on ignore pour allocation)
                 if not served_this:
                     continue
-            return {rid: {"demand": qty} for rid, qty in served.items()}
+            # Convertir en résultats
+            output = {}
+            for rid, qty in served.items():
+                output[rid] = {"demand": qty, "recipe_sales": recipe_sales_local.get(rid, {})}
+            return output
 
         # Fallback: répartition proportionnelle classique
         total_score = sum(scores.values())
@@ -260,11 +274,12 @@ class MarketEngine:
         average_ticket = restaurant.get_average_ticket()
         price_factor = self._calculate_price_factor(average_ticket, segment)
 
-        # Facteur qualité (proxy basé sur le coût des ingrédients)
+        # Facteur qualité longue (ingrédients) + qualité de production du tour
         quality_factor = self._calculate_quality_factor(restaurant, segment)
+        prod_factor = self._calculate_production_quality_factor(restaurant)
 
         # Score final
-        score = type_affinity * price_factor * quality_factor
+        score = type_affinity * price_factor * quality_factor * prod_factor
 
         # Bonus/malus selon le niveau de staffing
         staffing_bonus = {
@@ -323,6 +338,77 @@ class MarketEngine:
         Calcule le facteur qualité perçue avec le nouveau système qualité.
 
         Args:
+
+            restaurant: Restaurant évalué
+            segment: MarketSegment
+
+        Returns:
+            Facteur qualité (0.5 à 2.0)
+        """
+
+        # Score de qualité “longue” (ingrédients/positionnement)
+        quality_score = restaurant.get_overall_quality_score()
+
+        # Conversion du score qualité (1-5) en facteur d'attractivité
+        if quality_score <= Decimal("1.5"):
+            base_factor = Decimal("0.70")  # -30%
+        elif quality_score <= Decimal("2.5"):
+            base_factor = Decimal("1.00")  # Neutre
+        elif quality_score <= Decimal("3.5"):
+            base_factor = Decimal("1.20")  # +20%
+        elif quality_score <= Decimal("4.5"):
+            base_factor = Decimal("1.40")  # +40%
+        else:
+            base_factor = Decimal("1.60")  # +60%
+
+        # NOUVEAU: Sensibilité à la qualité par segment
+        segment_name = segment.name.lower()
+        quality_sensitivity = Decimal("1.0")
+
+        if "student" in segment_name or "étudiant" in segment_name:
+            quality_sensitivity = Decimal("0.6")  # Moins sensibles
+        elif "foodie" in segment_name or "gourmet" in segment_name:
+            quality_sensitivity = Decimal("1.4")  # Très sensibles
+        elif "family" in segment_name or "famille" in segment_name:
+            quality_sensitivity = Decimal("1.0")  # Sensibilité normale
+
+        # Ajustement selon la sensibilité du segment
+        if base_factor > Decimal("1.0"):
+            bonus = (base_factor - Decimal("1.0")) * quality_sensitivity
+            final_factor = Decimal("1.0") + bonus
+        else:
+            malus = (Decimal("1.0") - base_factor) * quality_sensitivity
+            final_factor = Decimal("1.0") - malus
+        # NOUVEAU: Impact de la réputation
+        reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
+        reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
+        final_factor += reputation_bonus
+        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
+
+    def _calculate_production_quality_factor(self, restaurant: Restaurant) -> Decimal:
+        """Calcule un facteur d'attractivité basé sur la qualité de production du tour.
+        Moyenne pondérée par quantités produites; renvoie un multiplicateur ~0.9–1.1.
+        """
+        try:
+            qmap = getattr(restaurant, 'production_quality_score', {}) or {}
+            pmap = getattr(restaurant, 'production_produced_units', {}) or {}
+            total_qty = sum(int(q) for q in pmap.values())
+            if total_qty <= 0 or not qmap:
+                return Decimal('1.00')
+            # qualité moyenne (entrée 0.5–1.5)
+            weighted = Decimal('0')
+            for rid, qty in pmap.items():
+                q = Decimal(str(qmap.get(rid, Decimal('1.0'))))
+                weighted += q * Decimal(int(qty))
+            avg_q = (weighted / Decimal(total_qty)).quantize(Decimal('0.01'))
+            # mapper 0.5..1.5 -> 0.9..1.1 (linéaire)
+            # 1.0 -> 1.0, 0.5 -> 0.9, 1.5 -> 1.1
+            span = Decimal('0.2')  # demi-ampleur
+            factor = Decimal('1.0') + (avg_q - Decimal('1.0')) * span
+            return max(Decimal('0.90'), min(Decimal('1.10'), factor))
+        except Exception:
+            return Decimal('1.00')
+
             restaurant: Restaurant évalué
             segment: Segment de marché
 
@@ -362,12 +448,11 @@ class MarketEngine:
         else:
             malus = (Decimal("1.0") - base_factor) * quality_sensitivity
             final_factor = Decimal("1.0") - malus
-
         # NOUVEAU: Impact de la réputation
         reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
         reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
-
         final_factor += reputation_bonus
+        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
 
         return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
 
@@ -523,27 +608,27 @@ class MarketEngine:
         if result.served_customers == 0:
             return result
 
-        # Revenus basés sur le menu actif
         active_menu = restaurant.get_active_menu()
         if not active_menu:
             return result
 
-        # Simulation de la répartition des commandes
+        # Utiliser les ventes par recette si disponibles
         total_revenue = Decimal("0")
-        customers_served = result.served_customers
-
-        # Répartition équitable entre les plats actifs (simplification)
-        recipes_count = len(active_menu)
-        if recipes_count > 0:
-            customers_per_recipe = customers_served // recipes_count
-            remaining_customers = customers_served % recipes_count
-
-            for i, (recipe_id, price) in enumerate(active_menu.items()):
-                recipe_customers = customers_per_recipe
-                if i < remaining_customers:
-                    recipe_customers += 1
-
-                total_revenue += price * recipe_customers
+        if result.recipe_sales:
+            for rid, sold in result.recipe_sales.items():
+                price = active_menu.get(rid)
+                if price:
+                    total_revenue += price * Decimal(int(sold))
+        else:
+            # fallback équitable
+            customers_served = result.served_customers
+            recipes_count = len(active_menu)
+            if recipes_count > 0:
+                customers_per_recipe = customers_served // recipes_count
+                remaining_customers = customers_served % recipes_count
+                for i, (recipe_id, price) in enumerate(active_menu.items()):
+                    recipe_customers = customers_per_recipe + (1 if i < remaining_customers else 0)
+                    total_revenue += price * recipe_customers
 
         result.revenue = total_revenue
 
