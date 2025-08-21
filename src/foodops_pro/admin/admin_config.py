@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 from pathlib import Path
+
 # import yaml  # Remplacé par configuration Python
 import json
 
@@ -61,13 +62,15 @@ class AdminSettings:
 
     # Évaluation
     enable_scoring: bool = True
-    scoring_criteria: Dict[str, Decimal] = field(default_factory=lambda: {
-        "survival": Decimal("0.3"),      # 30% - Survie
-        "profitability": Decimal("0.25"), # 25% - Rentabilité
-        "growth": Decimal("0.20"),       # 20% - Croissance
-        "efficiency": Decimal("0.15"),   # 15% - Efficacité
-        "strategy": Decimal("0.10")      # 10% - Stratégie
-    })
+    scoring_criteria: Dict[str, Decimal] = field(
+        default_factory=lambda: {
+            "survival": Decimal("0.3"),  # 30% - Survie
+            "profitability": Decimal("0.25"),  # 25% - Rentabilité
+            "growth": Decimal("0.20"),  # 20% - Croissance
+            "efficiency": Decimal("0.15"),  # 15% - Efficacité
+            "strategy": Decimal("0.10"),  # 10% - Stratégie
+        }
+    )
 
     # Restrictions
     restrict_restaurant_types: List[str] = field(default_factory=list)
@@ -77,9 +80,14 @@ class AdminSettings:
     price_change_limit: Decimal = Decimal("0.20")  # ±20%
 
     # Commerce disponibles
-    available_locations: List[str] = field(default_factory=lambda: [
-        "centre_ville", "banlieue", "zone_commerciale", "quartier_etudiant"
-    ])
+    available_locations: List[str] = field(
+        default_factory=lambda: [
+            "centre_ville",
+            "banlieue",
+            "zone_commerciale",
+            "quartier_etudiant",
+        ]
+    )
 
 
 class AdminConfigManager:
@@ -98,7 +106,7 @@ class AdminConfigManager:
             "",
             "Bienvenue dans l'interface de configuration FoodOps Pro.",
             "Vous pouvez personnaliser tous les aspects de la partie",
-            "pour vos étudiants."
+            "pour vos étudiants.",
         ]
         self.ui.print_box(welcome, "MODE PROFESSEUR", "header")
 
@@ -117,10 +125,12 @@ class AdminConfigManager:
                 "📝 Évaluation et notation",
                 "🔒 Restrictions et limites",
                 "💾 Sauvegarder configuration",
-                "▶️ Lancer la partie"
+                "▶️ Lancer la partie",
             ]
 
-            choice = self.ui.show_menu("CONFIGURATION ADMINISTRATEUR", menu_options, allow_back=False)
+            choice = self.ui.show_menu(
+                "CONFIGURATION ADMINISTRATEUR", menu_options, allow_back=False
+            )
 
             if choice == 1:
                 self._configure_session_info()
@@ -160,7 +170,7 @@ class AdminConfigManager:
             "",
             f"🎲 Événements aléatoires: {'✅' if self.settings.enable_random_events else '❌'}",
             f"📈 Effets saisonniers: {'✅' if self.settings.enable_seasonal_effects else '❌'}",
-            f"📊 Notation automatique: {'✅' if self.settings.enable_scoring else '❌'}"
+            f"📊 Notation automatique: {'✅' if self.settings.enable_scoring else '❌'}",
         ]
 
         self.ui.print_box(config_summary, "CONFIGURATION ACTUELLE", "info")
@@ -172,28 +182,24 @@ class AdminConfigManager:
         info = [
             "📋 INFORMATIONS DE SESSION",
             "",
-            "Définissez les informations générales de votre cours."
+            "Définissez les informations générales de votre cours.",
         ]
         self.ui.print_box(info, style="header")
 
         self.settings.session_name = self.ui.get_input(
-            "Nom de la session",
-            default=self.settings.session_name
+            "Nom de la session", default=self.settings.session_name
         )
 
         self.settings.instructor_name = self.ui.get_input(
-            "Nom du professeur",
-            default=self.settings.instructor_name
+            "Nom du professeur", default=self.settings.instructor_name
         )
 
         self.settings.course_code = self.ui.get_input(
-            "Code du cours (ex: GEST301)",
-            default=self.settings.course_code
+            "Code du cours (ex: GEST301)", default=self.settings.course_code
         )
 
         self.settings.academic_year = self.ui.get_input(
-            "Année académique",
-            default=self.settings.academic_year
+            "Année académique", default=self.settings.academic_year
         )
 
         self.ui.show_success("Informations de session mises à jour.")
@@ -206,58 +212,73 @@ class AdminConfigManager:
         info = [
             "🎮 PARAMÈTRES DE JEU",
             "",
-            "Définissez la durée, la difficulté et les règles de base."
+            "Définissez la durée, la difficulté et les règles de base.",
         ]
         self.ui.print_box(info, style="header")
 
         self.settings.max_players = self.ui.get_input(
             "Nombre maximum de joueurs",
-            int, min_val=1, max_val=8,
-            default=self.settings.max_players
+            int,
+            min_val=1,
+            max_val=8,
+            default=self.settings.max_players,
         )
 
         self.settings.total_turns = self.ui.get_input(
             "Nombre de tours",
-            int, min_val=6, max_val=48,
-            default=self.settings.total_turns
+            int,
+            min_val=6,
+            max_val=48,
+            default=self.settings.total_turns,
         )
 
-        duration_options = ["1 semaine", "2 semaines", "1 mois", "1 trimestre", "6 mois"]
+        duration_options = [
+            "1 semaine",
+            "2 semaines",
+            "1 mois",
+            "1 trimestre",
+            "6 mois",
+        ]
         duration_choice = self.ui.show_menu(
-            "Durée représentée par chaque tour",
-            duration_options
+            "Durée représentée par chaque tour", duration_options
         )
         if duration_choice > 0:
-            self.settings.turn_duration_description = duration_options[duration_choice - 1]
+            self.settings.turn_duration_description = duration_options[
+                duration_choice - 1
+            ]
 
         self.settings.starting_budget_min = self.ui.get_input(
             "Budget initial minimum (€)",
-            Decimal, min_val=Decimal("5000"),
-            default=self.settings.starting_budget_min
+            Decimal,
+            min_val=Decimal("5000"),
+            default=self.settings.starting_budget_min,
         )
 
         self.settings.starting_budget_max = self.ui.get_input(
             "Budget initial maximum (€)",
-            Decimal, min_val=self.settings.starting_budget_min,
-            default=self.settings.starting_budget_max
+            Decimal,
+            min_val=self.settings.starting_budget_min,
+            default=self.settings.starting_budget_max,
         )
 
         self.settings.allow_loans = self.ui.confirm(
-            "Autoriser les emprunts",
-            default=self.settings.allow_loans
+            "Autoriser les emprunts", default=self.settings.allow_loans
         )
 
         if self.settings.allow_loans:
             self.settings.max_loan_amount = self.ui.get_input(
                 "Montant maximum d'emprunt (€)",
-                Decimal, min_val=Decimal("10000"),
-                default=self.settings.max_loan_amount
+                Decimal,
+                min_val=Decimal("10000"),
+                default=self.settings.max_loan_amount,
             )
 
             self.settings.loan_interest_rate = self.ui.get_input(
                 "Taux d'intérêt annuel (ex: 0.045 pour 4.5%)",
-                Decimal, min_val=Decimal("0.01"), max_val=Decimal("0.15"),
-                default=self.settings.loan_interest_rate
+                Decimal,
+                min_val=Decimal("0.01"),
+                max_val=Decimal("0.15"),
+                default=self.settings.loan_interest_rate,
             )
 
         # Configuration IA
@@ -269,8 +290,10 @@ class AdminConfigManager:
 
         self.settings.ai_count = self.ui.get_input(
             "Nombre de concurrents IA",
-            int, min_val=0, max_val=6,
-            default=self.settings.ai_count
+            int,
+            min_val=0,
+            max_val=6,
+            default=self.settings.ai_count,
         )
 
         self.ui.show_success("Paramètres de jeu mis à jour.")
@@ -289,15 +312,15 @@ class AdminConfigManager:
 
         self.settings.auto_forecast_enabled = self.ui.confirm(
             "Activer la prévision automatique (remplissage) ?",
-            default=self.settings.auto_forecast_enabled
+            default=self.settings.auto_forecast_enabled,
         )
         self.settings.auto_purchase_enabled = self.ui.confirm(
             "Activer la proposition de commande automatique ?",
-            default=self.settings.auto_purchase_enabled
+            default=self.settings.auto_purchase_enabled,
         )
         self.settings.require_line_confirmation = self.ui.confirm(
             "Exiger confirmation par ligne (recommandé) ?",
-            default=self.settings.require_line_confirmation
+            default=self.settings.require_line_confirmation,
         )
 
         self.ui.show_success("Options d'automatisation mises à jour.")
@@ -310,27 +333,35 @@ class AdminConfigManager:
         info = [
             "📊 MARCHÉ ET CONCURRENCE",
             "",
-            "Définissez la taille du marché et l'intensité concurrentielle."
+            "Définissez la taille du marché et l'intensité concurrentielle.",
         ]
         self.ui.print_box(info, style="header")
 
         self.settings.total_market_size = self.ui.get_input(
             "Taille totale du marché (clients/tour)",
-            int, min_val=100, max_val=2000,
-            default=self.settings.total_market_size
+            int,
+            min_val=100,
+            max_val=2000,
+            default=self.settings.total_market_size,
         )
 
         self.settings.market_growth_rate = self.ui.get_input(
             "Taux de croissance du marché par an (ex: 0.02 pour 2%)",
-            Decimal, min_val=Decimal("-0.05"), max_val=Decimal("0.10"),
-            default=self.settings.market_growth_rate
+            Decimal,
+            min_val=Decimal("-0.05"),
+            max_val=Decimal("0.10"),
+            default=self.settings.market_growth_rate,
         )
 
         competition_options = ["Faible", "Normale", "Intense"]
-        competition_choice = self.ui.show_menu("Intensité concurrentielle", competition_options)
+        competition_choice = self.ui.show_menu(
+            "Intensité concurrentielle", competition_options
+        )
         if competition_choice > 0:
             competition_map = ["low", "normal", "high"]
-            self.settings.competition_intensity = competition_map[competition_choice - 1]
+            self.settings.competition_intensity = competition_map[
+                competition_choice - 1
+            ]
 
         self.ui.show_success("Configuration du marché mise à jour.")
         self.ui.pause()
@@ -342,30 +373,32 @@ class AdminConfigManager:
         info = [
             "🎯 ÉVÉNEMENTS ET RÉALISME",
             "",
-            "Activez les mécaniques qui rendent le jeu plus réaliste."
+            "Activez les mécaniques qui rendent le jeu plus réaliste.",
         ]
         self.ui.print_box(info, style="header")
 
         self.settings.enable_random_events = self.ui.confirm(
             "Activer les événements aléatoires",
-            default=self.settings.enable_random_events
+            default=self.settings.enable_random_events,
         )
 
         if self.settings.enable_random_events:
             self.settings.event_frequency = self.ui.get_input(
                 "Fréquence des événements (ex: 0.15 pour 15% par tour)",
-                Decimal, min_val=Decimal("0.05"), max_val=Decimal("0.50"),
-                default=self.settings.event_frequency
+                Decimal,
+                min_val=Decimal("0.05"),
+                max_val=Decimal("0.50"),
+                default=self.settings.event_frequency,
             )
 
         self.settings.enable_seasonal_effects = self.ui.confirm(
             "Activer les effets saisonniers",
-            default=self.settings.enable_seasonal_effects
+            default=self.settings.enable_seasonal_effects,
         )
 
         self.settings.enable_economic_cycles = self.ui.confirm(
             "Activer les cycles économiques",
-            default=self.settings.enable_economic_cycles
+            default=self.settings.enable_economic_cycles,
         )
 
         self.ui.show_success("Configuration des événements mise à jour.")
@@ -378,13 +411,12 @@ class AdminConfigManager:
         info = [
             "📝 ÉVALUATION ET NOTATION",
             "",
-            "Configurez le système de notation automatique."
+            "Configurez le système de notation automatique.",
         ]
         self.ui.print_box(info, style="header")
 
         self.settings.enable_scoring = self.ui.confirm(
-            "Activer la notation automatique",
-            default=self.settings.enable_scoring
+            "Activer la notation automatique", default=self.settings.enable_scoring
         )
 
         if self.settings.enable_scoring:
@@ -395,27 +427,31 @@ class AdminConfigManager:
                 "profitability": "Rentabilité (marge bénéficiaire)",
                 "growth": "Croissance (évolution CA)",
                 "efficiency": "Efficacité (ratios de gestion)",
-                "strategy": "Stratégie (décisions cohérentes)"
+                "strategy": "Stratégie (décisions cohérentes)",
             }
 
             total_weight = Decimal("0")
             for key, name in criteria_names.items():
                 weight = self.ui.get_input(
                     f"Poids pour {name}",
-                    Decimal, min_val=Decimal("0"), max_val=Decimal("1"),
-                    default=self.settings.scoring_criteria[key]
+                    Decimal,
+                    min_val=Decimal("0"),
+                    max_val=Decimal("1"),
+                    default=self.settings.scoring_criteria[key],
                 )
                 self.settings.scoring_criteria[key] = weight
                 total_weight += weight
 
             if abs(total_weight - Decimal("1.0")) > Decimal("0.01"):
-                self.ui.show_error(f"Le total des poids ({total_weight}) doit faire 1.0")
+                self.ui.show_error(
+                    f"Le total des poids ({total_weight}) doit faire 1.0"
+                )
                 self.ui.pause()
                 return
 
         self.settings.detailed_feedback = self.ui.confirm(
             "Fournir un feedback détaillé aux étudiants",
-            default=self.settings.detailed_feedback
+            default=self.settings.detailed_feedback,
         )
 
         self.ui.show_success("Configuration de l'évaluation mise à jour.")
@@ -435,7 +471,10 @@ class AdminConfigManager:
 
     def _save_configuration(self):
         """Sauvegarde la configuration."""
-        config_path = Path("admin_configs") / f"{self.settings.session_name.replace(' ', '_')}.json"
+        config_path = (
+            Path("admin_configs")
+            / f"{self.settings.session_name.replace(' ', '_')}.json"
+        )
         config_path.parent.mkdir(exist_ok=True)
 
         # Conversion en dict pour YAML
@@ -444,7 +483,7 @@ class AdminConfigManager:
                 "name": self.settings.session_name,
                 "instructor": self.settings.instructor_name,
                 "course_code": self.settings.course_code,
-                "academic_year": self.settings.academic_year
+                "academic_year": self.settings.academic_year,
             },
             "game_params": {
                 "max_players": self.settings.max_players,
@@ -452,17 +491,17 @@ class AdminConfigManager:
                 "starting_budget_min": float(self.settings.starting_budget_min),
                 "starting_budget_max": float(self.settings.starting_budget_max),
                 "ai_count": self.settings.ai_count,
-                "ai_difficulty": self.settings.ai_difficulty
+                "ai_difficulty": self.settings.ai_difficulty,
             },
             "features": {
                 "enable_random_events": self.settings.enable_random_events,
                 "enable_seasonal_effects": self.settings.enable_seasonal_effects,
-                "enable_scoring": self.settings.enable_scoring
-            }
+                "enable_scoring": self.settings.enable_scoring,
+            },
         }
 
         try:
-            with open(config_path, 'w', encoding='utf-8') as f:
+            with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(config_dict, f, indent=2, ensure_ascii=False)
 
             self.ui.show_success(f"Configuration sauvegardée dans {config_path}")
@@ -487,7 +526,9 @@ class AdminConfigManager:
                 errors.append("Les poids de notation doivent totaliser 1.0")
 
         if errors:
-            error_msg = "Erreurs de configuration:\n" + "\n".join(f"• {error}" for error in errors)
+            error_msg = "Erreurs de configuration:\n" + "\n".join(
+                f"• {error}" for error in errors
+            )
             self.ui.show_error(error_msg)
             self.ui.pause()
             return False

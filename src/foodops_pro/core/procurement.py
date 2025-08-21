@@ -21,12 +21,13 @@ from ..domain.supplier import Supplier
 @dataclass
 class POLine:
     """Ligne d'un bon de commande fournisseur (support multi-fournisseurs/ingrédient)."""
+
     ingredient_id: str
-    quantity: Decimal            # quantité commandée (unité catalogue, arrondie pack)
-    unit_price_ht: Decimal       # prix unitaire HT catalogue
-    vat_rate: Decimal            # taux de TVA
-    supplier_id: str             # fournisseur choisi
-    pack_size: Decimal           # taille du conditionnement
+    quantity: Decimal  # quantité commandée (unité catalogue, arrondie pack)
+    unit_price_ht: Decimal  # prix unitaire HT catalogue
+    vat_rate: Decimal  # taux de TVA
+    supplier_id: str  # fournisseur choisi
+    pack_size: Decimal  # taille du conditionnement
     # Métadonnées mercuriale / calculs
     pack_unit: Optional[str] = None
     quality_level: Optional[int] = None
@@ -38,17 +39,20 @@ class POLine:
     received_qty: Decimal = Decimal("0")
     accepted_qty: Decimal = Decimal("0")
     status: str = "OPEN"  # OPEN, PARTIAL, CLOSED
+
     def compute_amounts(self) -> None:
         """Calcule amount_ttc_estimated, qty_rounded_pack, moq_ok sur la ligne."""
         self.qty_rounded_pack = self.quantity
         self.moq_ok = True  # défini côté planner/UI lors des ajustements MOQ
-        self.amount_ttc_estimated = (self.quantity * self.unit_price_ht) * (Decimal('1') + self.vat_rate)
-
+        self.amount_ttc_estimated = (self.quantity * self.unit_price_ht) * (
+            Decimal("1") + self.vat_rate
+        )
 
 
 @dataclass(frozen=True)
 class PurchaseOrder:
     """Bon de commande simple."""
+
     supplier_id: str
     lines: list[POLine]
     created_on: date
@@ -80,6 +84,7 @@ class GoodsReceipt:
 @dataclass(frozen=True)
 class DeliveryLine:
     """Ligne de livraison (quantité effectivement reçue)."""
+
     ingredient_id: str
     quantity_received: Decimal
     unit_price_ht: Decimal
@@ -115,18 +120,21 @@ class ProcurementPlanner:
             ratio = forecast / Decimal(str(recipe.portions))
             for item in recipe.items:
                 qty = item.qty_brute * ratio
-                requirements[item.ingredient_id] = requirements.get(item.ingredient_id, Decimal("0")) + qty
+                requirements[item.ingredient_id] = (
+                    requirements.get(item.ingredient_id, Decimal("0")) + qty
+                )
 
         # Déduire le stock disponible non périmé
         net_requirements: dict[str, Decimal] = {}
         for ingredient_id, gross_need in requirements.items():
-            available = stock.get_available_quantity(ingredient_id, exclude_expired=True)
+            available = stock.get_available_quantity(
+                ingredient_id, exclude_expired=True
+            )
             net = gross_need - available
             if net > 0:
                 net_requirements[ingredient_id] = net
 
         return net_requirements
-
 
     def propose_purchase_orders(
         self,
@@ -156,13 +164,17 @@ class ProcurementPlanner:
                 lead_time = offer.get("lead_time_days")
                 reliability = offer.get("reliability")
 
-                packs_needed = (target / pack).to_integral_value(rounding="ROUND_CEILING")
+                packs_needed = (target / pack).to_integral_value(
+                    rounding="ROUND_CEILING"
+                )
                 qty = packs_needed * pack
                 order_value = qty * price
 
                 if order_value < moq_value and price > 0:
                     deficit_value = moq_value - order_value
-                    extra_qty = (deficit_value / price).to_integral_value(rounding="ROUND_CEILING")
+                    extra_qty = (deficit_value / price).to_integral_value(
+                        rounding="ROUND_CEILING"
+                    )
                     qty += extra_qty
                     order_value = qty * price
 
@@ -184,11 +196,21 @@ class ProcurementPlanner:
 
         return lines
 
-    def _score_offer(self, qty: Decimal, price: Decimal, lead_time: int | None, reliability: Decimal | None) -> Decimal:
+    def _score_offer(
+        self,
+        qty: Decimal,
+        price: Decimal,
+        lead_time: int | None,
+        reliability: Decimal | None,
+    ) -> Decimal:
         """Score simple: valeur HT + pénalité délai - bonus fiabilité."""
         total_value = qty * price
-        penalty = (Decimal(str(lead_time)) if lead_time is not None else Decimal('0')) * Decimal('0.5')
-        bonus = (Decimal(str(reliability)) if reliability is not None else Decimal('0')) * Decimal('10')
+        penalty = (
+            Decimal(str(lead_time)) if lead_time is not None else Decimal("0")
+        ) * Decimal("0.5")
+        bonus = (
+            Decimal(str(reliability)) if reliability is not None else Decimal("0")
+        ) * Decimal("10")
         return total_value + penalty - bonus
 
 
@@ -225,4 +247,3 @@ class ReceivingService:
             )
             lots.append(lot)
         return lots
-

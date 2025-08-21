@@ -39,25 +39,64 @@ QUALITY_LEVELS = {
     2: {"name": "Standard", "cost_mult": 1.00, "satisfaction": 0.00},
     3: {"name": "Supérieur", "cost_mult": 1.25, "satisfaction": 0.15},
     4: {"name": "Premium", "cost_mult": 1.50, "satisfaction": 0.30},
-    5: {"name": "Luxe", "cost_mult": 2.00, "satisfaction": 0.50}
+    5: {"name": "Luxe", "cost_mult": 2.00, "satisfaction": 0.50},
 }
 
 # Saisonnalité simplifiée (mois actuel)
 SEASONAL_BONUSES = {
-    "Étudiants": {1: 0.9, 2: 0.9, 3: 1.0, 4: 1.0, 5: 1.0, 6: 1.1, 7: 1.2, 8: 1.2, 9: 1.0, 10: 1.0, 11: 0.9, 12: 0.9},
-    "Familles": {1: 1.0, 2: 1.0, 3: 1.0, 4: 1.1, 5: 1.1, 6: 1.2, 7: 1.3, 8: 1.3, 9: 1.0, 10: 1.0, 11: 1.0, 12: 1.1},
-    "Foodies": {1: 1.0, 2: 1.0, 3: 1.1, 4: 1.2, 5: 1.2, 6: 1.1, 7: 1.0, 8: 1.0, 9: 1.1, 10: 1.2, 11: 1.1, 12: 1.2}
+    "Étudiants": {
+        1: 0.9,
+        2: 0.9,
+        3: 1.0,
+        4: 1.0,
+        5: 1.0,
+        6: 1.1,
+        7: 1.2,
+        8: 1.2,
+        9: 1.0,
+        10: 1.0,
+        11: 0.9,
+        12: 0.9,
+    },
+    "Familles": {
+        1: 1.0,
+        2: 1.0,
+        3: 1.0,
+        4: 1.1,
+        5: 1.1,
+        6: 1.2,
+        7: 1.3,
+        8: 1.3,
+        9: 1.0,
+        10: 1.0,
+        11: 1.0,
+        12: 1.1,
+    },
+    "Foodies": {
+        1: 1.0,
+        2: 1.0,
+        3: 1.1,
+        4: 1.2,
+        5: 1.2,
+        6: 1.1,
+        7: 1.0,
+        8: 1.0,
+        9: 1.1,
+        10: 1.2,
+        11: 1.1,
+        12: 1.2,
+    },
 }  # au-delà de budget * TOL, le client n'envisage pas le resto
 
 # Types de restaurants (capacités et coûts indicatifs, modifiables)
 RESTAURANT_TYPES: Dict[str, dict] = {
     "fast": {
         "label": "Fast-food",
-        "base_capacity": 120,      # couverts/tour (avant vitesse/staff)
-        "speed": 1.40,             # facteur vitesse de service
-        "cogs_rate": 0.32,         # % du CA en coût matières
+        "base_capacity": 120,  # couverts/tour (avant vitesse/staff)
+        "speed": 1.40,  # facteur vitesse de service
+        "cogs_rate": 0.32,  # % du CA en coût matières
         "staff_costs": {1: 58, 2: 100, 3: 142},  # Coûts réalistes par service
-        "fixed_cost": 92,          # loyer + charges fixes/tour (5500€/mois ÷ 60)
+        "fixed_cost": 92,  # loyer + charges fixes/tour (5500€/mois ÷ 60)
         "suggested_price": 11.5,
     },
     "classic": {
@@ -66,7 +105,7 @@ RESTAURANT_TYPES: Dict[str, dict] = {
         "speed": 1.00,
         "cogs_rate": 0.36,
         "staff_costs": {1: 75, 2: 133, 3: 192},  # Coûts réalistes par service
-        "fixed_cost": 128,         # loyer + charges fixes/tour (7700€/mois ÷ 60)
+        "fixed_cost": 128,  # loyer + charges fixes/tour (7700€/mois ÷ 60)
         "suggested_price": 17.0,
     },
 }
@@ -100,6 +139,7 @@ SEGMENTS = [
 # Modèle
 # =====================
 
+
 @dataclass
 class Restaurant:
     name: str
@@ -114,7 +154,9 @@ class Restaurant:
     # NOUVEAUX: Système qualité et réputation
     quality_level: float = 2.0  # Score qualité 1.0-5.0
     reputation: float = 5.0  # Réputation 0.0-10.0
-    ingredient_choices: dict = field(default_factory=dict)  # Choix d'ingrédients par qualité
+    ingredient_choices: dict = field(
+        default_factory=dict
+    )  # Choix d'ingrédients par qualité
 
     def cfg(self) -> dict:
         return RESTAURANT_TYPES[self.type_key]
@@ -150,25 +192,30 @@ class Restaurant:
             return
 
         # Score moyen des ingrédients choisis
-        avg_ingredient_quality = sum(self.ingredient_choices.values()) / len(self.ingredient_choices)
+        avg_ingredient_quality = sum(self.ingredient_choices.values()) / len(
+            self.ingredient_choices
+        )
 
         # Score de base selon le type de restaurant
-        base_quality = {
-            "fast": 1.5,
-            "classic": 2.5,
-            "gastronomique": 3.5
-        }.get(self.type_key, 2.0)
+        base_quality = {"fast": 1.5, "classic": 2.5, "gastronomique": 3.5}.get(
+            self.type_key, 2.0
+        )
 
         # Bonus staff (formation)
         staff_bonus = (self.staff_level - 1) * 0.3
 
         # Score final
-        self.quality_level = min(5.0, max(1.0, base_quality + (avg_ingredient_quality - 2.0) * 0.8 + staff_bonus))
+        self.quality_level = min(
+            5.0,
+            max(1.0, base_quality + (avg_ingredient_quality - 2.0) * 0.8 + staff_bonus),
+        )
 
     def update_reputation(self, customer_satisfaction: float) -> None:
         """Met à jour la réputation basée sur la satisfaction client."""
         # Évolution lente de la réputation (10% du delta)
-        target_reputation = customer_satisfaction * 2  # Satisfaction 0-5 -> Réputation 0-10
+        target_reputation = (
+            customer_satisfaction * 2
+        )  # Satisfaction 0-5 -> Réputation 0-10
         self.reputation += (target_reputation - self.reputation) * 0.1
         self.reputation = max(0.0, min(10.0, self.reputation))
 
@@ -189,6 +236,7 @@ class Restaurant:
 # =====================
 # Marché & allocation
 # =====================
+
 
 def price_factor(price: float, budget: float, tol: float = BUDGET_TOL) -> float:
     """Retourne un facteur d'attractivité lié au prix.
@@ -212,6 +260,7 @@ def price_factor(price: float, budget: float, tol: float = BUDGET_TOL) -> float:
 def get_seasonal_demand_bonus(segment_name: str) -> float:
     """Retourne le bonus de demande saisonnier pour un segment."""
     import datetime
+
     current_month = datetime.date.today().month
     return SEASONAL_BONUSES.get(segment_name, {}).get(current_month, 1.0)
 
@@ -220,17 +269,15 @@ def get_restaurant_quality_score(restaurant) -> float:
     """Calcule le score de qualité d'un restaurant (1.0 à 5.0)."""
     # Pour l'instant, score basé sur le type et le niveau de staff
     # Plus tard: basé sur les ingrédients choisis
-    base_quality = {
-        "fast": 2.0,
-        "classic": 3.0,
-        "gastronomique": 4.0
-    }.get(restaurant.type_key, 2.5)
+    base_quality = {"fast": 2.0, "classic": 3.0, "gastronomique": 4.0}.get(
+        restaurant.type_key, 2.5
+    )
 
     # Bonus selon le niveau de staff (formation)
     staff_bonus = (restaurant.staff_level - 1) * 0.3
 
     # Simuler l'impact des ingrédients (à remplacer par le vrai système)
-    ingredient_bonus = getattr(restaurant, 'quality_level', 0) * 0.5
+    ingredient_bonus = getattr(restaurant, "quality_level", 0) * 0.5
 
     return min(5.0, base_quality + staff_bonus + ingredient_bonus)
 
@@ -239,9 +286,9 @@ def get_quality_attractiveness_factor(quality_score: float, segment: dict) -> fl
     """Calcule l'impact de la qualité sur l'attractivité selon le segment."""
     # Sensibilité à la qualité par segment
     quality_sensitivity = {
-        "Étudiants": 0.5,    # Moins sensibles à la qualité
-        "Familles": 1.0,     # Sensibilité normale
-        "Foodies": 1.5       # Très sensibles à la qualité
+        "Étudiants": 0.5,  # Moins sensibles à la qualité
+        "Familles": 1.0,  # Sensibilité normale
+        "Foodies": 1.5,  # Très sensibles à la qualité
     }.get(segment["name"], 1.0)
 
     # Conversion score qualité (1-5) en facteur attractivité
@@ -268,7 +315,7 @@ def get_quality_attractiveness_factor(quality_score: float, segment: dict) -> fl
 def get_reputation_factor(restaurant) -> float:
     """Calcule le facteur de réputation d'un restaurant."""
     # Réputation de base selon le type
-    base_reputation = getattr(restaurant, 'reputation', 5.0)  # Sur 10
+    base_reputation = getattr(restaurant, "reputation", 5.0)  # Sur 10
 
     # Conversion en facteur (5.0 = neutre)
     if base_reputation >= 8.0:
@@ -283,7 +330,9 @@ def get_reputation_factor(restaurant) -> float:
         return 0.80  # -20% pour très mauvaise réputation
 
 
-def allocate_demand(restos: List[Restaurant], total_demand: int, rng: random.Random) -> Dict[str, dict]:
+def allocate_demand(
+    restos: List[Restaurant], total_demand: int, rng: random.Random
+) -> Dict[str, dict]:
     """Alloue la demande par segment avec qualité, saisonnalité et réputation.
     Retour: {resto.name: {allocated, served, capacity, quality_score, reputation}}
     """
@@ -359,7 +408,9 @@ def allocate_demand(restos: List[Restaurant], total_demand: int, rng: random.Ran
             for r in restos:
                 add = int(round(redistribute * (result[r.name]["spare"] / spare_sum)))
                 # pas dépasser la capacité
-                possible = min(add, result[r.name]["capacity"] - result[r.name]["served"])
+                possible = min(
+                    add, result[r.name]["capacity"] - result[r.name]["served"]
+                )
                 result[r.name]["served"] += possible
 
     return result
@@ -368,6 +419,7 @@ def allocate_demand(restos: List[Restaurant], total_demand: int, rng: random.Ran
 # =====================
 # P&L simplifié
 # =====================
+
 
 def compute_pnl(r: Restaurant, served: int) -> dict:
     ca = r.price * served
@@ -378,7 +430,9 @@ def compute_pnl(r: Restaurant, served: int) -> dict:
 
     # NOUVEAU: Calcul de la satisfaction client
     quality_score = get_restaurant_quality_score(r)
-    price_quality_ratio = r.price / max(1.0, quality_score)  # Prix par étoile de qualité
+    price_quality_ratio = r.price / max(
+        1.0, quality_score
+    )  # Prix par étoile de qualité
 
     # Satisfaction basée sur qualité vs prix (0-5)
     if price_quality_ratio <= 2.0:  # Excellent rapport qualité/prix
@@ -412,6 +466,7 @@ def compute_pnl(r: Restaurant, served: int) -> dict:
 # Interface console
 # =====================
 
+
 def ask_int(prompt: str, min_v: int, max_v: int) -> int:
     while True:
         try:
@@ -436,11 +491,13 @@ def ask_float(prompt: str, min_v: float, max_v: float) -> float:
 
 def print_turn_header(turn: int, demand_hint: int):
     print("\n" + "=" * 70)
-    print(f"TOUR {turn} — Demande attendue ≈ {demand_hint} couverts (+/- {int(DEMAND_NOISE*100)}%)")
+    print(
+        f"TOUR {turn} — Demande attendue ≈ {demand_hint} couverts (+/- {int(DEMAND_NOISE * 100)}%)"
+    )
     print("Segments : ")
     for s in SEGMENTS:
         print(
-            f"  - {s['name']}: {int(s['share']*100)}% (budget ~ {s['budget']:.1f}€)"
+            f"  - {s['name']}: {int(s['share'] * 100)}% (budget ~ {s['budget']:.1f}€)"
         )
     print("=" * 70)
 
@@ -448,7 +505,9 @@ def print_turn_header(turn: int, demand_hint: int):
 def print_scoreboard(restos: List[Restaurant], alloc: Dict[str, dict]):
     print("\nRésultats du tour :")
     print("-" * 100)
-    print(f"{'Resto':16} | {'Cap.':>4} | {'Servi':>5} | {'Util.':>5} | {'CA €':>8} | {'Résultat €':>9} | {'Qualité':>8} | {'Satisf.':>7} | {'Réputation':>10}")
+    print(
+        f"{'Resto':16} | {'Cap.':>4} | {'Servi':>5} | {'Util.':>5} | {'CA €':>8} | {'Résultat €':>9} | {'Qualité':>8} | {'Satisf.':>7} | {'Réputation':>10}"
+    )
     print("-" * 100)
     for r in restos:
         served = alloc[r.name]["served"]
@@ -457,7 +516,7 @@ def print_scoreboard(restos: List[Restaurant], alloc: Dict[str, dict]):
         util = 0 if cap == 0 else int(round(100 * served / cap))
 
         # Nouvelles métriques
-        quality_stars = "⭐" * int(pnl['quality_score'])
+        quality_stars = "⭐" * int(pnl["quality_score"])
         satisfaction = f"{pnl['customer_satisfaction']:.1f}/5"
         reputation = f"{pnl['reputation']:.1f}/10"
 
@@ -471,9 +530,13 @@ def print_scoreboard(restos: List[Restaurant], alloc: Dict[str, dict]):
     print("\nDÉTAIL QUALITÉ:")
     for r in restos:
         pnl = compute_pnl(r, alloc[r.name]["served"])
-        print(f"  {r.name}: {r.get_quality_description()} (Ratio prix/qualité: {pnl['price_quality_ratio']:.1f}€/⭐)")
+        print(
+            f"  {r.name}: {r.get_quality_description()} (Ratio prix/qualité: {pnl['price_quality_ratio']:.1f}€/⭐)"
+        )
         if r.ingredient_choices:
-            ingredients_desc = ", ".join([f"{k}:{v}⭐" for k, v in r.ingredient_choices.items()])
+            ingredients_desc = ", ".join(
+                [f"{k}:{v}⭐" for k, v in r.ingredient_choices.items()]
+            )
             print(f"    Ingrédients: {ingredients_desc}")
     print()
 
@@ -504,16 +567,20 @@ def run_game():
         for r in restos:
             cfg = r.cfg()
             suggestion = cfg["suggested_price"]
-            print(f"\n{r.name} ({cfg['label']}) - Qualité actuelle: {r.get_quality_description()}")
+            print(
+                f"\n{r.name} ({cfg['label']}) - Qualité actuelle: {r.get_quality_description()}"
+            )
             print(f"  Réputation: {r.reputation:.1f}/10")
 
-            r.price = ask_float(
-                f"  Prix TTC (€) [ex. {suggestion:.1f}] ? ", 5.0, 40.0
+            r.price = ask_float(f"  Prix TTC (€) [ex. {suggestion:.1f}] ? ", 5.0, 40.0)
+            r.staff_level = ask_int(
+                "  Staffing 0=fermé,1=léger,2=normal,3=renforcé ? ", 0, 3
             )
-            r.staff_level = ask_int("  Staffing 0=fermé,1=léger,2=normal,3=renforcé ? ", 0, 3)
 
             # NOUVEAU: Choix de qualité des ingrédients
-            if turn == 1 or input("  Modifier la qualité des ingrédients ? (o/N) ").lower().startswith('o'):
+            if turn == 1 or input(
+                "  Modifier la qualité des ingrédients ? (o/N) "
+            ).lower().startswith("o"):
                 print("  Qualité des ingrédients principaux:")
                 print("    1=⭐ Économique (-30% coût, -20% satisfaction)")
                 print("    2=⭐⭐ Standard (prix normal)")
@@ -539,13 +606,15 @@ def run_game():
             pnl = compute_pnl(r, served)
             r.cash += pnl["profit"]
             # journal
-            r.history.append({
-                "turn": turn,
-                "price": r.price,
-                "staff": r.staff_level,
-                "served": served,
-                **pnl,
-            })
+            r.history.append(
+                {
+                    "turn": turn,
+                    "price": r.price,
+                    "staff": r.staff_level,
+                    "served": served,
+                    **pnl,
+                }
+            )
 
         # Affichage tour
         print_scoreboard(restos, alloc)

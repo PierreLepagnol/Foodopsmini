@@ -8,12 +8,12 @@ from .console_ui import ConsoleUI
 
 class InteractiveTutorial:
     """Tutoriel interactif pour apprendre FoodOps Pro."""
-    
+
     def __init__(self, ui: ConsoleUI):
         self.ui = ui
         self.current_step = 0
         self.tutorial_data = self._load_tutorial_steps()
-    
+
     def _load_tutorial_steps(self) -> List[Dict]:
         """Charge les étapes du tutoriel."""
         return [
@@ -28,12 +28,11 @@ class InteractiveTutorial:
                     "• Battre la concurrence",
                     "• Développer votre réputation",
                     "",
-                    "📚 Ce tutoriel vous apprendra les bases en 5 étapes simples."
+                    "📚 Ce tutoriel vous apprendra les bases en 5 étapes simples.",
                 ],
                 "action": "Appuyez sur Entrée pour commencer",
-                "interactive": False
+                "interactive": False,
             },
-            
             {
                 "title": "💰 Étape 1: Comprendre vos finances",
                 "content": [
@@ -47,13 +46,12 @@ class InteractiveTutorial:
                     "🎯 OBJECTIF: Réaliser un profit positif chaque tour !",
                     "",
                     "💡 CONSEIL: Surveillez votre marge (profit/CA).",
-                    "   Une bonne marge se situe entre 15% et 25%."
+                    "   Une bonne marge se situe entre 15% et 25%.",
                 ],
                 "action": "Tapez 'compris' pour continuer",
                 "interactive": True,
-                "expected": "compris"
+                "expected": "compris",
             },
-            
             {
                 "title": "🍽️ Étape 2: Fixer vos prix",
                 "content": [
@@ -68,14 +66,13 @@ class InteractiveTutorial:
                     "• Familles: Budget 17€, équilibre prix/qualité",
                     "• Foodies: Budget 25€, privilégient la qualité",
                     "",
-                    "💡 CONSEIL: Commencez par 12-15€ pour tester le marché."
+                    "💡 CONSEIL: Commencez par 12-15€ pour tester le marché.",
                 ],
                 "action": "Quel prix recommanderiez-vous pour débuter ? (10-20€)",
                 "interactive": True,
                 "validation": lambda x: 10 <= float(x) <= 20,
-                "feedback": "Excellent choix ! Un prix entre 12-15€ est idéal pour débuter."
+                "feedback": "Excellent choix ! Un prix entre 12-15€ est idéal pour débuter.",
             },
-            
             {
                 "title": "⭐ Étape 3: Gérer la qualité",
                 "content": [
@@ -92,14 +89,14 @@ class InteractiveTutorial:
                     "• Économique: Volume maximum, prix bas",
                     "• Premium: Marge élevée, clientèle fidèle",
                     "",
-                    "💡 CONSEIL: La qualité 3⭐ offre le meilleur équilibre."
+                    "💡 CONSEIL: La qualité 3⭐ offre le meilleur équilibre.",
                 ],
                 "action": "Quelle stratégie préférez-vous ? (economique/premium/equilibre)",
                 "interactive": True,
-                "validation": lambda x: x.lower() in ["economique", "premium", "equilibre"],
-                "feedback": "Bonne réflexion ! Chaque stratégie a ses avantages selon le marché."
+                "validation": lambda x: x.lower()
+                in ["economique", "premium", "equilibre"],
+                "feedback": "Bonne réflexion ! Chaque stratégie a ses avantages selon le marché.",
             },
-            
             {
                 "title": "👥 Étape 4: Optimiser votre personnel",
                 "content": [
@@ -117,14 +114,13 @@ class InteractiveTutorial:
                     "⚠️ ATTENTION: Trop de personnel = Coûts inutiles",
                     "              Pas assez = Clients refusés",
                     "",
-                    "💡 CONSEIL: Commencez par le niveau 2, ajustez ensuite."
+                    "💡 CONSEIL: Commencez par le niveau 2, ajustez ensuite.",
                 ],
                 "action": "Combien de clients pensez-vous servir au début ? (80-200)",
                 "interactive": True,
                 "validation": lambda x: 80 <= int(x) <= 200,
-                "feedback": "Parfait ! Adaptez votre personnel à cette prévision."
+                "feedback": "Parfait ! Adaptez votre personnel à cette prévision.",
             },
-            
             {
                 "title": "🎯 Étape 5: Analyser vos résultats",
                 "content": [
@@ -142,13 +138,12 @@ class InteractiveTutorial:
                     "• Comment améliorer ma performance ?",
                     "",
                     "💡 CONSEIL: Changez UN paramètre à la fois pour",
-                    "   comprendre son impact."
+                    "   comprendre son impact.",
                 ],
                 "action": "Êtes-vous prêt à gérer votre restaurant ? (oui/non)",
                 "interactive": True,
-                "expected": "oui"
+                "expected": "oui",
             },
-            
             {
                 "title": "🎉 Félicitations !",
                 "content": [
@@ -168,155 +163,148 @@ class InteractiveTutorial:
                     "",
                     "💡 ASTUCE: Consultez l'aide (?) à tout moment !",
                     "",
-                    "Bonne chance, futur entrepreneur ! 🍔"
+                    "Bonne chance, futur entrepreneur ! 🍔",
                 ],
                 "action": "Appuyez sur Entrée pour terminer le tutoriel",
-                "interactive": False
-            }
+                "interactive": False,
+            },
         ]
-    
+
     def start_tutorial(self) -> bool:
         """
         Lance le tutoriel interactif.
-        
+
         Returns:
             True si le tutoriel est terminé, False si abandonné
         """
         self.ui.clear_screen()
         self.ui.show_info("🎓 TUTORIEL INTERACTIF FOODOPS PRO")
-        
+
         print("\n📚 Ce tutoriel vous apprendra à jouer en 5 minutes.")
         print("💡 Vous pouvez quitter à tout moment en tapant 'quit'.")
-        
+
         if not self.ui.ask_yes_no("\nCommencer le tutoriel ?", default=True):
             return False
-        
+
         for i, step in enumerate(self.tutorial_data):
             if not self._show_step(step, i + 1):
                 return False
-        
+
         return True
-    
+
     def _show_step(self, step: Dict, step_number: int) -> bool:
         """
         Affiche une étape du tutoriel.
-        
+
         Args:
             step: Données de l'étape
             step_number: Numéro de l'étape
-            
+
         Returns:
             True pour continuer, False pour quitter
         """
         self.ui.clear_screen()
-        
+
         # Afficher le titre avec numéro d'étape
         title = f"{step['title']} ({step_number}/{len(self.tutorial_data)})"
         self.ui.show_info(title)
-        
+
         # Afficher le contenu
-        for line in step['content']:
+        for line in step["content"]:
             print(f"   {line}")
-        
+
         print()
-        
+
         # Gestion de l'interaction
-        if step['interactive']:
+        if step["interactive"]:
             return self._handle_interactive_step(step)
         else:
             input(f"   {step['action']}")
             return True
-    
+
     def _handle_interactive_step(self, step: Dict) -> bool:
         """Gère une étape interactive."""
         while True:
             try:
                 response = input(f"   {step['action']}: ").strip()
-                
-                if response.lower() == 'quit':
+
+                if response.lower() == "quit":
                     return False
-                
+
                 # Validation spécifique
-                if 'validation' in step:
-                    if step['validation'](response):
-                        if 'feedback' in step:
+                if "validation" in step:
+                    if step["validation"](response):
+                        if "feedback" in step:
                             print(f"   ✅ {step['feedback']}")
                         input("\n   Appuyez sur Entrée pour continuer...")
                         return True
                     else:
                         print("   ❌ Réponse invalide, essayez encore.")
                         continue
-                
+
                 # Validation par réponse attendue
-                if 'expected' in step:
-                    if response.lower() == step['expected'].lower():
+                if "expected" in step:
+                    if response.lower() == step["expected"].lower():
                         print("   ✅ Parfait !")
                         input("\n   Appuyez sur Entrée pour continuer...")
                         return True
                     else:
                         print(f"   💡 Tapez '{step['expected']}' pour continuer.")
                         continue
-                
+
                 # Pas de validation spécifique
                 return True
-                
+
             except (ValueError, KeyboardInterrupt):
                 print("   ❌ Entrée invalide, essayez encore.")
                 continue
-    
+
     def show_quick_help(self) -> None:
         """Affiche une aide rapide."""
         self.ui.clear_screen()
         self.ui.show_info("❓ AIDE RAPIDE FOODOPS PRO")
-        
+
         help_sections = {
-            "🎯 OBJECTIF": [
-                "Gérer un restaurant rentable et battre la concurrence"
-            ],
-            
+            "🎯 OBJECTIF": ["Gérer un restaurant rentable et battre la concurrence"],
             "💰 FINANCES": [
                 "• Profit = Chiffre d'affaires - Coûts",
                 "• Objectif marge: 15-25%",
-                "• Surveillez votre trésorerie"
+                "• Surveillez votre trésorerie",
             ],
-            
             "🍽️ STRATÉGIE PRIX": [
                 "• Prix bas = Plus de clients, moins de marge",
                 "• Prix élevé = Moins de clients, plus de marge",
-                "• Segments: Étudiants (11€), Familles (17€), Foodies (25€)"
+                "• Segments: Étudiants (11€), Familles (17€), Foodies (25€)",
             ],
-            
             "⭐ QUALITÉ": [
                 "• 1⭐ Économique → 5⭐ Luxe",
                 "• Plus de qualité = Plus de coûts + Plus de satisfaction",
-                "• Différenciation concurrentielle"
+                "• Différenciation concurrentielle",
             ],
-            
             "👥 PERSONNEL": [
                 "• Niveau 1: 120 clients max",
-                "• Niveau 2: 150 clients max", 
-                "• Niveau 3: 180 clients max"
+                "• Niveau 2: 150 clients max",
+                "• Niveau 3: 180 clients max",
             ],
-            
             "📊 INDICATEURS": [
                 "• Satisfaction client: > 3.5/5",
                 "• Taux d'occupation: 70-85%",
-                "• Part de marché: Position vs concurrents"
-            ]
+                "• Part de marché: Position vs concurrents",
+            ],
         }
-        
+
         for section, items in help_sections.items():
             print(f"\n{section}:")
             for item in items:
                 print(f"   {item}")
-        
+
         self.ui.pause()
-    
+
     def show_strategy_tips(self) -> None:
         """Affiche des conseils stratégiques."""
         self.ui.clear_screen()
         self.ui.show_info("💡 CONSEILS STRATÉGIQUES")
-        
+
         tips = [
             {
                 "title": "🎯 DÉBUTANT",
@@ -324,17 +312,17 @@ class InteractiveTutorial:
                     "Commencez par prix 12-15€, qualité 2-3⭐",
                     "Observez vos concurrents et adaptez-vous",
                     "Changez UN paramètre à la fois",
-                    "Visez 15-20% de marge nette"
-                ]
+                    "Visez 15-20% de marge nette",
+                ],
             },
             {
-                "title": "📈 INTERMÉDIAIRE", 
+                "title": "📈 INTERMÉDIAIRE",
                 "tips": [
                     "Analysez quel segment vous rapporte le plus",
                     "Ajustez votre stratégie selon les événements",
                     "Investissez dans le marketing si rentable",
-                    "Surveillez votre réputation"
-                ]
+                    "Surveillez votre réputation",
+                ],
             },
             {
                 "title": "🏆 EXPERT",
@@ -342,14 +330,14 @@ class InteractiveTutorial:
                     "Anticipez les réactions de la concurrence",
                     "Optimisez votre mix qualité/prix/personnel",
                     "Profitez des événements saisonniers",
-                    "Développez une stratégie long terme"
-                ]
-            }
+                    "Développez une stratégie long terme",
+                ],
+            },
         ]
-        
+
         for tip_group in tips:
             print(f"\n{tip_group['title']}:")
-            for tip in tip_group['tips']:
+            for tip in tip_group["tips"]:
                 print(f"   • {tip}")
-        
+
         self.ui.pause()

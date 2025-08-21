@@ -10,6 +10,7 @@ from decimal import Decimal
 
 class EmployeePosition(Enum):
     """Postes disponibles dans un restaurant."""
+
     CUISINE = "cuisine"
     SALLE = "salle"
     MANAGER = "manager"
@@ -19,6 +20,7 @@ class EmployeePosition(Enum):
 
 class EmployeeContract(Enum):
     """Types de contrats selon le droit français."""
+
     CDI = "cdi"
     CDD = "cdd"
     EXTRA = "extra"
@@ -65,17 +67,25 @@ class Employee:
     def __post_init__(self) -> None:
         """Validation des données."""
         if self.salary_gross_monthly < 0:
-            raise ValueError(f"Le salaire brut doit être positif: {self.salary_gross_monthly}")
+            raise ValueError(
+                f"Le salaire brut doit être positif: {self.salary_gross_monthly}"
+            )
         if not (0.5 <= self.productivity <= 2.0):
-            raise ValueError(f"La productivité doit être entre 0.5 et 2.0: {self.productivity}")
+            raise ValueError(
+                f"La productivité doit être entre 0.5 et 2.0: {self.productivity}"
+            )
         if self.experience_months < 0:
-            raise ValueError(f"L'expérience doit être positive: {self.experience_months}")
+            raise ValueError(
+                f"L'expérience doit être positive: {self.experience_months}"
+            )
         if not (0 < self.part_time_ratio <= 1):
             raise ValueError(f"Le ratio temps partiel doit être entre 0 et 1: {self.part_time_ratio}")
 
         # Validation selon le type de contrat
         if self.contract == EmployeeContract.APPRENTI and self.experience_months > 24:
-            raise ValueError("Un apprenti ne peut pas avoir plus de 24 mois d'expérience")
+            raise ValueError(
+                "Un apprenti ne peut pas avoir plus de 24 mois d'expérience"
+            )
         if self.contract == EmployeeContract.STAGE and self.salary_gross_monthly > 0:
             raise ValueError("Un stagiaire ne peut pas avoir de salaire (gratification uniquement)")
 

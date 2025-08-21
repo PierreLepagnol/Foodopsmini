@@ -6,14 +6,15 @@ Démonstration du mode administrateur FoodOps Pro.
 from src.foodops_pro.ui.console_ui import ConsoleUI
 from src.foodops_pro.admin.admin_config import AdminSettings, AdminConfigManager
 
+
 def demo_admin_interface():
     """Démonstration de l'interface administrateur."""
     print("=" * 70)
     print("👨‍🏫 DÉMONSTRATION MODE ADMINISTRATEUR FOODOPS PRO")
     print("=" * 70)
-    
+
     ui = ConsoleUI()
-    
+
     # Écran d'accueil admin
     welcome = [
         "👨‍🏫 CONFIGURATION ADMINISTRATEUR",
@@ -26,17 +27,18 @@ def demo_admin_interface():
         "• Configurer les paramètres de jeu",
         "• Définir les critères d'évaluation",
         "• Sauvegarder vos configurations",
-        "• Adapter la difficulté à vos étudiants"
+        "• Adapter la difficulté à vos étudiants",
     ]
-    
+
     ui.print_box(welcome, "MODE PROFESSEUR", "header")
     print()
+
 
 def demo_configuration_actuelle():
     """Affiche la configuration par défaut."""
     ui = ConsoleUI()
     settings = AdminSettings()
-    
+
     config_summary = [
         f"📋 Session: {settings.session_name}",
         f"👨‍🏫 Professeur: {settings.instructor_name or 'Non défini'}",
@@ -53,16 +55,17 @@ def demo_configuration_actuelle():
         "",
         f"💳 Emprunts autorisés: {'✅' if settings.allow_loans else '❌'}",
         f"💰 Montant max emprunt: {settings.max_loan_amount:,.0f}€",
-        f"📈 Taux d'intérêt: {settings.loan_interest_rate:.1%}"
+        f"📈 Taux d'intérêt: {settings.loan_interest_rate:.1%}",
     ]
-    
+
     ui.print_box(config_summary, "CONFIGURATION ACTUELLE", "info")
     print()
+
 
 def demo_menu_configuration():
     """Affiche le menu de configuration."""
     ui = ConsoleUI()
-    
+
     menu_options = [
         "📋 Informations de session",
         "🎮 Paramètres de jeu",
@@ -72,19 +75,20 @@ def demo_menu_configuration():
         "📝 Évaluation et notation",
         "🔒 Restrictions et limites",
         "💾 Sauvegarder configuration",
-        "▶️ Lancer la partie"
+        "▶️ Lancer la partie",
     ]
-    
+
     print("MENU DE CONFIGURATION DISPONIBLE:")
     for i, option in enumerate(menu_options, 1):
         print(f"  {i}. {option}")
     print()
 
+
 def demo_criteres_notation():
     """Démonstration des critères de notation."""
     ui = ConsoleUI()
     settings = AdminSettings()
-    
+
     notation_info = [
         "SYSTÈME DE NOTATION AUTOMATIQUE:",
         "",
@@ -99,16 +103,17 @@ def demo_criteres_notation():
         "✅ Calcul automatique de la note finale",
         "✅ Feedback détaillé pour chaque étudiant",
         "✅ Export des résultats pour le LMS",
-        "✅ Analyse comparative des performances"
+        "✅ Analyse comparative des performances",
     ]
-    
+
     ui.print_box(notation_info, "ÉVALUATION PÉDAGOGIQUE", "success")
     print()
+
 
 def demo_parametres_avances():
     """Démonstration des paramètres avancés."""
     ui = ConsoleUI()
-    
+
     avances_info = [
         "PARAMÈTRES AVANCÉS DISPONIBLES:",
         "",
@@ -132,16 +137,17 @@ def demo_parametres_avances():
         "• Types de restaurants autorisés",
         "• Limites d'employés (min/max)",
         "• Restrictions sur les changements de prix",
-        "• Emplacements de commerce disponibles"
+        "• Emplacements de commerce disponibles",
     ]
-    
+
     ui.print_box(avances_info, "CONFIGURATION AVANCÉE", "warning")
     print()
+
 
 def demo_scenarios_pedagogiques():
     """Exemples de scénarios pédagogiques."""
     ui = ConsoleUI()
-    
+
     scenarios = [
         "EXEMPLES DE SCÉNARIOS PÉDAGOGIQUES:",
         "",
@@ -167,16 +173,17 @@ def demo_scenarios_pedagogiques():
         "• Conditions identiques pour tous",
         "• Notation stricte",
         "• Classement final",
-        "• Export automatique des résultats"
+        "• Export automatique des résultats",
     ]
-    
+
     ui.print_box(scenarios, "SCÉNARIOS TYPES", "info")
     print()
+
 
 def demo_export_resultats():
     """Démonstration de l'export des résultats."""
     ui = ConsoleUI()
-    
+
     export_info = [
         "EXPORT ET SUIVI DES RÉSULTATS:",
         "",
@@ -200,11 +207,12 @@ def demo_export_resultats():
         "📈 Analyses disponibles:",
         "• Performance moyenne de la classe",
         "• Identification des difficultés",
-        "• Recommandations pédagogiques"
+        "• Recommandations pédagogiques",
     ]
-    
+
     ui.print_box(export_info, "SUIVI PÉDAGOGIQUE", "success")
     print()
+
 
 def main():
     """Démonstration complète du mode admin."""
@@ -215,7 +223,7 @@ def main():
     demo_parametres_avances()
     demo_scenarios_pedagogiques()
     demo_export_resultats()
-    
+
     print("=" * 70)
     print("🎉 DÉMONSTRATION MODE ADMINISTRATEUR TERMINÉE")
     print("=" * 70)
@@ -237,6 +245,7 @@ def main():
     print("  • Formations en entrepreneuriat")
     print("  • Écoles de commerce")
     print("  • Modules de comptabilité/finance")
+
 
 if __name__ == "__main__":
     main()

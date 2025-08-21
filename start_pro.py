@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 def main():
     """Lance la version Pro complète."""
     print("🍽️ LANCEMENT FOODOPS PRO")
@@ -14,12 +15,12 @@ def main():
     print("Version Pro avec interface enrichie")
     print("Achat de fonds de commerce, décisions avancées")
     print("=" * 40)
-    
+
     # Vérifier que nous sommes dans le bon dossier
     if not Path("src/foodops_pro").exists():
         print("❌ Erreur: Lancez ce script depuis le dossier racine du projet")
         sys.exit(1)
-    
+
     # Lancer la version Pro
     try:
         cmd = [sys.executable, "-m", "src.foodops_pro.cli_pro"]
@@ -29,6 +30,7 @@ def main():
         sys.exit(1)
     except KeyboardInterrupt:
         print("\n👋 Partie interrompue")
+
 
 if __name__ == "__main__":
     main()
