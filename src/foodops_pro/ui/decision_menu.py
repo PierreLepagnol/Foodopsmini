@@ -2061,16 +2061,51 @@ class DecisionMenu:
                 "💳 Demander un prêt bancaire",
                 "💰 Rembourser un emprunt",
                 "📈 Placer des excédents",
+                "📅 États par tour (P&L / Bilan)",
+
                 "📊 Analyser la rentabilité",
                 "💸 Gérer la trésorerie",
             ]
 
-            choice = self.ui.show_menu("FINANCE", submenu_options)
+            choice = self.ui.show_menu("FINANCE & COMPTABILITÉ", submenu_options)
 
             if choice == 0:
                 break
+            elif choice == 4:
+                self._financial_states_by_turn(restaurant)
             else:
+                self.ui.show_info("Fonction à venir…")
+                self.ui.pause()
                 self.ui.show_info(f"Option financière {choice} - En développement")
+                self.ui.pause()
+
+    def _financial_states_by_turn(self, restaurant: Restaurant) -> None:
+        """Affiche une navigation par tour: P&L et Bilan par tour + Cumulé."""
+        from ..core.ledger import Ledger
+        ledger = Ledger()
+        while True:
+            self.ui.clear_screen()
+            # Tours disponibles basés sur l'historique des allocations/production
+            turns = sorted((restaurant.production_stats_history or {}).keys())
+            options = [f"Tour {t}" for t in turns]
+            options.append("Cumulé (1 → courant)")
+            choice = self.ui.show_menu("États par tour", options)
+            if choice == 0:
+                return
+            if choice == len(options):
+                period = "Cumulé"
+                # Appel des rapports existants (à terme: agréger les données réelles)
+                self.financial_reports.show_profit_loss_statement(restaurant, ledger, period)
+                self.ui.pause()
+                # Bilan (placeholder basé sur ledger)
+                self.financial_reports.show_balance_sheet(restaurant, ledger)
+                self.ui.pause()
+            else:
+                tsel = turns[choice - 1]
+                period = f"Tour {tsel}"
+                self.financial_reports.show_profit_loss_statement(restaurant, ledger, period)
+                self.ui.pause()
+                self.financial_reports.show_balance_sheet(restaurant, ledger)
                 self.ui.pause()
 
     def _show_reports(self, restaurant: Restaurant) -> None:

@@ -72,6 +72,9 @@ class MarketEngine:
             scenario: Scénario de jeu
             random_seed: Graine aléatoire pour reproductibilité
         """
+        # Exposition des facteurs pour affichage des résultats
+        self._last_factors_by_restaurant: Dict[str, Dict[str, Decimal]] = {}
+
         self.scenario = scenario
         self.rng = random.Random(random_seed or scenario.random_seed)
         self.turn_history: List[Dict[str, AllocationResult]] = []
@@ -280,6 +283,15 @@ class MarketEngine:
 
         # Score final
         score = type_affinity * price_factor * quality_factor * prod_factor
+
+
+        # Exposer les facteurs pour affichage
+        self._last_factors_by_restaurant[restaurant.id] = {
+            "type_affinity": type_affinity,
+            "price_factor": price_factor,
+            "quality_factor": quality_factor,
+            "production_quality_factor": prod_factor,
+        }
 
         # Bonus/malus selon le niveau de staffing
         staffing_bonus = {

@@ -608,6 +608,55 @@ class FoodOpsProGame:
         self.ui.print_box(results_lines, "PERFORMANCE", "info")
 
         # Analyse du marché
+        # Détails d'attractivité par restaurant
+        try:
+            factors = getattr(self.market_engine, '_last_factors_by_restaurant', {})
+            if factors:
+                lines = ["🔍 Détails d'attractivité (ce tour):", "(Type × Prix × Qualité × Qualité prod)"]
+                for r in self.players + self.ai_competitors:
+                    f = factors.get(r.id)
+                    if not f:
+                        continue
+                    ta = f.get('type_affinity', 0)
+                    pf = f.get('price_factor', 0)
+                    qf = f.get('quality_factor', 0)
+                    pq = f.get('production_quality_factor', 1)
+                    lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
+                self.ui.print_box(lines, style='info')
+        except Exception as e:
+        # Chiffres clés par restaurant
+        try:
+            key_lines = ["📌 Chiffres clés (tour):"]
+            total_market = self.market_engine.get_market_analysis()
+            total_served = Decimal(str(total_market.get('total_served', 0) or 0))
+            total_revenue = Decimal(str(total_market.get('total_revenue', 0) or 0))
+            for r in self.players + self.ai_competitors:
+                res = results.get(r.id)
+                if not res:
+                    continue
+                # Part de marché
+                share = (Decimal(res.served_customers) / total_served) if total_served > 0 else Decimal('0')
+                # Satisfaction moyenne récente
+                sat = r.get_average_satisfaction()
+                # Marge brute approx = CA − coût PF vendus (si on a le coût/portion)
+                ca = res.revenue
+                produced_costs = getattr(r, 'production_cost_per_portion', {}) or {}
+                sales_map = res.recipe_sales or {}
+                cost_sold = Decimal('0')
+                for rid, sold in sales_map.items():
+                    cpp = produced_costs.get(rid)
+                    if cpp is not None:
+                        cost_sold += cpp * Decimal(int(sold))
+                marge = ca - cost_sold
+                key_lines.append(f"• {r.name}: CA {ca:.0f}€, Marge brute {marge:.0f}€, Satisf. {sat:.1f}/5, Part marché {share:.1%}")
+            self.ui.print_box(key_lines, style='info')
+        except Exception as e:
+            if self.admin_mode:
+                print(f"[DEBUG] key figures failed: {e}")
+
+            if self.admin_mode:
+                print(f"[DEBUG] display factors failed: {e}")
+
         market_analysis = self.market_engine.get_market_analysis()
         analysis_lines = [
             f"📈 ANALYSE DU MARCHÉ:",
