@@ -1104,33 +1104,28 @@ class DecisionMenu:
         all_lots: list = []
 
         for l in lines:
-            # Choix action
+            # Choix simple : accepter ou refuser la ligne
             action = self.ui.show_menu(
-                f"Ligne {l.ingredient_id} (Cmd {l.quantity}, Acc {l.accepted_qty})",
-                ["Accepter (total/partiel)", "Refuser"],
+                f"Ligne {l.ingredient_id} (Cmd {l.quantity})",
+                ["Accepter la commande", "Refuser la commande"],
             )
-            if action == 0:
+            if action == 1:
+                # Refus : on garde la ligne en attente, aucun lot créé
                 remaining_lines.append(l)
                 continue
 
-            if action == 2:
-                # Refus: on garde la ligne en attente, aucun lot
-                gr_lines.append(
-                    GoodsReceiptLine(
-                        ingredient_id=l.ingredient_id,
-                        qty_ordered=l.quantity,
-                        qty_delivered=Decimal("0"),
-                        qty_accepted=Decimal("0"),
-                        unit_price_ht=l.unit_price_ht,
-                        vat_rate=l.vat_rate,
-                        supplier_id=l.supplier_id,
-                        pack_size=l.pack_size,
-                        lots=[],
-                        comment="Refusé",
-                    )
+            # Accepté : on crée un seul lot pour toute la quantité commandée
+            gr_lines.append(
+                GoodsReceiptLine(
+                    ingredient_id=l.ingredient_id,
+                    quantity=l.quantity,
+                    lot_number=None,  # sera généré automatiquement
+                    supplier_id=l.supplier_id,
+                    unit_cost_ht=l.unit_cost_ht,
+                    vat_rate=l.vat_rate,
+                    dlc=l.dlc,
                 )
-                remaining_lines.append(l)  # reste en attente
-                continue
+            )
 
             # Accepter (total/partiel)
             # Proposer une quantité livrée (par défaut = quantité commandée restante)
@@ -1413,25 +1408,7 @@ class DecisionMenu:
             removed = restaurant.stock_manager.remove_expired_lots()
             self.ui.show_info(f"{len(removed)} lots périmés supprimés.")
             self.ui.pause()
-        stock_info = [
-            "📊 ÉTAT DES STOCKS:",
-            "",
-            "🥩 Steak haché:",
-            "   Lot A: 15kg (expire dans 2 jours) ⚠️",
-            "   Lot B: 8kg (expire dans 5 jours) ✅",
-            "",
-            "🍅 Tomates:",
-            "   Lot C: 5kg (expire demain) 🚨 PROMOTION -50%",
-            "   Lot D: 12kg (expire dans 4 jours) ✅",
-            "",
-            "💡 Actions recommandées:",
-            "• Utiliser le Lot A en priorité (FEFO)",
-            "• Promouvoir les tomates du Lot C",
-            "• Commander du steak haché (stock bas)",
-        ]
-
-        self.ui.print_box(stock_info, "STOCKS ACTUELS")
-        self.ui.pause()
+    # Suppression de l'affichage statique pour éviter les doublons et confusion
 
     def _supplier_analysis_interface(self, restaurant: Restaurant) -> None:
         """Interface d'analyse des fournisseurs."""
