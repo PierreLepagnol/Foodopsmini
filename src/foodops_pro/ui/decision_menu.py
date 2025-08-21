@@ -66,6 +66,7 @@ class DecisionMenu:
 
             menu_options = [
                 "📋 Menu & Pricing",
+                "👨‍🍳 Production & Mise en place",
                 "👥 Ressources Humaines",
                 "🛒 Achats & Stocks",
                 "📈 Marketing & Commercial",
@@ -84,20 +85,62 @@ class DecisionMenu:
             if choice == 1:
                 self._menu_pricing_decisions(restaurant, available_recipes, decisions)
             elif choice == 2:
-                self._hr_decisions(restaurant, available_employees, decisions)
+                self._production_decisions(restaurant)
             elif choice == 3:
-                self._purchasing_decisions(restaurant, decisions)
+                self._hr_decisions(restaurant, available_employees, decisions)
             elif choice == 4:
-                self._marketing_decisions(restaurant, decisions)
+                self._purchasing_decisions(restaurant, decisions)
             elif choice == 5:
-                self._investment_decisions(restaurant, decisions)
+                self._marketing_decisions(restaurant, decisions)
             elif choice == 6:
-                self._financial_decisions(restaurant, decisions)
+                self._investment_decisions(restaurant, decisions)
             elif choice == 7:
-                self._show_reports(restaurant)
+                self._finance_decisions(restaurant, decisions)
             elif choice == 8:
-                if self._validate_decisions(restaurant, decisions):
+                self._reports_decisions(restaurant, decisions)
+            elif choice == 9:
+                if self._confirm_end_turn():
                     break
+                else:
+                    continue
+            else:
+                continue
+    def _production_decisions(self, restaurant,):
+        """Saisie du plan de production manuel par recettes (taille, quantité, qualité)."""
+        self.ui.clear_screen()
+        self.ui.print_box([
+            "Préparez votre mise en place.",
+            "- La taille L consomme 1.5x d'ingrédients",
+            "- La qualité influencera la satisfaction client",
+            "- Durée: non prise en compte pour l'instant (prochaine étape: personnel)",
+            "- Les unités produites sont valables 1 tour (sinon perdues)",
+        ], title="👨‍🍳 PRODUCTION & MISE EN PLACE", style="info")
+        # Afficher carte active
+        menu = getattr(restaurant, "menu", {})
+        active = [rid for rid, price in menu.items() if price is not None]
+        if not active:
+            self.ui.show_error("Aucune recette active. Allez dans Menu & Pricing pour activer des recettes.")
+            self.ui.pause()
+            return
+        draft = dict(getattr(restaurant, "production_plan_draft", {}) or {})
+        while True:
+            options = [f"{i+1}. {rid} — plan actuel: {draft.get(rid, {}).get('qty', 0)} portions ({draft.get(rid, {}).get('size', 'S')}, Q={draft.get(rid, {}).get('quality', '1.0')})" for i, rid in enumerate(active)]
+            options.append("Valider")
+            choice = self.ui.show_menu("Sélectionnez une recette à planifier", options)
+            if choice == 0:
+                return
+            if choice == len(options):
+                restaurant.production_plan_draft = draft
+                self.ui.show_success("Plan de production enregistré pour ce tour.")
+                self.ui.pause()
+                return
+            rid = active[choice-1]
+            size = self.ui.show_menu("Choisir taille de portion", ["S (standard)", "L (1.5x ingrédients)"])
+            size_val = "S" if size == 1 else "L"
+            qty = self.ui.ask_int("Quantité de portions à produire", min_val=0, default=int(draft.get(rid, {}).get("qty", 0) or 0))
+            quality = self.ui.get_input("Qualité (0.5 à 1.5)", float, min_val=0.5, max_val=1.5, default=float(draft.get(rid, {}).get("quality", 1.0)))
+            draft[rid] = {"size": size_val, "qty": qty, "quality": quality}
+
 
         return decisions
 
@@ -1090,6 +1133,67 @@ class DecisionMenu:
             )
         self.ui.print_box(view, "BON DE COMMANDE EN ATTENTE", "info")
 
+        # Option: tout accepter automatiquement (gagne-temps)
+        if self.ui.confirm("Tout accepter automatiquement (quantité restante par défaut) ?"):
+            from ..core.procurement import DeliveryLine, ReceivingService, GoodsReceipt, GoodsReceiptLine
+            from datetime import date
+            gr_lines: list[GoodsReceiptLine] = []
+            remaining_lines: list[POLine] = []
+            for l in lines:
+                to_receive_default = l.quantity - l.accepted_qty
+                if to_receive_default <= 0:
+                    continue
+                deliveries = [
+                    DeliveryLine(
+                        ingredient_id=l.ingredient_id,
+                        quantity_received=to_receive_default,
+                        unit_price_ht=l.unit_price_ht,
+                        vat_rate=l.vat_rate,
+                        supplier_id=l.supplier_id,
+                        pack_size=l.pack_size,
+                        lot_number=None,
+                        quality_level=l.quality_level or 2,
+                    )
+                ]
+                receiver = ReceivingService(shelf_life_rules={1: -2, 3: 0, 5: 2})
+                lots = receiver.receive(deliveries, date.today(), default_shelf_life_days=5)
+                for lot in lots:
+                    restaurant.stock_manager.add_lot(lot)
+                qty_accepted = sum([lt.quantity for lt in lots], Decimal("0"))
+                l.accepted_qty += qty_accepted
+                l.status = "CLOSED" if l.accepted_qty >= l.quantity else ("PARTIAL" if l.accepted_qty > 0 else "OPEN")
+                gr_lines.append(GoodsReceiptLine(
+                    ingredient_id=l.ingredient_id,
+                    qty_ordered=l.quantity,
+                    qty_delivered=to_receive_default,
+                    qty_accepted=qty_accepted,
+                    unit_price_ht=l.unit_price_ht,
+                    vat_rate=l.vat_rate,
+                    supplier_id=l.supplier_id,
+                    pack_size=l.pack_size,
+                    lots=lots,
+                    comment="auto-accept",
+                ))
+                if l.status != "CLOSED":
+                    remaining_lines.append(l)
+            total_ht = sum([(ln.qty_accepted * ln.unit_price_ht) for ln in gr_lines], Decimal("0"))
+            total_ttc = sum([(ln.qty_accepted * ln.unit_price_ht) * (Decimal("1") + ln.vat_rate) for ln in gr_lines], Decimal("0"))
+            po_status = "CLOSED" if not remaining_lines else ("PARTIAL" if any(l.accepted_qty > 0 for l in remaining_lines) else "OPEN")
+            gr = GoodsReceipt(date=date.today(), lines=gr_lines, total_ht=total_ht, total_ttc=total_ttc, status=po_status)
+            restaurant._last_goods_receipt = gr
+            restaurant.pending_po_lines = remaining_lines
+            view = [
+                f"GR du {gr.date} — Statut PO: {gr.status}",
+                f"Total accepté HT: {gr.total_ht:.2f}€ | TTC: {gr.total_ttc:.2f}€",
+                "",
+                "Détail par ligne:",
+            ]
+            for ln in gr.lines:
+                view.append(f"• {ln.ingredient_id}: Cmd {ln.qty_ordered} | Livr {ln.qty_delivered} | Acc {ln.qty_accepted}")
+            self.ui.print_box(view, "BON DE RÉCEPTION", "success")
+            self.ui.pause()
+            return
+
         # Saisie réception par ligne: accepter/refuser et split lots
         from ..core.procurement import (
             DeliveryLine,
@@ -1109,23 +1213,10 @@ class DecisionMenu:
                 f"Ligne {l.ingredient_id} (Cmd {l.quantity})",
                 ["Accepter la commande", "Refuser la commande"],
             )
-            if action == 1:
+            if action == 2:
                 # Refus : on garde la ligne en attente, aucun lot créé
                 remaining_lines.append(l)
                 continue
-
-            # Accepté : on crée un seul lot pour toute la quantité commandée
-            gr_lines.append(
-                GoodsReceiptLine(
-                    ingredient_id=l.ingredient_id,
-                    quantity=l.quantity,
-                    lot_number=None,  # sera généré automatiquement
-                    supplier_id=l.supplier_id,
-                    unit_cost_ht=l.unit_cost_ht,
-                    vat_rate=l.vat_rate,
-                    dlc=l.dlc,
-                )
-            )
 
             # Accepter (total/partiel)
             # Proposer une quantité livrée (par défaut = quantité commandée restante)

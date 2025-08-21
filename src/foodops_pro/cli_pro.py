@@ -434,6 +434,31 @@ class FoodOpsProGame:
             # Décisions de l'IA (simplifiées)
             self._ai_decisions()
 
+            # Production: purge des unités précédentes (DLC=1 tour), puis exécution du plan manuel s'il existe, sinon MVP plan
+            try:
+                from .core.production import ProductionPlanner, apply_production_plan, clear_previous_production, execute_manual_production_plan
+                planner = ProductionPlanner()
+                recipes_by_id = self.recipes
+                for r in self.players + self.ai_competitors:
+                    clear_previous_production(r)
+                    # Exécuter d'abord le plan saisi par le joueur (s'il existe), sinon fallback MVP auto-plan
+                    if getattr(r, "production_plan_draft", None):
+                        execute_manual_production_plan(r, recipes_by_id)
+                    else:
+                        plan = planner.plan(r, recipes_by_id)
+                        apply_production_plan(r, plan)
+                    total_ready = sum(int(v) for v in getattr(r, "production_units_ready", {}).values())
+                    if total_ready == 0:
+                        self.ui.print_box([
+                            f"⚠️ Aucune production prête pour {r.name} ce tour.",
+                            "Astuce: Réceptionnez vos commandes dans Achats & Stocks → Réception",
+                            "Ou saisissez une mise en place dans 👨‍🍳 Production & Mise en place",
+                        ], style="warning")
+            except Exception as e:
+                # En cas d'échec, on continue sans production-aware
+                if getattr(self, "admin_mode", False):
+                    print(f"[DEBUG] Production planning failed: {e}")
+
             # Simulation du marché
             all_restaurants = self.players + self.ai_competitors
             results = self.market_engine.allocate_demand(all_restaurants, turn)

@@ -133,6 +133,20 @@ class MarketEngine:
         # Application des contraintes de capacité et redistribution
         results = self._apply_capacity_constraints(restaurants, results)
 
+        # Si des unités prêtes sont disponibles (production-aware), limiter le servi au minimum(capacité, unités prêtes)
+        try:
+            for restaurant in restaurants:
+                units_ready = getattr(restaurant, "production_units_ready", None)
+                if units_ready is None or restaurant.id not in results:
+                    continue
+                # Approximation: somme des unités prêtes toutes recettes confondues
+                total_units_ready = sum(int(v) for v in units_ready.values())
+                res = results[restaurant.id]
+                res.served_customers = min(res.served_customers, total_units_ready)
+        except Exception:
+            # En cas d'erreur on garde le comportement classique
+            pass
+
         # S'assurer que la capacité est définie dans les résultats
         for restaurant in restaurants:
             if restaurant.id in results:
@@ -168,26 +182,62 @@ class MarketEngine:
         scores = {}
         for restaurant in restaurants:
             if restaurant.staffing_level == 0:  # Restaurant fermé
-                scores[restaurant.id] = 0
+                scores[restaurant.id] = Decimal("0")
                 continue
+            scores[restaurant.id] = self._calculate_attraction_score(restaurant, segment)
 
-            score = self._calculate_attraction_score(restaurant, segment)
-            scores[restaurant.id] = score
+        # Mode production-aware + reroutage si des unités prêtes existent
+        has_units = any(getattr(r, "production_units_ready", None) for r in restaurants)
+        if has_units and segment_demand > 0:
+            # Tri des restaurants par score décroissant
+            ranked = [r for r in restaurants if scores.get(r.id, Decimal("0")) > 0]
+            ranked.sort(key=lambda r: scores.get(r.id, Decimal("0")), reverse=True)
+            # États locaux
+            served = {r.id: 0 for r in restaurants}
+            cap_rem = {r.id: (r.capacity_current if r.staffing_level > 0 else 0) for r in restaurants}
+            units_map = {
+                r.id: dict(getattr(r, "production_units_ready", {}) or {}) for r in restaurants
+            }
+            # Service client par client (simple)
+            for _ in range(int(segment_demand)):
+                served_this = False
+                for r in ranked:
+                    if cap_rem[r.id] <= 0:
+                        continue
+                    # Choisir une recette servable (heuristique: la moins chère dispo)
+                    active_menu = r.get_active_menu()
+                    if not active_menu:
+                        continue
+                    # recettes triées par prix croissant (budget-friendly par défaut)
+                    recipes_sorted = sorted(active_menu.items(), key=lambda kv: kv[1])
+                    umap = units_map.get(r.id, {})
+                    chosen = None
+                    for recipe_id, _price in recipes_sorted:
+                        if umap.get(recipe_id, 0) > 0:
+                            chosen = recipe_id
+                            break
+                    if chosen is None:
+                        continue
+                    # Servir
+                    umap[chosen] = umap.get(chosen, 0) - 1
+                    served[r.id] += 1
+                    cap_rem[r.id] -= 1
+                    served_this = True
+                    break
+                # Si aucun restaurant ne peut servir ce client: abandonné (on ignore pour allocation)
+                if not served_this:
+                    continue
+            return {rid: {"demand": qty} for rid, qty in served.items()}
 
+        # Fallback: répartition proportionnelle classique
         total_score = sum(scores.values())
         if total_score == 0:
-            # Aucun restaurant attractif pour ce segment
             return {r.id: {"demand": 0} for r in restaurants}
-
-        # Répartition proportionnelle
         allocation = {}
         for restaurant in restaurants:
-            if scores[restaurant.id] > 0:
-                allocated = int(segment_demand * scores[restaurant.id] / total_score)
-                allocation[restaurant.id] = {"demand": allocated}
-            else:
-                allocation[restaurant.id] = {"demand": 0}
-
+            sc = scores.get(restaurant.id, Decimal("0"))
+            allocated = int(segment_demand * sc / total_score) if sc > 0 else 0
+            allocation[restaurant.id] = {"demand": allocated}
         return allocation
 
     def _calculate_attraction_score(
