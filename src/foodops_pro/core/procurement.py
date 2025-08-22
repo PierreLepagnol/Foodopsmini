@@ -14,7 +14,7 @@ from decimal import Decimal, ROUND_CEILING
 from typing import Optional
 
 from ..domain.recipe import Recipe
-from ..domain.stock import StockManager, StockLot
+from ..domain.stock_advanced import AdvancedStockManager, AdvancedStockLot
 from ..domain.supplier import Supplier
 
 
@@ -68,7 +68,7 @@ class GoodsReceiptLine:
     vat_rate: Decimal
     supplier_id: str
     pack_size: Decimal
-    lots: list[StockLot]
+    lots: list[AdvancedStockLot]
     comment: str | None = None
 
 
@@ -104,7 +104,7 @@ class ProcurementPlanner:
         self,
         active_recipes: list[Recipe],
         sales_forecast: dict[str, int],  # recipe_id -> portions prévues
-        stock: StockManager,
+        stock: AdvancedStockManager,
     ) -> dict[str, Decimal]:
         """
         Besoin brut = Σ (ventes prévues × qty_brute_par_portion)
@@ -226,23 +226,21 @@ class ReceivingService:
         deliveries: list[DeliveryLine],
         received_date: date,
         default_shelf_life_days: int = 5,
-    ) -> list[StockLot]:
+    ) -> list[AdvancedStockLot]:
         """
-        Convertit des DeliveryLine en StockLot en calculant une DLC.
-        DLC = received_date + default_shelf_life +/- ajustement qualité.
+        Convertit des DeliveryLine en AdvancedStockLot en calculant une date de péremption.
         """
-        lots: list[StockLot] = []
+        lots: list[AdvancedStockLot] = []
         for d in deliveries:
             adjust = self.shelf_life_rules.get(d.quality_level or 2, 0)
-            dlc = received_date + timedelta(days=default_shelf_life_days + adjust)
-            lot = StockLot(
+            expiry = received_date + timedelta(days=default_shelf_life_days + adjust)
+            lot = AdvancedStockLot(
                 ingredient_id=d.ingredient_id,
                 quantity=d.quantity_received,
-                dlc=dlc,
                 unit_cost_ht=d.unit_price_ht,
-                vat_rate=d.vat_rate,
+                purchase_date=received_date,
+                expiry_date=expiry,
                 supplier_id=d.supplier_id,
-                received_date=received_date,
                 lot_number=d.lot_number,
             )
             lots.append(lot)
