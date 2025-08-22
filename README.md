@@ -172,6 +172,28 @@ tests/
 6. **Résultats** : demande allouée, clients servis, utilisation, CA, ticket moyen, marges, etc.
 7. **Fin** : classement final par trésorerie et analyses
 
+## 📈 Score d'attractivité du marché
+
+La demande se répartit selon le score d'attractivité :
+
+`Type × Prix × Qualité × Temps d'attente`
+
+- **Type** : affinité du segment avec le style de restaurant.
+- **Prix** : comparaison du ticket moyen au budget du segment :
+  - ≤80 % du budget → *1.5×*
+  - 80–100 % → *1.2×*
+  - 100–120 % → *0.8×*
+  - 120–150 % → *0.4×*
+  - >150 % → *0.1×*
+- **Qualité** : score global (1–5) pondéré par la sensibilité du segment (≈0.7–1.6×).
+- **Temps d'attente** : basé sur l'utilisation du tour précédent :
+  - ≤80 % de capacité → *1.1×*
+  - 80–100 % → *1.0×*
+  - 100–120 % → *0.8×*
+  - >120 % → *0.5×*
+
+Anticiper ces seuils aide à ajuster prix, qualité et capacité pour capter la demande.
+
 ## 👨‍🏫 Guide Professeur (Mode Administrateur)
 
 Démarrer : `python -m src.foodops_pro.cli_pro --admin`

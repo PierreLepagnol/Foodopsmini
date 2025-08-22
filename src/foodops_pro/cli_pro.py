@@ -612,7 +612,7 @@ class FoodOpsProGame:
         try:
             factors = getattr(self.market_engine, '_last_factors_by_restaurant', {})
             if factors:
-                lines = ["🔍 Détails d'attractivité (ce tour):", "(Type × Prix × Qualité × Qualité prod)"]
+                lines = ["🔍 Détails d'attractivité (ce tour):", "(Type × Prix × Qualité × Temps d'attente)"]
                 for r in self.players + self.ai_competitors:
                     f = factors.get(r.id)
                     if not f:
@@ -620,10 +620,11 @@ class FoodOpsProGame:
                     ta = f.get('type_affinity', 0)
                     pf = f.get('price_factor', 0)
                     qf = f.get('quality_factor', 0)
-                    pq = f.get('production_quality_factor', 1)
-                    lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
+                    wf = f.get('waiting_factor', 1)
+                    lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {wf:.2f}")
                 self.ui.print_box(lines, style='info')
         except Exception as e:
+            pass
         # Chiffres clés par restaurant
         try:
             key_lines = ["📌 Chiffres clés (tour):"]

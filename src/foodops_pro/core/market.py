@@ -277,20 +277,29 @@ class MarketEngine:
         average_ticket = restaurant.get_average_ticket()
         price_factor = self._calculate_price_factor(average_ticket, segment)
 
-        # Facteur qualité longue (ingrédients) + qualité de production du tour
+        # Facteur qualité perçue
         quality_factor = self._calculate_quality_factor(restaurant, segment)
-        prod_factor = self._calculate_production_quality_factor(restaurant)
+
+        # Facteur temps d'attente basé sur l'utilisation du tour précédent
+        last_util = Decimal(str(getattr(restaurant, "_last_utilization", 0)))
+        if last_util <= Decimal("0.8"):
+            waiting_factor = Decimal("1.1")
+        elif last_util <= Decimal("1.0"):
+            waiting_factor = Decimal("1.0")
+        elif last_util <= Decimal("1.2"):
+            waiting_factor = Decimal("0.8")
+        else:
+            waiting_factor = Decimal("0.5")
 
         # Score final
-        score = type_affinity * price_factor * quality_factor * prod_factor
-
+        score = type_affinity * price_factor * quality_factor * waiting_factor
 
         # Exposer les facteurs pour affichage
         self._last_factors_by_restaurant[restaurant.id] = {
             "type_affinity": type_affinity,
             "price_factor": price_factor,
             "quality_factor": quality_factor,
-            "production_quality_factor": prod_factor,
+            "waiting_factor": waiting_factor,
         }
 
         # Bonus/malus selon le niveau de staffing
@@ -420,54 +429,6 @@ class MarketEngine:
             return max(Decimal('0.90'), min(Decimal('1.10'), factor))
         except Exception:
             return Decimal('1.00')
-
-            restaurant: Restaurant évalué
-            segment: Segment de marché
-
-        Returns:
-            Facteur qualité (0.5 à 2.0)
-        """
-        # NOUVEAU: Utilisation du score de qualité du restaurant
-        quality_score = restaurant.get_overall_quality_score()
-
-        # Conversion du score qualité (1-5) en facteur d'attractivité
-        if quality_score <= Decimal("1.5"):
-            base_factor = Decimal("0.70")  # -30%
-        elif quality_score <= Decimal("2.5"):
-            base_factor = Decimal("1.00")  # Neutre
-        elif quality_score <= Decimal("3.5"):
-            base_factor = Decimal("1.20")  # +20%
-        elif quality_score <= Decimal("4.5"):
-            base_factor = Decimal("1.40")  # +40%
-        else:
-            base_factor = Decimal("1.60")  # +60%
-
-        # NOUVEAU: Sensibilité à la qualité par segment
-        segment_name = segment.name.lower()
-        quality_sensitivity = Decimal("1.0")
-
-        if "student" in segment_name or "étudiant" in segment_name:
-            quality_sensitivity = Decimal("0.6")  # Moins sensibles
-        elif "foodie" in segment_name or "gourmet" in segment_name:
-            quality_sensitivity = Decimal("1.4")  # Très sensibles
-        elif "family" in segment_name or "famille" in segment_name:
-            quality_sensitivity = Decimal("1.0")  # Sensibilité normale
-
-        # Ajustement selon la sensibilité du segment
-        if base_factor > Decimal("1.0"):
-            bonus = (base_factor - Decimal("1.0")) * quality_sensitivity
-            final_factor = Decimal("1.0") + bonus
-        else:
-            malus = (Decimal("1.0") - base_factor) * quality_sensitivity
-            final_factor = Decimal("1.0") - malus
-        # NOUVEAU: Impact de la réputation
-        reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
-        reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
-        final_factor += reputation_bonus
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
     def _get_season_name(self, month: int) -> str:
         """Retourne le nom de la saison selon le mois."""
         if month in [12, 1, 2]:
