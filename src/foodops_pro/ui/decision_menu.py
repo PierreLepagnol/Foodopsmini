@@ -4,6 +4,7 @@ Menu de décisions enrichi pour FoodOps Pro.
 
 from typing import Dict, List, Optional, Tuple
 from decimal import Decimal
+from copy import deepcopy
 
 from ..domain.restaurant import Restaurant
 from ..domain.employee import Employee, EmployeePosition, EmployeeContract
@@ -12,6 +13,7 @@ from ..domain.stock import StockManager
 from ..domain.supplier import Supplier
 from ..core.costing import RecipeCostCalculator
 from ..core.procurement import ProcurementPlanner, ReceivingService, POLine
+from ..core.market import MarketEngine
 from .console_ui import ConsoleUI
 from .financial_reports import FinancialReports
 
@@ -19,9 +21,15 @@ from .financial_reports import FinancialReports
 class DecisionMenu:
     """Menu de décisions stratégiques pour les joueurs."""
 
-    def __init__(self, ui: ConsoleUI, cost_calculator: RecipeCostCalculator):
+    def __init__(
+        self,
+        ui: ConsoleUI,
+        cost_calculator: RecipeCostCalculator,
+        scenario: Optional[any] = None,
+    ):
         self.ui = ui
         self.cost_calculator = cost_calculator
+        self.scenario = scenario
         self.financial_reports = FinancialReports(ui)
         # Catalogues et paramètres (injectés depuis le jeu/CLI)
         self._suppliers_catalog: Dict[str, List[Dict]] = {}
@@ -73,6 +81,7 @@ class DecisionMenu:
                 "🏗️ Investissements",
                 "💰 Finance & Comptabilité",
                 "📊 Rapports & Analyses",
+                "🧪 Simuler l'impact des décisions",
                 "✅ Valider et passer au tour suivant",
             ]
 
@@ -99,6 +108,8 @@ class DecisionMenu:
             elif choice == 8:
                 self._reports_decisions(restaurant, decisions)
             elif choice == 9:
+                self._simulate_decisions(restaurant, decisions, turn)
+            elif choice == 10:
                 if self._confirm_end_turn():
                     break
                 else:
@@ -2163,8 +2174,72 @@ class DecisionMenu:
         for rid, d in data.items():
             cost = d.get('cost_per_portion')
             cost_str = f"{cost:.2f}€" if cost is not None else "?"
-            lines.append(f"{rid} | {d.get('produced',0)} | {d.get('sold',0)} | {d.get('lost',0)} | {cost_str}")
+        lines.append(f"{rid} | {d.get('produced',0)} | {d.get('sold',0)} | {d.get('lost',0)} | {cost_str}")
         self.ui.print_box(lines, style='info')
+        self.ui.pause()
+
+    def _simulate_decisions(self, restaurant: Restaurant, decisions: Dict, turn: int) -> None:
+        """Simule l'impact des décisions clés (prix, marketing, recrutement)."""
+        if not self.scenario:
+            self.ui.show_error("Simulation indisponible : scénario manquant.")
+            self.ui.pause()
+            return
+
+        base_rest = deepcopy(restaurant)
+        sim_rest = deepcopy(restaurant)
+
+        # Appliquer les modifications de prix
+        for recipe_id, new_price in decisions.get("price_changes", {}).items():
+            sim_rest.set_recipe_price(recipe_id, new_price)
+
+        # Appliquer les recrutements
+        for recruit in decisions.get("recruitments", []):
+            sim_rest.add_employee(
+                Employee(
+                    id=f"sim_{recruit['position'].name}_{len(sim_rest.employees)+1}",
+                    name=f"Sim {recruit['position'].value}",
+                    position=recruit["position"],
+                    contract=recruit["contract"],
+                    salary_gross_monthly=recruit["salary"],
+                    productivity=Decimal("1.0"),
+                    experience_months=0,
+                )
+            )
+
+        marketing_cost = sum(
+            Decimal(str(c.get("cost", 0)))
+            for c in decisions.get("marketing_campaigns", [])
+        )
+
+        engine = MarketEngine(self.scenario, random_seed=self.scenario.random_seed)
+        base_res = engine.allocate_demand([base_rest], turn).get(base_rest.id)
+        engine = MarketEngine(self.scenario, random_seed=self.scenario.random_seed)
+        sim_res = engine.allocate_demand([sim_rest], turn).get(sim_rest.id)
+
+        base_staff = base_rest.monthly_staff_cost
+        sim_staff = sim_rest.monthly_staff_cost
+
+        lines = [
+            "SIMULATION D'IMPACT",
+            "",
+            (
+                f"Demande estimée : {base_res.allocated_demand} → {sim_res.allocated_demand} "
+                f"({sim_res.allocated_demand - base_res.allocated_demand:+})"
+            ),
+            (
+                f"Revenu estimé : {base_res.revenue:.0f}€ → {sim_res.revenue:.0f}€ "
+                f"({sim_res.revenue - base_res.revenue:+.0f}€)"
+            ),
+            (
+                f"Coût personnel : {base_staff:.0f}€ → {sim_staff:.0f}€ "
+                f"({sim_staff - base_staff:+.0f}€)"
+            ),
+            (
+                f"Budget marketing : 0€ → {marketing_cost:.0f}€ "
+                f"(+{marketing_cost:.0f}€)"
+            ),
+        ]
+        self.ui.print_box(lines, style="info")
         self.ui.pause()
 
     def _validate_decisions(self, restaurant: Restaurant, decisions: Dict) -> bool:
