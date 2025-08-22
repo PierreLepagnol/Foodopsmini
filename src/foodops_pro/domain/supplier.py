@@ -33,6 +33,8 @@ class Supplier:
     payment_terms_days: int = 30
     discount_threshold: Optional[Decimal] = None
     discount_rate: Optional[Decimal] = None
+    min_order_qty: Optional[Decimal] = None
+    max_order_qty: Optional[Decimal] = None
 
     def __post_init__(self) -> None:
         """Validation des données."""
@@ -62,6 +64,19 @@ class Supplier:
                 raise ValueError(
                     f"Le taux de remise doit être entre 0 et 1: {self.discount_rate}"
                 )
+
+        if self.min_order_qty is not None and self.min_order_qty < 0:
+            raise ValueError(
+                f"La quantité minimum doit être positive: {self.min_order_qty}"
+            )
+        if (
+            self.max_order_qty is not None
+            and self.min_order_qty is not None
+            and self.max_order_qty < self.min_order_qty
+        ):
+            raise ValueError(
+                "La quantité maximum doit être supérieure à la quantité minimum"
+            )
 
     def calculate_total_cost(self, order_value_ht: Decimal) -> Decimal:
         """
