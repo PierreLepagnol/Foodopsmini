@@ -10,6 +10,7 @@ from decimal import Decimal
 from .employee import Employee
 from .recipe import Recipe
 from .ingredient_quality import IngredientQualityManager, QualityLevel
+from .hygiene import HygieneManager
 
 
 class RestaurantType(Enum):
@@ -80,6 +81,8 @@ class Restaurant:
     production_consumed_ingredients: Dict[str, Dict[str, Decimal]] = field(default_factory=dict)
     # Historique par tour: turn -> { recipe_id: { produced, sold, lost, cost_per_portion } }
     production_stats_history: Dict[int, Dict[str, dict]] = field(default_factory=dict)
+    # Gestionnaire d'hygiène et inspections
+    hygiene_manager: HygieneManager = field(default_factory=HygieneManager)
 
     def __post_init__(self) -> None:
         """Validation des données."""
@@ -180,6 +183,26 @@ class Restaurant:
         """Désactive une recette du menu."""
         if recipe_id in self.active_recipes:
             self.active_recipes.remove(recipe_id)
+
+    def perform_hygiene_tasks(self, current_turn: int) -> Decimal:
+        """Réalise les tâches d'hygiène planifiées et gère les inspections.
+
+        Args:
+            current_turn: Tour courant.
+
+        Returns:
+            Coût total engagé (tâches + amendes).
+        """
+
+        cost = self.hygiene_manager.run_tasks(current_turn)
+        inspection = self.hygiene_manager.maybe_inspect(current_turn)
+        total_cost = cost
+        if inspection:
+            total_cost += inspection.fine
+            if inspection.score < 70:
+                self.reputation = max(Decimal("0"), self.reputation - Decimal("0.5"))
+        self.cash -= total_cost
+        return total_cost
 
     def get_active_menu(self) -> Dict[str, Decimal]:
         """Retourne le menu actif avec les prix."""
