@@ -18,6 +18,7 @@ from .core.market import MarketEngine
 from .core.costing import RecipeCostCalculator
 from .ui.console_ui import ConsoleUI
 from .ui.decision_menu import DecisionMenu
+from .ui.kpi_dashboard import KPIDashboard
 from .admin.admin_config import AdminConfigManager, AdminSettings
 
 
@@ -66,6 +67,7 @@ class FoodOpsProGame:
         self.decision_menu.set_suppliers_catalog(self.suppliers_catalog)
         self.decision_menu.set_suppliers_map(self.suppliers)
         self.decision_menu.set_admin_settings(self.admin_settings)
+        self.kpi_dashboard = KPIDashboard(self.ui)
 
         self.ui.show_progress_bar(4, 5, "Finalisation")
 
@@ -610,52 +612,41 @@ class FoodOpsProGame:
         # Analyse du marché
         # Détails d'attractivité par restaurant
         try:
-            factors = getattr(self.market_engine, '_last_factors_by_restaurant', {})
+            factors = getattr(self.market_engine, "_last_factors_by_restaurant", {})
             if factors:
-                lines = ["🔍 Détails d'attractivité (ce tour):", "(Type × Prix × Qualité × Qualité prod)"]
+                lines = [
+                    "🔍 Détails d'attractivité (ce tour):",
+                    "(Type × Prix × Qualité × Qualité prod)",
+                ]
                 for r in self.players + self.ai_competitors:
                     f = factors.get(r.id)
                     if not f:
                         continue
-                    ta = f.get('type_affinity', 0)
-                    pf = f.get('price_factor', 0)
-                    qf = f.get('quality_factor', 0)
-                    pq = f.get('production_quality_factor', 1)
-                    lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
-                self.ui.print_box(lines, style='info')
+                    ta = f.get("type_affinity", 0)
+                    pf = f.get("price_factor", 0)
+                    qf = f.get("quality_factor", 0)
+                    pq = f.get("production_quality_factor", 1)
+                    lines.append(
+                        f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}"
+                    )
+                self.ui.print_box(lines, style="info")
         except Exception as e:
-        # Chiffres clés par restaurant
-        try:
-            key_lines = ["📌 Chiffres clés (tour):"]
-            total_market = self.market_engine.get_market_analysis()
-            total_served = Decimal(str(total_market.get('total_served', 0) or 0))
-            total_revenue = Decimal(str(total_market.get('total_revenue', 0) or 0))
-            for r in self.players + self.ai_competitors:
-                res = results.get(r.id)
-                if not res:
-                    continue
-                # Part de marché
-                share = (Decimal(res.served_customers) / total_served) if total_served > 0 else Decimal('0')
-                # Satisfaction moyenne récente
-                sat = r.get_average_satisfaction()
-                # Marge brute approx = CA − coût PF vendus (si on a le coût/portion)
-                ca = res.revenue
-                produced_costs = getattr(r, 'production_cost_per_portion', {}) or {}
-                sales_map = res.recipe_sales or {}
-                cost_sold = Decimal('0')
-                for rid, sold in sales_map.items():
-                    cpp = produced_costs.get(rid)
-                    if cpp is not None:
-                        cost_sold += cpp * Decimal(int(sold))
-                marge = ca - cost_sold
-                key_lines.append(f"• {r.name}: CA {ca:.0f}€, Marge brute {marge:.0f}€, Satisf. {sat:.1f}/5, Part marché {share:.1%}")
-            self.ui.print_box(key_lines, style='info')
-        except Exception as e:
-            if self.admin_mode:
-                print(f"[DEBUG] key figures failed: {e}")
-
             if self.admin_mode:
                 print(f"[DEBUG] display factors failed: {e}")
+
+        try:
+            prev_results = (
+                self.market_engine.turn_history[-2]
+                if len(self.market_engine.turn_history) > 1
+                else {}
+            )
+            kpi_data = self.kpi_dashboard.build_kpis(
+                all_restaurants, results, prev_results, turn
+            )
+            self.kpi_dashboard.display(kpi_data, ranking="margin")
+        except Exception as e:
+            if self.admin_mode:
+                print(f"[DEBUG] KPI dashboard failed: {e}")
 
         market_analysis = self.market_engine.get_market_analysis()
         analysis_lines = [
