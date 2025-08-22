@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 from decimal import Decimal
 
 from .restaurant import RestaurantType
+from .random_events import RandomEvent
 
 
 @dataclass(frozen=True)
@@ -101,6 +102,7 @@ class Scenario:
         interest_rate: Taux d'intérêt pour emprunts
         ai_competitors: Nombre de concurrents IA
         random_seed: Graine aléatoire pour reproductibilité
+        events: Liste d'événements prédéfinis pour le scénario
     """
 
     name: str
@@ -114,6 +116,7 @@ class Scenario:
     interest_rate: Decimal = Decimal("0.05")
     ai_competitors: int = 2
     random_seed: Optional[int] = None
+    events: List[RandomEvent] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         """Validation des données."""
