@@ -19,24 +19,26 @@ from .core.costing import RecipeCostCalculator
 from .ui.console_ui import ConsoleUI
 from .ui.decision_menu import DecisionMenu
 from .admin.admin_config import AdminConfigManager, AdminSettings
+from .core.leaderboard import Leaderboard
+from .network.host import GameServer
 
 
 class FoodOpsProGame:
-    """
-    Jeu FoodOps Pro avec interface professionnelle.
-    """
+    """Jeu FoodOps Pro avec interface professionnelle."""
 
-    def __init__(self, scenario_path: Optional[Path] = None, admin_mode: bool = False):
-        """
-        Initialise le jeu.
-
-        Args:
-            scenario_path: Chemin vers le scénario
-            admin_mode: Mode administrateur activé
-        """
+    def __init__(
+        self,
+        scenario_path: Optional[Path] = None,
+        admin_mode: bool = False,
+        server: Optional[GameServer] = None,
+        leaderboard: Optional[Leaderboard] = None,
+    ) -> None:
+        """Initialise le jeu."""
         self.ui = ConsoleUI()
         self.admin_mode = admin_mode
         self.admin_settings = AdminSettings()
+        self.server = server
+        self.leaderboard = leaderboard or (server.leaderboard if server else Leaderboard())
 
         # Chargement des données
         self.ui.show_progress_bar(0, 5, "Initialisation")
@@ -498,6 +500,10 @@ class FoodOpsProGame:
 
             # Mise à jour des restaurants
             self._update_restaurants(results)
+            # Affichage du classement provisoire et diffusion réseau
+            self._display_leaderboard()
+            if self.server:
+                self.server.broadcast_leaderboard()
 
             # Pause entre les tours
             if turn < total_turns:
@@ -530,6 +536,10 @@ class FoodOpsProGame:
                 # Déduction du coût
                 restaurant.update_cash(-Decimal(str(campaign["cost"])))
                 # L'effet sera appliqué dans la simulation de marché
+
+        # Diffusion des décisions aux observateurs réseau
+        if self.server:
+            self.server.broadcast(f"DECISION {restaurant.name}: {decisions}")
 
     def _ai_decisions(self) -> None:
         """Décisions simplifiées de l'IA."""
@@ -624,6 +634,9 @@ class FoodOpsProGame:
                     lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
                 self.ui.print_box(lines, style='info')
         except Exception as e:
+            if self.admin_mode:
+                print(f"[DEBUG] attractivity details failed: {e}")
+
         # Chiffres clés par restaurant
         try:
             key_lines = ["📌 Chiffres clés (tour):"]
@@ -697,6 +710,20 @@ class FoodOpsProGame:
                     - (personnel_costs / 4)
                 )
                 restaurant.update_cash(profit)
+                # Mise à jour du classement et diffusion des statistiques
+                self.leaderboard.set_score(restaurant.name, float(restaurant.cash))
+                if self.server:
+                    self.server.broadcast(
+                        f"STAT {restaurant.name} cash={restaurant.cash:.0f}"
+                    )
+
+    def _display_leaderboard(self) -> None:
+        """Affiche le classement provisoire des joueurs."""
+        ranking = self.leaderboard.get_ranking()
+        lines = ["📋 CLASSEMENT PROVISOIRE:"]
+        for i, (name, score) in enumerate(ranking, 1):
+            lines.append(f"{i}. {name:<25} {score:>12.0f}€")
+        self.ui.print_box(lines, style="info")
 
     def _end_game(self) -> None:
         """Gestion de la fin de partie."""
@@ -717,6 +744,8 @@ class FoodOpsProGame:
             )
 
         self.ui.print_box(final_ranking, style="success")
+        if self.server:
+            self.server.broadcast_leaderboard()
 
         # Félicitations au gagnant
         winner = ranking[0]
@@ -770,11 +799,19 @@ def main() -> None:
     )
     parser.add_argument("--admin", action="store_true", help="Mode administrateur")
     parser.add_argument("--debug", action="store_true", help="Mode debug")
+    parser.add_argument("--net-host", help="Adresse d'hébergement réseau")
+    parser.add_argument("--net-port", type=int, default=8765, help="Port du serveur réseau")
 
     args = parser.parse_args()
 
     try:
-        game = FoodOpsProGame(args.scenario, args.admin)
+        server = None
+        leaderboard = None
+        if args.net_host:
+            leaderboard = Leaderboard()
+            server = GameServer(args.net_host, args.net_port, leaderboard)
+            server.start_in_thread()
+        game = FoodOpsProGame(args.scenario, args.admin, server=server, leaderboard=leaderboard)
         # Passer les recettes au DecisionMenu pour Achats & Stocks
         game.decision_menu.cache_available_recipes(game.recipes)
         game.start_game()

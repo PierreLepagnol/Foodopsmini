@@ -420,13 +420,6 @@ class MarketEngine:
             return max(Decimal('0.90'), min(Decimal('1.10'), factor))
         except Exception:
             return Decimal('1.00')
-
-            restaurant: Restaurant évalué
-            segment: Segment de marché
-
-        Returns:
-            Facteur qualité (0.5 à 2.0)
-        """
         # NOUVEAU: Utilisation du score de qualité du restaurant
         quality_score = restaurant.get_overall_quality_score()
 
