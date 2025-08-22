@@ -133,8 +133,18 @@ class FinancialReports:
         # Charges d'exploitation
         total_expenses = pnl_data.get("expenses", Decimal("0"))
 
-        # Achats matières premières : coût réel des lots reçus sur la période
-        if stock_manager and start_date and end_date:
+        # Achats matières premières : coût réel de la production si disponible
+        produced_cost = Decimal("0")
+        if getattr(restaurant, "production_cost_per_portion", None) and getattr(
+            restaurant, "production_produced_units", None
+        ):
+            for rid, units in restaurant.production_produced_units.items():
+                unit_cost = restaurant.production_cost_per_portion.get(rid, Decimal("0"))
+                produced_cost += unit_cost * Decimal(units)
+
+        if produced_cost > 0:
+            metrics["achats_mp"] = produced_cost
+        elif stock_manager and start_date and end_date:
             lots = stock_manager.get_lots_received_between(start_date, end_date)
             metrics["achats_mp"] = sum(lot.unit_cost_ht * lot.quantity for lot in lots)
         else:

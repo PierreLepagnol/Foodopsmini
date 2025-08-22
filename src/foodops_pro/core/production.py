@@ -98,13 +98,19 @@ class ProductionPlanner:
                 total_cost_ht = Decimal("0")
                 for item in recipe.items:
                     total_qty = item.qty_brute * Decimal(servings)
-                    stock_manager.consume_ingredient(item.ingredient_id, total_qty)
+                    lots_used = stock_manager.consume_ingredient(
+                        item.ingredient_id, total_qty
+                    )
                     consumed[item.ingredient_id] = total_qty
-                    # estimation coût de revient HT: moyenne pondérée des lots n'est pas dispo ici, on approxime par coût unitaire moyen du dernier lot
-                    # Pour MVP, on ne remonte pas le coût exact; on laissera l'exécution manuelle calculer plus tard.
+                    for lot in lots_used:
+                        total_cost_ht += lot.total_value_ht
                 consumed_by_recipe[rid] = consumed
-                # coût par portion: calculé plus tard si besoin
-                cost_by_recipe[rid] = Decimal("0")
+                if servings > 0:
+                    cost_by_recipe[rid] = (
+                        total_cost_ht / Decimal(servings)
+                    ).quantize(Decimal("0.01"))
+                else:
+                    cost_by_recipe[rid] = Decimal("0")
 
         return ProductionPlan(servings_by_recipe=plan, cost_by_recipe_ht=cost_by_recipe, consumed_by_recipe=consumed_by_recipe)
 
@@ -112,6 +118,9 @@ class ProductionPlanner:
 def apply_production_plan(restaurant, plan: ProductionPlan) -> None:
     """Stocke les unités prêtes à servir dans le restaurant pour le tour."""
     restaurant.production_units_ready = dict(plan.servings_by_recipe)
+    restaurant.production_produced_units = dict(plan.servings_by_recipe)
+    restaurant.production_consumed_ingredients = plan.consumed_by_recipe or {}
+    restaurant.production_cost_per_portion = plan.cost_by_recipe_ht or {}
 
 
 def clear_previous_production(restaurant) -> None:
