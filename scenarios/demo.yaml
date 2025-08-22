@@ -4,7 +4,8 @@ difficulty: "facile"
 
 # Configuration du marché
 market:
-  base_demand: 300
+  base_demand: 300  # clients moyens par jour
+  days_per_turn: 1
   demand_noise: 0.10
   price_sensitivity: 1.0
   quality_importance: 0.8

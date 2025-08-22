@@ -93,7 +93,8 @@ class Scenario:
         name: Nom du scénario
         description: Description du scénario
         turns: Nombre de tours
-        base_demand: Demande de base par tour
+        base_demand: Demande de base moyenne par jour
+        days_per_turn: Nombre de jours représentés par un tour
         demand_noise: Variabilité de la demande (0.0-1.0)
         segments: Segments de marché
         vat_rates: Taux de TVA par catégorie
@@ -109,6 +110,7 @@ class Scenario:
     base_demand: int
     demand_noise: Decimal
     segments: List[MarketSegment]
+    days_per_turn: int = 1
     vat_rates: Dict[str, Decimal] = field(default_factory=dict)
     social_charges: Dict[str, Decimal] = field(default_factory=dict)
     interest_rate: Decimal = Decimal("0.05")
@@ -122,6 +124,10 @@ class Scenario:
         if self.base_demand <= 0:
             raise ValueError(
                 f"La demande de base doit être positive: {self.base_demand}"
+            )
+        if self.days_per_turn <= 0:
+            raise ValueError(
+                f"Le nombre de jours par tour doit être positif: {self.days_per_turn}"
             )
         if not (0 <= self.demand_noise <= 1):
             raise ValueError(
@@ -192,13 +198,16 @@ class Scenario:
                 return segment
         return None
 
-    def calculate_total_demand(self, turn: int, month: int = 1) -> int:
+    def calculate_total_demand(
+        self, turn: int, month: int = 1, players_count: int = 1
+    ) -> int:
         """
         Calcule la demande totale pour un tour donné.
 
         Args:
             turn: Numéro du tour
             month: Mois de l'année (pour saisonnalité)
+            players_count: Nombre total de joueurs/restaurant
 
         Returns:
             Demande totale ajustée
@@ -209,8 +218,10 @@ class Scenario:
             segment_seasonal = segment.get_seasonal_factor(month)
             seasonal_factor += segment_seasonal * segment.share
 
-        # Demande ajustée
-        adjusted_demand = self.base_demand * seasonal_factor
+        base_turn_demand = Decimal(
+            self.base_demand * self.days_per_turn * players_count
+        )
+        adjusted_demand = base_turn_demand * seasonal_factor
         return int(adjusted_demand)
 
     def __str__(self) -> str:

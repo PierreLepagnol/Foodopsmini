@@ -249,6 +249,7 @@ class DataLoader:
             "description": "Scénario par défaut quand PyYAML n'est pas installé",
             "turns": 12,
             "base_demand": 420,
+            "days_per_turn": 1,
             "demand_noise": 0.08,
             "ai_competitors": 2,
             "random_seed": 42,
@@ -419,6 +420,7 @@ class DataLoader:
             description=data["description"],
             turns=data["turns"],
             base_demand=data["base_demand"],
+            days_per_turn=data.get("days_per_turn", 1),
             demand_noise=Decimal(str(data["demand_noise"])),
             segments=segments,
             vat_rates=vat_rates,
@@ -438,6 +440,7 @@ class DataLoader:
             "difficulty": "normal",
             "market": {
                 "base_demand": 420,
+                "days_per_turn": 1,
                 "demand_noise": 0.15,
                 "price_sensitivity": 1.2,
                 "quality_importance": 1.0,
