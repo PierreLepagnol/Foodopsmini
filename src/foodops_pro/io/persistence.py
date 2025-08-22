@@ -284,6 +284,8 @@ class GameStatePersistence:
                 "lost_customers": result.lost_customers,
                 "revenue": float(result.revenue),
                 "average_ticket": float(result.average_ticket),
+                "waiting_time": float(result.waiting_time),
+                "waiting_factor": float(result.waiting_factor),
             }
 
         turn_data = {

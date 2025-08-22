@@ -560,9 +560,9 @@ class FoodOpsProGame:
 
         # Tableau des résultats
         results_lines = [
-            f"{'Restaurant':<25} {'Demande':<8} {'Servi':<8} {'Capacité':<10} {'Util.':<8} {'CA €':<12}"
+            f"{'Restaurant':<25} {'Demande':<8} {'Servi':<8} {'Capacité':<10} {'Util.':<8} {'Attente':<8} {'CA €':<12}"
         ]
-        results_lines.append("-" * 80)
+        results_lines.append("-" * 90)
 
         all_restaurants = self.players + self.ai_competitors
 
@@ -570,6 +570,7 @@ class FoodOpsProGame:
             if restaurant.id in results:
                 result = results[restaurant.id]
                 utilization_pct = f"{result.utilization_rate:.1%}"
+                waiting_pct = f"{result.waiting_time:.1%}"
                 # Enregistrer stats de production du tour
                 try:
                     for r in self.players + self.ai_competitors:
@@ -602,6 +603,7 @@ class FoodOpsProGame:
                     f"{result.served_customers:<8} "
                     f"{result.capacity:<10} "
                     f"{utilization_pct:<8} "
+                    f"{waiting_pct:<8} "
                     f"{result.revenue:<12.0f}"
                 )
 
@@ -612,7 +614,10 @@ class FoodOpsProGame:
         try:
             factors = getattr(self.market_engine, '_last_factors_by_restaurant', {})
             if factors:
-                lines = ["🔍 Détails d'attractivité (ce tour):", "(Type × Prix × Qualité × Qualité prod)"]
+                lines = [
+                    "🔍 Détails d'attractivité (ce tour):",
+                    "(Type × Prix × Qualité × Qualité prod)",
+                ]
                 for r in self.players + self.ai_competitors:
                     f = factors.get(r.id)
                     if not f:
@@ -621,9 +626,14 @@ class FoodOpsProGame:
                     pf = f.get('price_factor', 0)
                     qf = f.get('quality_factor', 0)
                     pq = f.get('production_quality_factor', 1)
-                    lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
+                    lines.append(
+                        f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}"
+                    )
                 self.ui.print_box(lines, style='info')
         except Exception as e:
+            if self.admin_mode:
+                print(f"[DEBUG] display factors failed: {e}")
+
         # Chiffres clés par restaurant
         try:
             key_lines = ["📌 Chiffres clés (tour):"]

@@ -38,6 +38,8 @@ class AllocationResult:
     revenue: Decimal = Decimal("0")
     average_ticket: Decimal = Decimal("0")
     recipe_sales: Dict[str, int] = field(default_factory=dict)
+    waiting_time: Decimal = Decimal("0")
+    waiting_factor: Decimal = Decimal("1")
 
 
     def __post_init__(self) -> None:
@@ -56,6 +58,13 @@ class AllocationResult:
         if self.served_customers > 0:
             object.__setattr__(
                 self, "average_ticket", self.revenue / Decimal(self.served_customers)
+            )
+        if self.capacity > 0:
+            wait_excess = max(0, self.allocated_demand - self.capacity)
+            object.__setattr__(
+                self,
+                "waiting_time",
+                Decimal(wait_excess) / Decimal(self.capacity),
             )
 
 
@@ -146,7 +155,7 @@ class MarketEngine:
         try:
             for restaurant in restaurants:
                 units_ready = getattr(restaurant, "production_units_ready", None)
-                if units_ready is None or restaurant.id not in results:
+                if not units_ready or restaurant.id not in results:
                     continue
                 # Approximation: somme des unités prêtes toutes recettes confondues
                 total_units_ready = sum(int(v) for v in units_ready.values())
@@ -246,14 +255,17 @@ class MarketEngine:
                 output[rid] = {"demand": qty, "recipe_sales": recipe_sales_local.get(rid, {})}
             return output
 
-        # Fallback: répartition proportionnelle classique
+        # Fallback: répartition proportionnelle classique avec réduction si attractivité faible
         total_score = sum(scores.values())
         if total_score == 0:
             return {r.id: {"demand": 0} for r in restaurants}
+        avg_score = total_score / Decimal(len(restaurants)) if restaurants else Decimal("0")
+        demand_factor = min(Decimal("1.0"), avg_score)
+        effective_demand = int(segment_demand * demand_factor)
         allocation = {}
         for restaurant in restaurants:
             sc = scores.get(restaurant.id, Decimal("0"))
-            allocated = int(segment_demand * sc / total_score) if sc > 0 else 0
+            allocated = int(effective_demand * sc / total_score) if sc > 0 else 0
             allocation[restaurant.id] = {"demand": allocated}
         return allocation
 
@@ -420,53 +432,6 @@ class MarketEngine:
             return max(Decimal('0.90'), min(Decimal('1.10'), factor))
         except Exception:
             return Decimal('1.00')
-
-            restaurant: Restaurant évalué
-            segment: Segment de marché
-
-        Returns:
-            Facteur qualité (0.5 à 2.0)
-        """
-        # NOUVEAU: Utilisation du score de qualité du restaurant
-        quality_score = restaurant.get_overall_quality_score()
-
-        # Conversion du score qualité (1-5) en facteur d'attractivité
-        if quality_score <= Decimal("1.5"):
-            base_factor = Decimal("0.70")  # -30%
-        elif quality_score <= Decimal("2.5"):
-            base_factor = Decimal("1.00")  # Neutre
-        elif quality_score <= Decimal("3.5"):
-            base_factor = Decimal("1.20")  # +20%
-        elif quality_score <= Decimal("4.5"):
-            base_factor = Decimal("1.40")  # +40%
-        else:
-            base_factor = Decimal("1.60")  # +60%
-
-        # NOUVEAU: Sensibilité à la qualité par segment
-        segment_name = segment.name.lower()
-        quality_sensitivity = Decimal("1.0")
-
-        if "student" in segment_name or "étudiant" in segment_name:
-            quality_sensitivity = Decimal("0.6")  # Moins sensibles
-        elif "foodie" in segment_name or "gourmet" in segment_name:
-            quality_sensitivity = Decimal("1.4")  # Très sensibles
-        elif "family" in segment_name or "famille" in segment_name:
-            quality_sensitivity = Decimal("1.0")  # Sensibilité normale
-
-        # Ajustement selon la sensibilité du segment
-        if base_factor > Decimal("1.0"):
-            bonus = (base_factor - Decimal("1.0")) * quality_sensitivity
-            final_factor = Decimal("1.0") + bonus
-        else:
-            malus = (Decimal("1.0") - base_factor) * quality_sensitivity
-            final_factor = Decimal("1.0") - malus
-        # NOUVEAU: Impact de la réputation
-        reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
-        reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
-        final_factor += reputation_bonus
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
 
     def _get_season_name(self, month: int) -> str:
         """Retourne le nom de la saison selon le mois."""
@@ -644,6 +609,13 @@ class MarketEngine:
 
         result.revenue = total_revenue
 
+        # Calcul du temps d'attente basé sur la capacité
+        if result.capacity > 0:
+            wait_excess = max(0, result.allocated_demand - result.capacity)
+            result.waiting_time = Decimal(wait_excess) / Decimal(result.capacity)
+        else:
+            result.waiting_time = Decimal("0")
+
         # NOUVEAU: Calcul et mise à jour de la satisfaction client
         if result.served_customers > 0:
             # Satisfaction basée sur le rapport qualité/prix
@@ -667,8 +639,10 @@ class MarketEngine:
             else:  # Très cher
                 satisfaction = Decimal("1.0")
 
-            # Mise à jour de la satisfaction et réputation du restaurant
-            restaurant.update_customer_satisfaction(satisfaction)
+            # Mise à jour de la satisfaction et récupération du facteur d'attente
+            result.waiting_factor = restaurant.update_customer_satisfaction(
+                satisfaction, result.waiting_time
+            )
 
         # Recalculer les métriques dérivées
         if result.capacity > 0:
