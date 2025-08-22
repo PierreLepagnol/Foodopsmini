@@ -11,6 +11,8 @@ from ..domain.restaurant import Restaurant
 from ..domain.scenario import Scenario, MarketSegment
 from ..domain.seasonality import SeasonalityManager
 from ..domain.competition import CompetitionManager
+from ..domain.employee import EmployeePosition
+from .payroll_fr import PayrollCalculator
 
 
 @dataclass
@@ -82,6 +84,18 @@ class MarketEngine:
         self.competition_manager = CompetitionManager(
             random_seed
         )  # NOUVEAU: Gestionnaire concurrence
+        self.payroll_calculator = PayrollCalculator(self._build_hr_config())
+
+    def _build_hr_config(self) -> Dict[str, Dict[str, Decimal]]:
+        """Construit la configuration des charges sociales pour la paie."""
+        default_employee_rate = Decimal("0.22")
+        config: Dict[str, Dict[str, Decimal]] = {}
+        for contract, employer_rate in self.scenario.social_charges.items():
+            config[contract] = {
+                "employee_rate": default_employee_rate,
+                "employer_rate": employer_rate,
+            }
+        return config
 
     def allocate_demand(
         self, restaurants: List[Restaurant], turn: int, month: int = 1
@@ -167,11 +181,48 @@ class MarketEngine:
                 results[restaurant.id] = self._calculate_revenue(
                     restaurant, results[restaurant.id]
                 )
+        # Calcul de la paie du tour
+        self._process_payroll(restaurants, turn)
 
         # Sauvegarde de l'historique
         self.turn_history.append(results.copy())
 
         return results
+
+    def _process_payroll(self, restaurants: List[Restaurant], turn: int) -> None:
+        """Calcule et stocke la paie pour chaque restaurant."""
+        days = self.scenario.days_per_turn
+        kitchen_hours = Decimal(self.scenario.opening_hours.get("kitchen", 0))
+        dining_hours = Decimal(self.scenario.opening_hours.get("dining", 0))
+        sundays = days // 7
+
+        for restaurant in restaurants:
+            payroll_results = []
+            for employee in restaurant.employees:
+                area_hours = (
+                    kitchen_hours
+                    if employee.position == EmployeePosition.CUISINE
+                    else dining_hours
+                )
+                hours_worked = area_hours * Decimal(days) * employee.part_time_ratio
+                sunday_hours = (
+                    area_hours * Decimal(sundays) * employee.part_time_ratio
+                    if employee.sunday_work
+                    else Decimal("0")
+                )
+                result = self.payroll_calculator.calculate_payroll(
+                    employee,
+                    hours_worked=hours_worked,
+                    sunday_hours=sunday_hours,
+                    period=f"turn {turn}",
+                )
+                payroll_results.append(result)
+
+            summary = self.payroll_calculator.get_payroll_summary(payroll_results)
+            summary["overtime_hours"] = sum(r.overtime_hours for r in payroll_results)
+            summary["sunday_hours"] = sum(r.sunday_hours for r in payroll_results)
+            restaurant.last_payroll = payroll_results
+            restaurant.last_payroll_summary = summary
 
     def _allocate_segment_demand(
         self, restaurants: List[Restaurant], segment: MarketSegment, segment_demand: int
@@ -421,52 +472,6 @@ class MarketEngine:
         except Exception:
             return Decimal('1.00')
 
-            restaurant: Restaurant évalué
-            segment: Segment de marché
-
-        Returns:
-            Facteur qualité (0.5 à 2.0)
-        """
-        # NOUVEAU: Utilisation du score de qualité du restaurant
-        quality_score = restaurant.get_overall_quality_score()
-
-        # Conversion du score qualité (1-5) en facteur d'attractivité
-        if quality_score <= Decimal("1.5"):
-            base_factor = Decimal("0.70")  # -30%
-        elif quality_score <= Decimal("2.5"):
-            base_factor = Decimal("1.00")  # Neutre
-        elif quality_score <= Decimal("3.5"):
-            base_factor = Decimal("1.20")  # +20%
-        elif quality_score <= Decimal("4.5"):
-            base_factor = Decimal("1.40")  # +40%
-        else:
-            base_factor = Decimal("1.60")  # +60%
-
-        # NOUVEAU: Sensibilité à la qualité par segment
-        segment_name = segment.name.lower()
-        quality_sensitivity = Decimal("1.0")
-
-        if "student" in segment_name or "étudiant" in segment_name:
-            quality_sensitivity = Decimal("0.6")  # Moins sensibles
-        elif "foodie" in segment_name or "gourmet" in segment_name:
-            quality_sensitivity = Decimal("1.4")  # Très sensibles
-        elif "family" in segment_name or "famille" in segment_name:
-            quality_sensitivity = Decimal("1.0")  # Sensibilité normale
-
-        # Ajustement selon la sensibilité du segment
-        if base_factor > Decimal("1.0"):
-            bonus = (base_factor - Decimal("1.0")) * quality_sensitivity
-            final_factor = Decimal("1.0") + bonus
-        else:
-            malus = (Decimal("1.0") - base_factor) * quality_sensitivity
-            final_factor = Decimal("1.0") - malus
-        # NOUVEAU: Impact de la réputation
-        reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
-        reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
-        final_factor += reputation_bonus
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
 
     def _get_season_name(self, month: int) -> str:
         """Retourne le nom de la saison selon le mois."""
