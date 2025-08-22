@@ -3,7 +3,8 @@ description: "Scénario d'initiation avec 3 segments de marché et concurrence m
 
 # Paramètres de jeu
 turns: 12
-base_demand: 420
+base_demand: 420  # clients moyens par jour
+days_per_turn: 1
 demand_noise: 0.08
 ai_competitors: 2
 random_seed: 42
