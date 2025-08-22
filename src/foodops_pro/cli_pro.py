@@ -61,7 +61,7 @@ class FoodOpsProGame:
 
         self.market_engine = MarketEngine(self.scenario, self.scenario.random_seed)
         self.cost_calculator = RecipeCostCalculator(self.ingredients)
-        self.decision_menu = DecisionMenu(self.ui, self.cost_calculator)
+        self.decision_menu = DecisionMenu(self.ui, self.cost_calculator, self.scenario)
         # Injection des catalogues et paramètres admin
         self.decision_menu.set_suppliers_catalog(self.suppliers_catalog)
         self.decision_menu.set_suppliers_map(self.suppliers)
@@ -624,6 +624,8 @@ class FoodOpsProGame:
                     lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
                 self.ui.print_box(lines, style='info')
         except Exception as e:
+            if getattr(self, 'admin_mode', False):
+                print(f"[DEBUG] market factors display failed: {e}")
         # Chiffres clés par restaurant
         try:
             key_lines = ["📌 Chiffres clés (tour):"]
