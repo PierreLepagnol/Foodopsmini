@@ -2,9 +2,22 @@
 Configuration pytest pour FoodOps Pro.
 """
 
-import pytest
+import sys
+import types
 from pathlib import Path
 from decimal import Decimal
+
+# Crée un package minimal pour éviter d'exécuter l'__init__ complet de foodops_pro
+ROOT = Path(__file__).resolve().parents[1] / "src"
+src_pkg = types.ModuleType("src")
+src_pkg.__path__ = [str(ROOT)]
+sys.modules.setdefault("src", src_pkg)
+food_pkg = types.ModuleType("src.foodops_pro")
+food_pkg.__path__ = [str(ROOT / "foodops_pro")]
+sys.modules.setdefault("src.foodops_pro", food_pkg)
+sys.modules.setdefault("foodops_pro", food_pkg)
+
+import pytest
 
 from src.foodops_pro.io.data_loader import DataLoader
 from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
