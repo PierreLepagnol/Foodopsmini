@@ -12,7 +12,7 @@ from .export import ResultsExporter, KPICalculator
 __all__ = [
     "DataLoader",
     "GameState",
-    "GameStatePersistence", 
+    "GameStatePersistence",
     "ResultsExporter",
     "KPICalculator",
 ]

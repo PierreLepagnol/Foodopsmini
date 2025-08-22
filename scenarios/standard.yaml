@@ -1,0 +1,74 @@
+name: "Scénario Standard"
+description: "Configuration équilibrée pour apprentissage général"
+difficulty: "normal"
+
+# Configuration du marché
+market:
+  base_demand: 420
+  demand_noise: 0.15
+  price_sensitivity: 1.2
+  quality_importance: 1.0
+  
+# Segments de clientèle
+segments:
+  étudiants:
+    size: 150
+    budget: 11.0
+    price_sensitivity: 1.8
+    quality_sensitivity: 0.7
+    description: "Étudiants avec budget limité"
+    
+  familles:
+    size: 180
+    budget: 17.0
+    price_sensitivity: 1.2
+    quality_sensitivity: 1.1
+    description: "Familles recherchant bon rapport qualité/prix"
+    
+  foodies:
+    size: 90
+    budget: 25.0
+    price_sensitivity: 0.6
+    quality_sensitivity: 1.8
+    description: "Amateurs de gastronomie privilégiant la qualité"
+
+# Configuration restaurant
+restaurant:
+  initial_budget: 10000
+  base_capacity: 150
+  base_staff_cost: 2800
+  base_overhead: 1200
+  
+# Concurrents
+competitors:
+  - name: "Resto Rapide"
+    strategy: "prix_bas"
+    base_price: 9.50
+    quality_level: 1
+    
+  - name: "Bistrot Central"
+    strategy: "equilibre"
+    base_price: 13.20
+    quality_level: 3
+    
+  - name: "Table Gourmande"
+    strategy: "premium"
+    base_price: 18.80
+    quality_level: 4
+
+# Paramètres de jeu
+game:
+  max_turns: 10
+  starting_month: 1
+  enable_seasonality: true
+  enable_events: true
+  enable_marketing: true
+  enable_advanced_finance: true
+
+# Objectifs
+objectives:
+  primary: "Réaliser un profit total de 5000€"
+  secondary:
+    - "Maintenir une satisfaction client > 3.5"
+    - "Atteindre 25% de part de marché"
+    - "Survivre aux 10 tours"

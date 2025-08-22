@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍽️ FoodOps Pro - Launcher</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .launch-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: block;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .launch-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .launch-button.admin {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+        
+        .launch-button.demo {
+            background: linear-gradient(45deg, #9C27B0, #7B1FA2);
+        }
+        
+        .launch-button.classic {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+        
+        .command-section {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .command {
+            background: #333;
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .command:hover {
+            background: #555;
+        }
+        
+        .copy-btn {
+            background: #007ACC;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .emoji {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ FoodOps Pro</h1>
+        <p class="subtitle">Simulateur de Gestion de Restaurant - Launcher</p>
+        
+        <div class="instructions">
+            <strong>🚀 Instructions :</strong><br>
+            1. <strong>Windows</strong> : Double-cliquez sur les fichiers .bat<br>
+            2. <strong>Terminal</strong> : Copiez-collez les commandes ci-dessous<br>
+            3. <strong>Prérequis</strong> : Python 3.11+ et <code>pip install pyyaml pandas pytest</code>
+        </div>
+        
+        <div class="button-grid">
+            <button onclick="launchGame('pro')" class="launch-button">
+                <span class="emoji">🍽️</span>
+                Jouer Pro<br>
+                <small>Version complète avec fonds de commerce</small>
+            </button>
+
+            <button onclick="launchGame('admin')" class="launch-button admin">
+                <span class="emoji">👨‍🏫</span>
+                Mode Admin<br>
+                <small>Configuration pour professeurs</small>
+            </button>
+
+            <button onclick="launchGame('demo')" class="launch-button demo">
+                <span class="emoji">🧪</span>
+                Démo Rapide<br>
+                <small>Aperçu des fonctionnalités</small>
+            </button>
+
+            <button onclick="launchGame('classic')" class="launch-button classic">
+                <span class="emoji">🎮</span>
+                Version Classique<br>
+                <small>Jeu simple et rapide</small>
+            </button>
+        </div>
+        
+        <div class="command-section">
+            <h3>📋 Commandes Terminal</h3>
+            
+            <div class="command" onclick="copyCommand('python start_pro.py')">
+                <span>🍽️ python start_pro.py</span>
+                <button class="copy-btn" onclick="event.stopPropagation(); copyCommand('python start_pro.py')">Copier</button>
+            </div>
+            
+            <div class="command" onclick="copyCommand('python start_admin.py')">
+                <span>👨‍🏫 python start_admin.py</span>
+                <button class="copy-btn" onclick="event.stopPropagation(); copyCommand('python start_admin.py')">Copier</button>
+            </div>
+            
+            <div class="command" onclick="copyCommand('python demo_pro.py')">
+                <span>🧪 python demo_pro.py</span>
+                <button class="copy-btn" onclick="event.stopPropagation(); copyCommand('python demo_pro.py')">Copier</button>
+            </div>
+            
+            <div class="command" onclick="copyCommand('python -m src.foodops_pro.cli')">
+                <span>🎮 python -m src.foodops_pro.cli</span>
+                <button class="copy-btn" onclick="event.stopPropagation(); copyCommand('python -m src.foodops_pro.cli')">Copier</button>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <strong>💡 Conseils :</strong><br>
+            • <strong>Débutants</strong> : Commencez par "Démo Rapide"<br>
+            • <strong>Étudiants</strong> : Utilisez "Jouer Pro"<br>
+            • <strong>Professeurs</strong> : Configurez avec "Mode Admin"<br>
+            • <strong>Rapide</strong> : "Version Classique" pour un test express
+        </div>
+        
+        <p style="margin-top: 30px; color: #666;">
+            <strong>🎯 Objectif :</strong> Apprendre la gestion de restaurant en s'amusant !<br>
+            <strong>📚 Idéal pour :</strong> Cours de gestion, entrepreneuriat, comptabilité
+        </p>
+    </div>
+    
+    <script>
+        function copyCommand(command) {
+            navigator.clipboard.writeText(command).then(function() {
+                alert('✅ Commande copiée : ' + command + '\n\nCollez-la dans votre terminal !');
+            }).catch(function() {
+                prompt('📋 Copiez cette commande :', command);
+            });
+        }
+        
+        function launchGame(mode) {
+            let instructions = '';
+            let batFile = '';
+
+            switch(mode) {
+                case 'pro':
+                    batFile = '🎮_Jouer_Pro.bat';
+                    instructions = '🍽️ LANCEMENT VERSION PRO\n\n';
+                    break;
+                case 'admin':
+                    batFile = '👨‍🏫_Mode_Admin.bat';
+                    instructions = '👨‍🏫 LANCEMENT MODE ADMIN\n\n';
+                    break;
+                case 'demo':
+                    batFile = '🧪_Demo_Rapide.bat';
+                    instructions = '🧪 LANCEMENT DÉMO\n\n';
+                    break;
+                case 'classic':
+                    instructions = '🎮 LANCEMENT VERSION CLASSIQUE\n\n';
+                    break;
+            }
+
+            if (batFile) {
+                instructions += `ÉTAPES :\n\n`;
+                instructions += `1. 📁 Ouvrez l'Explorateur de fichiers\n`;
+                instructions += `2. 📂 Naviguez vers le dossier FoodOps\n`;
+                instructions += `3. 🖱️ Double-cliquez sur "${batFile}"\n\n`;
+                instructions += `OU\n\n`;
+                instructions += `1. 💻 Ouvrez un terminal dans le dossier\n`;
+                instructions += `2. ⌨️ Tapez : .\\${batFile}\n`;
+                instructions += `3. ↩️ Appuyez sur Entrée\n\n`;
+                instructions += `Le jeu va s'ouvrir dans une nouvelle console ! 🎮`;
+            } else {
+                instructions += `ÉTAPES :\n\n`;
+                instructions += `1. 💻 Ouvrez un terminal dans le dossier FoodOps\n`;
+                instructions += `2. ⌨️ Tapez : python -m src.foodops_pro.cli\n`;
+                instructions += `3. ↩️ Appuyez sur Entrée\n\n`;
+                instructions += `Le jeu va s'ouvrir dans la console ! 🎮`;
+            }
+
+            alert(instructions);
+        }
+
+        function runCommand(command) {
+            alert('💻 Ouvrez un terminal et tapez :\n\n' + command + '\n\nOu utilisez le bouton "Copier" ci-dessous !');
+        }
+        
+        // Ajouter des effets visuels
+        document.querySelectorAll('.launch-button').forEach(button => {
+            button.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px) scale(1.02)';
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>

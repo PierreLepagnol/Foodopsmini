@@ -1,0 +1,34 @@
+session_info:
+  name: "Démo FoodOps Pro"
+  instructor: "Professeur Demo"
+  course_code: "DEMO101"
+  academic_year: "2024-2025"
+
+game_params:
+  max_players: 1
+  total_turns: 3
+  starting_budget_min: 40000.0
+  starting_budget_max: 60000.0
+  ai_count: 2
+  ai_difficulty: "medium"
+  allow_loans: true
+  max_loan_amount: 30000.0
+  loan_interest_rate: 0.045
+
+market_params:
+  total_market_size: 500
+  market_growth_rate: 0.02
+  competition_intensity: "normal"
+
+features:
+  enable_random_events: true
+  enable_seasonal_effects: false
+  enable_scoring: true
+  detailed_feedback: true
+
+scoring_criteria:
+  survival: 0.3
+  profitability: 0.25
+  growth: 0.2
+  efficiency: 0.15
+  strategy: 0.1

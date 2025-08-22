@@ -1,0 +1,16 @@
+id,name,category,quality_specialization,price_modifier,reliability,delivery_time
+1,Marché Local,Légumes,2,0.85,0.9,1
+2,Bio Express,Légumes,4,1.35,0.95,2
+3,Ferme Premium,Légumes,5,1.65,0.98,3
+4,Boucherie Centrale,Viandes,2,0.95,0.88,1
+5,Viandes Select,Viandes,4,1.25,0.92,2
+6,Boucherie Premium,Viandes,5,1.55,0.96,3
+7,Poissonnerie du Port,Poissons,3,1.05,0.85,1
+8,Océan Frais,Poissons,4,1.30,0.90,2
+9,Sélection Marine,Poissons,5,1.60,0.95,3
+10,Laiterie Régionale,Produits laitiers,2,0.90,0.92,1
+11,Fromages d'Exception,Produits laitiers,4,1.40,0.94,2
+12,Crémerie Artisanale,Produits laitiers,5,1.70,0.97,3
+13,Grossiste Alimentaire,Tous,1,0.75,0.80,1
+14,Distribution Pro,Tous,2,0.88,0.85,2
+15,Fournisseur Premium,Tous,4,1.20,0.93,3

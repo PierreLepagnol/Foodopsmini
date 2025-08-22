@@ -16,7 +16,7 @@ from .payroll_fr import PayrollCalculator, PayrollResult
 __all__ = [
     "MarketEngine",
     "AllocationResult",
-    "RecipeCostCalculator", 
+    "RecipeCostCalculator",
     "CostBreakdown",
     "Ledger",
     "AccountingEntry",
