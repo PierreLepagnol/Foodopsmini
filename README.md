@@ -199,6 +199,31 @@ Scénarios pédagogiques types :
 - **RH** : coût personnel, productivité
 - **Rapports** : compte de résultat, bilan, flux de trésorerie, KPIs et analyse
 
+### 📝 Rapport de tour
+
+Après chaque tour, le jeu génère un fichier de synthèse dans `exports/turn_reports/`.
+Le rapport contient les facteurs d'attractivité, incidents de stock, avis
+clients ainsi que les événements de marché du tour.
+
+**Format JSON**
+
+```json
+{
+  "turn": 1,
+  "season": "hiver",
+  "events": ["Canicule"],
+  "restaurants": {
+    "Chez Luigi": {
+      "attractiveness": {"price": 1.2, "quality": 1.4, "waiting": 0.1},
+      "stock_incidents": {"stockouts": 3, "promotions": 0},
+      "reviews": {"average_review": 6.5, "reputation_change": 0.3}
+    }
+  }
+}
+```
+
+Une version texte est également exportée pour lecture rapide.
+
 ## 🧪 Tests
 
 ```bash
