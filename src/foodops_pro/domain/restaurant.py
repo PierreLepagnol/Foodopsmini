@@ -64,7 +64,8 @@ class Restaurant:
         default_factory=dict
     )  # ingredient_id -> quality_level
     reputation: Decimal = Decimal("5.0")  # Réputation sur 10
-    customer_satisfaction_history: List[Decimal] = field(default_factory=list)
+    # Historique {"satisfaction": Decimal, "waiting_factor": Decimal}
+    customer_satisfaction_history: List[Dict[str, Decimal]] = field(default_factory=list)
 
     # Units prêtes à servir par recette (remplies par le module de production)
     production_units_ready: Dict[str, int] = field(default_factory=dict)
@@ -309,15 +310,32 @@ class Restaurant:
         else:
             return "⭐ Économique"
 
-    def update_customer_satisfaction(self, satisfaction: Decimal) -> None:
+    def update_customer_satisfaction(
+        self, satisfaction: Decimal, waiting_time: Decimal = Decimal("0")
+    ) -> Decimal:
         """
         Met à jour la satisfaction client et la réputation.
 
         Args:
             satisfaction: Score de satisfaction (0-5)
+            waiting_time: Temps d'attente relatif (>0 si surcharge)
+
+        Returns:
+            waiting_factor appliqué à la satisfaction
         """
+        wait_threshold = Decimal("0.2")
+        waiting_factor = Decimal("1.0")
+        if waiting_time > wait_threshold:
+            waiting_factor = max(
+                Decimal("0"), Decimal("1.0") - (waiting_time - wait_threshold)
+            )
+
+        adjusted = satisfaction * waiting_factor
+
         # Ajouter à l'historique
-        self.customer_satisfaction_history.append(satisfaction)
+        self.customer_satisfaction_history.append(
+            {"satisfaction": adjusted, "waiting_factor": waiting_factor}
+        )
 
         # Garder seulement les 10 dernières mesures
         if len(self.customer_satisfaction_history) > 10:
@@ -326,20 +344,21 @@ class Restaurant:
             ]
 
         # Mise à jour progressive de la réputation
-        target_reputation = satisfaction * 2  # Satisfaction 0-5 -> Réputation 0-10
+        target_reputation = adjusted * 2  # Satisfaction 0-5 -> Réputation 0-10
         reputation_change = (target_reputation - self.reputation) * Decimal("0.15")
         self.reputation = max(
             Decimal("0"), min(Decimal("10"), self.reputation + reputation_change)
         )
+
+        return waiting_factor
 
     def get_average_satisfaction(self) -> Decimal:
         """Retourne la satisfaction moyenne récente."""
         if not self.customer_satisfaction_history:
             return Decimal("2.5")  # Neutre par défaut
 
-        return sum(self.customer_satisfaction_history) / len(
-            self.customer_satisfaction_history
-        )
+        total = sum(h["satisfaction"] for h in self.customer_satisfaction_history)
+        return total / len(self.customer_satisfaction_history)
 
     def calculate_quality_cost_impact(self) -> Decimal:
         """
