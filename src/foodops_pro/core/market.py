@@ -420,53 +420,45 @@ class MarketEngine:
             return max(Decimal('0.90'), min(Decimal('1.10'), factor))
         except Exception:
             return Decimal('1.00')
+    def _get_quality_attractiveness_factor(
+        self, restaurant: Restaurant, segment: MarketSegment
+) -> Decimal:
+        """Calcule le facteur qualité pour un restaurant et un segment."""
 
-            restaurant: Restaurant évalué
-            segment: Segment de marché
-
-        Returns:
-            Facteur qualité (0.5 à 2.0)
-        """
-        # NOUVEAU: Utilisation du score de qualité du restaurant
         quality_score = restaurant.get_overall_quality_score()
 
-        # Conversion du score qualité (1-5) en facteur d'attractivité
         if quality_score <= Decimal("1.5"):
-            base_factor = Decimal("0.70")  # -30%
+            base_factor = Decimal("0.70")
         elif quality_score <= Decimal("2.5"):
-            base_factor = Decimal("1.00")  # Neutre
+            base_factor = Decimal("1.00")
         elif quality_score <= Decimal("3.5"):
-            base_factor = Decimal("1.20")  # +20%
+            base_factor = Decimal("1.20")
         elif quality_score <= Decimal("4.5"):
-            base_factor = Decimal("1.40")  # +40%
+            base_factor = Decimal("1.40")
         else:
-            base_factor = Decimal("1.60")  # +60%
+            base_factor = Decimal("1.60")
 
-        # NOUVEAU: Sensibilité à la qualité par segment
         segment_name = segment.name.lower()
         quality_sensitivity = Decimal("1.0")
-
         if "student" in segment_name or "étudiant" in segment_name:
-            quality_sensitivity = Decimal("0.6")  # Moins sensibles
+            quality_sensitivity = Decimal("0.6")
         elif "foodie" in segment_name or "gourmet" in segment_name:
-            quality_sensitivity = Decimal("1.4")  # Très sensibles
+            quality_sensitivity = Decimal("1.4")
         elif "family" in segment_name or "famille" in segment_name:
-            quality_sensitivity = Decimal("1.0")  # Sensibilité normale
+            quality_sensitivity = Decimal("1.0")
 
-        # Ajustement selon la sensibilité du segment
         if base_factor > Decimal("1.0"):
             bonus = (base_factor - Decimal("1.0")) * quality_sensitivity
             final_factor = Decimal("1.0") + bonus
         else:
             malus = (Decimal("1.0") - base_factor) * quality_sensitivity
             final_factor = Decimal("1.0") - malus
-        # NOUVEAU: Impact de la réputation
-        reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
-        reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
+
+        reputation_factor = restaurant.reputation / Decimal("10")
+        reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")
         final_factor += reputation_bonus
         return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
 
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
 
     def _get_season_name(self, month: int) -> str:
         """Retourne le nom de la saison selon le mois."""
@@ -646,29 +638,62 @@ class MarketEngine:
 
         # NOUVEAU: Calcul et mise à jour de la satisfaction client
         if result.served_customers > 0:
-            # Satisfaction basée sur le rapport qualité/prix
             quality_score = restaurant.get_overall_quality_score()
             average_ticket = result.revenue / Decimal(result.served_customers)
 
-            # Ratio prix/qualité (prix par étoile de qualité)
             price_quality_ratio = (
                 average_ticket / quality_score if quality_score > 0 else average_ticket
             )
 
-            # Calcul de la satisfaction (0-5)
-            if price_quality_ratio <= Decimal("2.5"):  # Excellent rapport
-                satisfaction = Decimal("5.0")
-            elif price_quality_ratio <= Decimal("3.5"):  # Bon rapport
-                satisfaction = Decimal("4.0")
-            elif price_quality_ratio <= Decimal("4.5"):  # Correct
-                satisfaction = Decimal("3.0")
-            elif price_quality_ratio <= Decimal("6.0"):  # Cher
-                satisfaction = Decimal("2.0")
-            else:  # Très cher
-                satisfaction = Decimal("1.0")
+            if price_quality_ratio <= Decimal("2.5"):
+                price_score = Decimal("5")
+            elif price_quality_ratio <= Decimal("3.5"):
+                price_score = Decimal("4")
+            elif price_quality_ratio <= Decimal("4.5"):
+                price_score = Decimal("3")
+            elif price_quality_ratio <= Decimal("6.0"):
+                price_score = Decimal("2")
+            else:
+                price_score = Decimal("1")
 
-            # Mise à jour de la satisfaction et réputation du restaurant
-            restaurant.update_customer_satisfaction(satisfaction)
+            utilization = (
+                Decimal(result.served_customers) / Decimal(result.capacity)
+                if result.capacity > 0
+                else Decimal("0")
+            )
+            if utilization >= Decimal("0.9"):
+                wait_score = Decimal("2")
+            elif utilization >= Decimal("0.75"):
+                wait_score = Decimal("3")
+            elif utilization >= Decimal("0.5"):
+                wait_score = Decimal("4")
+            else:
+                wait_score = Decimal("5")
+
+            lost_customers = max(0, result.allocated_demand - result.served_customers)
+            if result.allocated_demand > 0:
+                loss_ratio = Decimal(lost_customers) / Decimal(result.allocated_demand)
+            else:
+                loss_ratio = Decimal("0")
+            if loss_ratio >= Decimal("0.5"):
+                stock_score = Decimal("1")
+            elif loss_ratio >= Decimal("0.25"):
+                stock_score = Decimal("3")
+            elif loss_ratio > 0:
+                stock_score = Decimal("4")
+            else:
+                stock_score = Decimal("5")
+
+            self._last_factors_by_restaurant[restaurant.id] = {
+                "quality": Decimal(quality_score),
+                "price": price_score,
+                "wait": wait_score,
+                "stock": stock_score,
+            }
+
+            restaurant.update_customer_satisfaction(
+                Decimal(quality_score), price_score, wait_score, stock_score
+            )
 
         # Recalculer les métriques dérivées
         if result.capacity > 0:

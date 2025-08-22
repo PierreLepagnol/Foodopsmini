@@ -309,13 +309,31 @@ class Restaurant:
         else:
             return "⭐ Économique"
 
-    def update_customer_satisfaction(self, satisfaction: Decimal) -> None:
-        """
-        Met à jour la satisfaction client et la réputation.
+    def update_customer_satisfaction(
+        self,
+        quality: Decimal,
+        price: Decimal,
+        wait: Decimal,
+        stock: Decimal = Decimal("5"),
+    ) -> Decimal:
+        """Met à jour la satisfaction client et la réputation.
+
+        Cette version enrichie prend en compte plusieurs facteurs de
+        satisfaction. Chacun des paramètres doit être compris entre 0 et 5.
 
         Args:
-            satisfaction: Score de satisfaction (0-5)
+            quality: Impact de la qualité perçue (0-5)
+            price: Satisfaction liée aux prix (0-5)
+            wait: Ressenti lié au temps d'attente (0-5)
+            stock: Impact des ruptures de stock (0-5, 5 = aucune rupture)
+
+        Returns:
+            Satisfaction globale calculée.
         """
+
+        factors = [quality, price, wait, stock]
+        satisfaction = sum(factors) / Decimal(len(factors))
+
         # Ajouter à l'historique
         self.customer_satisfaction_history.append(satisfaction)
 
@@ -331,6 +349,8 @@ class Restaurant:
         self.reputation = max(
             Decimal("0"), min(Decimal("10"), self.reputation + reputation_change)
         )
+
+        return satisfaction
 
     def get_average_satisfaction(self) -> Decimal:
         """Retourne la satisfaction moyenne récente."""

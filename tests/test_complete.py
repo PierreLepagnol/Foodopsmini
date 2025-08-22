@@ -186,6 +186,49 @@ def test_market_allocation():
                 print(f"    Réputation: {resto.reputation:.1f}/10")
 
 
+def test_satisfaction_factors():
+    """Vérifie l'impact des facteurs sur la satisfaction et la réputation."""
+    base_params = dict(
+        id="r1",
+        name="TestResto",
+        type=RestaurantType.FAST,
+        capacity_base=50,
+        speed_service=Decimal("1.0"),
+    )
+
+    # Référence avec tous les facteurs au maximum
+    ref_restaurant = Restaurant(**base_params)
+    ref_restaurant.update_customer_satisfaction(
+        Decimal("5"), Decimal("5"), Decimal("5")
+    )
+    ref_satisfaction = ref_restaurant.customer_satisfaction_history[-1]
+    ref_reputation = ref_restaurant.reputation
+
+    # Prix défavorable
+    price_restaurant = Restaurant(**{**base_params, "id": "r2"})
+    price_restaurant.update_customer_satisfaction(
+        Decimal("5"), Decimal("1"), Decimal("5")
+    )
+    assert price_restaurant.customer_satisfaction_history[-1] < ref_satisfaction
+    assert price_restaurant.reputation < ref_reputation
+
+    # Attente excessive
+    wait_restaurant = Restaurant(**{**base_params, "id": "r3"})
+    wait_restaurant.update_customer_satisfaction(
+        Decimal("5"), Decimal("5"), Decimal("1")
+    )
+    assert wait_restaurant.customer_satisfaction_history[-1] < ref_satisfaction
+    assert wait_restaurant.reputation < ref_reputation
+
+    # Qualité médiocre
+    quality_restaurant = Restaurant(**{**base_params, "id": "r4"})
+    quality_restaurant.update_customer_satisfaction(
+        Decimal("1"), Decimal("5"), Decimal("5")
+    )
+    assert quality_restaurant.customer_satisfaction_history[-1] < ref_satisfaction
+    assert quality_restaurant.reputation < ref_reputation
+
+
 def test_seasonal_impact():
     """Test de l'impact saisonnier."""
     print("\n\n🌱 TEST IMPACT SAISONNIER")
