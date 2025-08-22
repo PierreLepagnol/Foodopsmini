@@ -6,12 +6,18 @@ import pytest
 from pathlib import Path
 from decimal import Decimal
 
-from src.foodops_pro.io.data_loader import DataLoader
-from src.foodops_pro.core.market import MarketEngine
-from src.foodops_pro.core.costing import RecipeCostCalculator
-from src.foodops_pro.core.payroll_fr import PayrollCalculator
-from src.foodops_pro.core.ledger import Ledger
+try:
+    from src.foodops_pro.io.data_loader import DataLoader
+    from src.foodops_pro.core.market import MarketEngine
+    from src.foodops_pro.core.costing import RecipeCostCalculator
+    from src.foodops_pro.core.payroll_fr import PayrollCalculator
+    from src.foodops_pro.core.ledger import Ledger
+except Exception:  # pragma: no cover - modules may be non importables
+    DataLoader = MarketEngine = RecipeCostCalculator = PayrollCalculator = Ledger = None
+
 from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
+from src.foodops_pro.domain.scenario import Scenario, MarketSegment
+from src.foodops_pro.io.save_manager import SaveManager
 
 
 @pytest.mark.integration
@@ -353,3 +359,54 @@ class TestGameIntegration:
 
         # Vérification de l'historique
         assert len(market_engine.turn_history) == 20
+
+
+class TestSaveManager:
+    """Tests de sauvegarde/chargement de partie."""
+
+    def test_save_and_load_roundtrip(self, tmp_path):
+        save_dir = tmp_path / "saves"
+        manager = SaveManager(save_directory=str(save_dir))
+
+        scenario = Scenario(
+            name="Demo",
+            description="desc",
+            turns=1,
+            base_demand=100,
+            demand_noise=Decimal("0"),
+            segments=[
+                MarketSegment(
+                    name="gen",
+                    share=Decimal("1"),
+                    budget=Decimal("10"),
+                    type_affinity={},
+                    price_sensitivity=Decimal("1"),
+                    quality_sensitivity=Decimal("1"),
+                    seasonality={},
+                )
+            ],
+        )
+
+        restaurant = Restaurant(
+            id="r1",
+            name="Resto",
+            type=RestaurantType.FAST,
+            capacity_base=10,
+            speed_service=Decimal("1"),
+            quality_manager=None,
+        )
+
+        game_data = {
+            "restaurants": [restaurant],
+            "scenario": scenario,
+            "current_turn": 1,
+            "scenario_name": scenario.name,
+        }
+
+        save_name = manager.save_game(game_data)
+        loaded = manager.load_game(save_name)
+
+        assert isinstance(loaded["restaurants"][0], Restaurant)
+        assert isinstance(loaded["scenario"], Scenario)
+        assert loaded["restaurants"][0].name == restaurant.name
+        assert loaded["scenario"].name == scenario.name

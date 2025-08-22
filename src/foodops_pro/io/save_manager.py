@@ -4,14 +4,19 @@ Gestionnaire de sauvegarde et chargement pour FoodOps Pro.
 
 import json
 import os
+import importlib
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 from decimal import Decimal
+from enum import Enum
 
-from ..domain.restaurant import Restaurant
-from ..domain.scenario import Scenario
+# Mapping des modules et classes autorisés pour la désérialisation
+SAFE_CLASS_MAP = {
+    "src.foodops_pro.domain.restaurant": {"Restaurant", "RestaurantType"},
+    "src.foodops_pro.domain.scenario": {"Scenario", "MarketSegment"},
+}
 
 
 class SaveManager:
@@ -158,6 +163,13 @@ class SaveManager:
             return [self._prepare_for_serialization(item) for item in data]
         elif isinstance(data, Decimal):
             return float(data)
+        elif isinstance(data, Enum):
+            return {
+                "__class__": data.__class__.__name__,
+                "__module__": data.__class__.__module__,
+                "_name_": data.name,
+                "_value_": self._prepare_for_serialization(data.value),
+            }
         elif hasattr(data, "__dict__"):
             # Objet avec attributs - convertir en dictionnaire
             if hasattr(data, "__dataclass_fields__"):
@@ -165,7 +177,10 @@ class SaveManager:
                 return {
                     "__class__": data.__class__.__name__,
                     "__module__": data.__class__.__module__,
-                    **self._prepare_for_serialization(asdict(data)),
+                    **{
+                        field: self._prepare_for_serialization(getattr(data, field))
+                        for field in data.__dataclass_fields__
+                    },
                 }
             else:
                 # Objet normal
@@ -181,22 +196,42 @@ class SaveManager:
         """Restaure les données depuis la sérialisation JSON."""
         if isinstance(data, dict):
             if "__class__" in data and "__module__" in data:
-                # Objet sérialisé - pour l'instant, retourner comme dictionnaire
-                # TODO: Implémenter la désérialisation complète des objets
-                restored_data = {
-                    key: self._restore_from_serialization(value)
-                    for key, value in data.items()
-                    if key not in ["__class__", "__module__"]
-                }
-                restored_data["__original_class__"] = data["__class__"]
-                return restored_data
-            else:
-                return {
-                    key: self._restore_from_serialization(value)
-                    for key, value in data.items()
-                }
+                module_name = data["__module__"]
+                class_name = data["__class__"]
+
+                if (
+                    module_name in SAFE_CLASS_MAP
+                    and class_name in SAFE_CLASS_MAP[module_name]
+                ):
+                    module = importlib.import_module(module_name)
+                    cls = getattr(module, class_name)
+
+                    restored_data = {
+                        key: self._restore_from_serialization(value)
+                        for key, value in data.items()
+                        if key not in {"__class__", "__module__"}
+                    }
+
+                    if is_dataclass(cls):
+                        return cls(**restored_data)
+                    if isinstance(cls, type) and issubclass(cls, Enum):
+                        if "_name_" in restored_data:
+                            return cls[restored_data["_name_"]]
+                        if "_value_" in restored_data:
+                            return cls(restored_data["_value_"])
+                    obj = cls.__new__(cls)
+                    obj.__dict__.update(restored_data)
+                    return obj
+
+            return {
+                key: self._restore_from_serialization(value)
+                for key, value in data.items()
+                if key not in {"__class__", "__module__"}
+            }
         elif isinstance(data, list):
             return [self._restore_from_serialization(item) for item in data]
+        elif isinstance(data, float):
+            return Decimal(str(data))
         else:
             return data
 
