@@ -41,62 +41,71 @@ class KPICalculator:
                 result["turn"] = turn_data["turn"]
                 restaurant_turns.append(result)
 
-        if not restaurant_turns:
-            return {}
+        metrics: Dict[str, Any] = {}
 
-        # Calculs des KPIs
-        total_revenue = sum(turn["revenue"] for turn in restaurant_turns)
-        total_customers = sum(turn["served_customers"] for turn in restaurant_turns)
-        total_capacity = sum(turn["capacity"] for turn in restaurant_turns)
+        if restaurant_turns:
+            # Calculs des KPIs classiques
+            total_revenue = sum(turn["revenue"] for turn in restaurant_turns)
+            total_customers = sum(turn["served_customers"] for turn in restaurant_turns)
+            total_capacity = sum(turn["capacity"] for turn in restaurant_turns)
 
-        # Ticket moyen
-        average_ticket = total_revenue / total_customers if total_customers > 0 else 0
+            average_ticket = (
+                total_revenue / total_customers if total_customers > 0 else 0
+            )
+            avg_utilization = sum(
+                turn["utilization_rate"] for turn in restaurant_turns
+            ) / len(restaurant_turns)
 
-        # Taux d'utilisation moyen
-        avg_utilization = sum(
-            turn["utilization_rate"] for turn in restaurant_turns
-        ) / len(restaurant_turns)
+            revenue_trend = [turn["revenue"] for turn in restaurant_turns]
+            revenue_growth = 0
+            if len(revenue_trend) > 1 and revenue_trend[0] > 0:
+                revenue_growth = (
+                    (revenue_trend[-1] - revenue_trend[0]) / revenue_trend[0] * 100
+                )
 
-        # Évolution du chiffre d'affaires
-        revenue_trend = []
-        for turn in restaurant_turns:
-            revenue_trend.append(turn["revenue"])
+            utilization_rates = [turn["utilization_rate"] for turn in restaurant_turns]
+            utilization_std = KPICalculator._calculate_std(utilization_rates)
 
-        # Croissance du CA (premier vs dernier tour)
-        revenue_growth = 0
-        if len(revenue_trend) > 1 and revenue_trend[0] > 0:
-            revenue_growth = (
-                (revenue_trend[-1] - revenue_trend[0]) / revenue_trend[0] * 100
+            best_turn = max(restaurant_turns, key=lambda x: x["revenue"])
+            worst_turn = min(restaurant_turns, key=lambda x: x["revenue"])
+
+            metrics.update(
+                {
+                    "total_revenue": total_revenue,
+                    "total_customers": total_customers,
+                    "average_ticket": average_ticket,
+                    "avg_utilization_rate": avg_utilization,
+                    "revenue_growth_percent": revenue_growth,
+                    "utilization_consistency": 1
+                    - utilization_std,  # Plus proche de 1 = plus régulier
+                    "best_turn": {
+                        "turn": best_turn["turn"],
+                        "revenue": best_turn["revenue"],
+                        "customers": best_turn["served_customers"],
+                    },
+                    "worst_turn": {
+                        "turn": worst_turn["turn"],
+                        "revenue": worst_turn["revenue"],
+                        "customers": worst_turn["served_customers"],
+                    },
+                    "turns_played": len(restaurant_turns),
+                }
             )
 
-        # Régularité de la fréquentation
-        utilization_rates = [turn["utilization_rate"] for turn in restaurant_turns]
-        utilization_std = KPICalculator._calculate_std(utilization_rates)
+        # Informations de conformité sanitaire
+        hygiene = restaurant_data.get("hygiene", {})
+        inspections = hygiene.get("inspections", [])
+        if inspections:
+            avg_score = sum(i["score"] for i in inspections) / len(inspections)
+            total_fines = sum(Decimal(str(i.get("fine", 0))) for i in inspections)
+        else:
+            avg_score = 0
+            total_fines = Decimal("0")
 
-        # Performance par tour
-        best_turn = max(restaurant_turns, key=lambda x: x["revenue"])
-        worst_turn = min(restaurant_turns, key=lambda x: x["revenue"])
+        metrics["avg_hygiene_score"] = avg_score
+        metrics["total_hygiene_fines"] = total_fines
 
-        return {
-            "total_revenue": total_revenue,
-            "total_customers": total_customers,
-            "average_ticket": average_ticket,
-            "avg_utilization_rate": avg_utilization,
-            "revenue_growth_percent": revenue_growth,
-            "utilization_consistency": 1
-            - utilization_std,  # Plus proche de 1 = plus régulier
-            "best_turn": {
-                "turn": best_turn["turn"],
-                "revenue": best_turn["revenue"],
-                "customers": best_turn["served_customers"],
-            },
-            "worst_turn": {
-                "turn": worst_turn["turn"],
-                "revenue": worst_turn["revenue"],
-                "customers": worst_turn["served_customers"],
-            },
-            "turns_played": len(restaurant_turns),
-        }
+        return metrics
 
     @staticmethod
     def calculate_market_kpis(turn_history: List[Dict]) -> Dict[str, Any]:
@@ -321,6 +330,13 @@ class ResultsExporter:
             "restaurant_kpis": restaurant_kpis,
             "market_kpis": market_kpis,
             "turn_history": game_state.turn_history,
+            "compliance_summary": {
+                rid: {
+                    "avg_hygiene_score": kpis.get("avg_hygiene_score", 0),
+                    "total_fines": float(kpis.get("total_hygiene_fines", 0)),
+                }
+                for rid, kpis in restaurant_kpis.items()
+            },
         }
 
         with open(output_path, "w", encoding="utf-8") as file:

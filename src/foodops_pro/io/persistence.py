@@ -263,6 +263,24 @@ class GameStatePersistence:
             "fixed_costs_monthly": float(restaurant.fixed_costs_monthly),
             "staffing_level": restaurant.staffing_level,
             "active_recipes": restaurant.active_recipes.copy(),
+            "hygiene": {
+                "tasks": [
+                    {
+                        "name": t.name,
+                        "cost": float(t.cost),
+                        "frequency": t.frequency,
+                    }
+                    for t in restaurant.hygiene_manager.tasks
+                ],
+                "inspections": [
+                    {
+                        "turn": i.turn,
+                        "score": i.score,
+                        "fine": float(i.fine),
+                    }
+                    for i in restaurant.hygiene_manager.inspections
+                ],
+            },
         }
 
     def update_turn_history(self, game_state: GameState, turn_results: Dict) -> None:
