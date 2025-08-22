@@ -15,6 +15,7 @@ class ProductionPlan:
     servings_by_recipe: Dict[str, int]
     cost_by_recipe_ht: Dict[str, Decimal] | None = None
     consumed_by_recipe: Dict[str, Dict[str, Decimal]] | None = None
+    hours_by_position: Dict[str, Decimal] | None = None
 
 
 class ProductionPlanner:
@@ -54,7 +55,16 @@ class ProductionPlanner:
         if not active:
             return ProductionPlan(servings_by_recipe={})
 
-        capacity = max(0, int(getattr(restaurant, "capacity_current", 0)))
+        service_capacity = max(
+            0,
+            int(
+                getattr(
+                    restaurant,
+                    "get_service_capacity",
+                    lambda: getattr(restaurant, "capacity_current", 0),
+                )()
+            ),
+        )
         stock_manager = getattr(restaurant, "stock_manager", None)
 
         # Cap max réalisable par stock pour chaque recette
@@ -65,15 +75,15 @@ class ProductionPlanner:
             max_by_recipe[rid] = smax
             total_max += smax
 
-        if total_max == 0 or capacity == 0:
+        if total_max == 0 or service_capacity == 0:
             return ProductionPlan(servings_by_recipe={rid: 0 for rid in active})
 
         # Répartition simple de la capacité proportionnellement au max réalisable
         plan: Dict[str, int] = {}
-        remaining_capacity = capacity
+        remaining_capacity = service_capacity
         for rid in sorted(active):
             share = (max_by_recipe[rid] / total_max) if total_max > 0 else 0
-            target = min(max_by_recipe[rid], int(share * capacity))
+            target = min(max_by_recipe[rid], int(share * service_capacity))
             plan[rid] = target
             remaining_capacity -= target
         # Distribuer le reliquat en round-robin
@@ -84,6 +94,18 @@ class ProductionPlanner:
                 if plan[rid] < max_by_recipe[rid]:
                     plan[rid] += 1
                     remaining_capacity -= 1
+
+        # Limiter selon la capacité de cuisine (temps de préparation disponible)
+        kitchen_capacity_fn = getattr(restaurant, "get_kitchen_capacity", None)
+        if callable(kitchen_capacity_fn):
+            kitchen_capacity = int(kitchen_capacity_fn())
+            required_minutes = sum(
+                plan[rid] * recipes_by_id[rid].temps_prepa_min for rid in plan
+            )
+            if required_minutes > kitchen_capacity and required_minutes > 0:
+                reduction = kitchen_capacity / required_minutes
+                for rid in plan:
+                    plan[rid] = int(plan[rid] * reduction)
 
         # Consommer les ingrédients selon le plan (FEFO géré côté StockManager)
         consumed_by_recipe: Dict[str, Dict[str, Decimal]] = {}
@@ -106,18 +128,36 @@ class ProductionPlanner:
                 # coût par portion: calculé plus tard si besoin
                 cost_by_recipe[rid] = Decimal("0")
 
-        return ProductionPlan(servings_by_recipe=plan, cost_by_recipe_ht=cost_by_recipe, consumed_by_recipe=consumed_by_recipe)
+        kitchen_minutes = sum(
+            plan[rid] * recipes_by_id[rid].temps_prepa_min for rid in plan
+        )
+        service_minutes = sum(
+            plan[rid] * recipes_by_id[rid].temps_service_min for rid in plan
+        )
+        hours_by_position = {
+            "cuisine": Decimal(kitchen_minutes) / Decimal("60"),
+            "salle": Decimal(service_minutes) / Decimal("60"),
+        }
+
+        return ProductionPlan(
+            servings_by_recipe=plan,
+            cost_by_recipe_ht=cost_by_recipe,
+            consumed_by_recipe=consumed_by_recipe,
+            hours_by_position=hours_by_position,
+        )
 
 
 def apply_production_plan(restaurant, plan: ProductionPlan) -> None:
     """Stocke les unités prêtes à servir dans le restaurant pour le tour."""
     restaurant.production_units_ready = dict(plan.servings_by_recipe)
+    restaurant.production_hours_consumed = plan.hours_by_position or {}
 
 
 def clear_previous_production(restaurant) -> None:
     """Purge les unités prêtes du tour précédent (DLC=1 tour)."""
     restaurant.production_units_ready = {}
     restaurant.production_quality_score = {}
+    restaurant.production_hours_consumed = {}
 
 
 def execute_manual_production_plan(restaurant, recipes_by_id: Dict[str, Recipe]) -> None:
@@ -138,6 +178,8 @@ def execute_manual_production_plan(restaurant, recipes_by_id: Dict[str, Recipe])
     consumed_ings: Dict[str, Dict[str, Decimal]] = {}
     cost_per_portion: Dict[str, Decimal] = {}
     produced_units: Dict[str, int] = {}
+    kitchen_minutes_total = 0
+    service_minutes_total = 0
 
     for recipe_id, params in draft.items():
         if recipe_id not in recipes_by_id:
@@ -163,7 +205,9 @@ def execute_manual_production_plan(restaurant, recipes_by_id: Dict[str, Recipe])
         if not max_servings or max_servings <= 0:
             continue
         # Consommer ingrédients pour max_servings
-        final_needs = ProductionPlanner().compute_ingredient_need_for_servings(recipe, max_servings, size)
+        final_needs = ProductionPlanner().compute_ingredient_need_for_servings(
+            recipe, max_servings, size
+        )
         total_cost_ht = Decimal("0")
         consumed_map: Dict[str, Decimal] = {}
         for ing_id, qty_need in final_needs.items():
@@ -178,13 +222,21 @@ def execute_manual_production_plan(restaurant, recipes_by_id: Dict[str, Recipe])
         quality_scores[recipe_id] = quality
         consumed_ings[recipe_id] = consumed_map
         produced_units[recipe_id] = produced_units.get(recipe_id, 0) + max_servings
+        kitchen_minutes_total += recipe.temps_prepa_min * max_servings
+        service_minutes_total += recipe.temps_service_min * max_servings
         if max_servings > 0:
-            cost_per_portion[recipe_id] = (total_cost_ht / Decimal(max_servings)).quantize(Decimal("0.01"))
+            cost_per_portion[recipe_id] = (
+                total_cost_ht / Decimal(max_servings)
+            ).quantize(Decimal("0.01"))
 
     restaurant.production_units_ready = units_ready
     restaurant.production_quality_score = quality_scores
     restaurant.production_consumed_ingredients = consumed_ings
     restaurant.production_produced_units = produced_units
     restaurant.production_cost_per_portion = cost_per_portion
+    restaurant.production_hours_consumed = {
+        "cuisine": Decimal(kitchen_minutes_total) / Decimal("60"),
+        "salle": Decimal(service_minutes_total) / Decimal("60"),
+    }
     # On laisse le draft en place pour édition tour suivant; on pourrait aussi le vider.
 

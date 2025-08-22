@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Dict, List, Optional
 from decimal import Decimal
 
-from .employee import Employee
+from .employee import Employee, EmployeePosition
 from .recipe import Recipe
 from .ingredient_quality import IngredientQualityManager, QualityLevel
 
@@ -80,6 +80,8 @@ class Restaurant:
     production_consumed_ingredients: Dict[str, Dict[str, Decimal]] = field(default_factory=dict)
     # Historique par tour: turn -> { recipe_id: { produced, sold, lost, cost_per_portion } }
     production_stats_history: Dict[int, Dict[str, dict]] = field(default_factory=dict)
+    # Heures consommées par poste pour la production du tour
+    production_hours_consumed: Dict[str, Decimal] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Validation des données."""
@@ -199,6 +201,46 @@ class Restaurant:
     def get_staff_by_position(self, position) -> List[Employee]:
         """Retourne les employés d'un poste donné."""
         return [emp for emp in self.employees if emp.position == position]
+
+    def get_kitchen_capacity(self) -> int:
+        """Capacité de préparation (en minutes) selon le personnel de cuisine."""
+        kitchen_staff = [
+            emp for emp in self.employees if emp.position == EmployeePosition.CUISINE
+        ]
+        total_minutes = sum(
+            Decimal("60") * emp.productivity * emp.part_time_ratio
+            for emp in kitchen_staff
+        )
+        return int(total_minutes)
+
+    def get_service_capacity(self) -> int:
+        """Nombre maximum de plats que la salle peut servir pour le tour."""
+        if self.staffing_level == 0:
+            return 0
+
+        service_positions = {
+            EmployeePosition.SALLE,
+            EmployeePosition.CAISSE,
+            EmployeePosition.MANAGER,
+        }
+        service_staff = [
+            emp for emp in self.employees if emp.position in service_positions
+        ]
+
+        staffing_factors = {
+            1: Decimal("0.7"),
+            2: Decimal("1.0"),
+            3: Decimal("1.3"),
+        }
+
+        base_capacity = self.capacity_base * self.speed_service
+        staffing_factor = staffing_factors.get(self.staffing_level, Decimal("1.0"))
+        employee_contribution = sum(
+            emp.calculate_capacity_contribution(self.capacity_base)
+            for emp in service_staff
+        )
+        total_capacity = base_capacity * staffing_factor + employee_contribution
+        return int(total_capacity)
 
     def calculate_service_time_factor(self, recipes: List[Recipe]) -> Decimal:
         """

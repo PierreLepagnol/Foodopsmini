@@ -624,6 +624,7 @@ class FoodOpsProGame:
                     lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
                 self.ui.print_box(lines, style='info')
         except Exception as e:
+            self.ui.print(f"Erreur affichage: {e}")
         # Chiffres clés par restaurant
         try:
             key_lines = ["📌 Chiffres clés (tour):"]
