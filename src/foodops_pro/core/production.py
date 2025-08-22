@@ -85,7 +85,7 @@ class ProductionPlanner:
                     plan[rid] += 1
                     remaining_capacity -= 1
 
-        # Consommer les ingrédients selon le plan (FEFO géré côté StockManager)
+        # Consommer les ingrédients selon le plan (FEFO géré côté AdvancedStockManager)
         consumed_by_recipe: Dict[str, Dict[str, Decimal]] = {}
         cost_by_recipe: Dict[str, Decimal] = {}
 
@@ -168,8 +168,10 @@ def execute_manual_production_plan(restaurant, recipes_by_id: Dict[str, Recipe])
         consumed_map: Dict[str, Decimal] = {}
         for ing_id, qty_need in final_needs.items():
             if qty_need > 0:
-                lots_used = stock_manager.consume_ingredient(ing_id, qty_need)
-                consumed_map[ing_id] = qty_need
+                obtained, lots_used = stock_manager.consume_ingredient(
+                    ing_id, qty_need
+                )
+                consumed_map[ing_id] = obtained
                 # Coût exact: somme lots consommés
                 for lot in lots_used:
                     total_cost_ht += lot.total_value_ht

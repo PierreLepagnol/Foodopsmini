@@ -8,7 +8,7 @@ from decimal import Decimal
 from ..domain.restaurant import Restaurant
 from ..domain.employee import Employee, EmployeePosition, EmployeeContract
 from ..domain.random_events import RandomEventManager
-from ..domain.stock import StockManager
+from ..domain.stock_advanced import AdvancedStockManager, StockStatus
 from ..domain.supplier import Supplier
 from ..core.costing import RecipeCostCalculator
 from ..core.procurement import ProcurementPlanner, ReceivingService, POLine
@@ -400,7 +400,7 @@ class DecisionMenu:
         """Gestion des achats et stocks avancée."""
         # État minimal requis pour le module Achats & Stocks
         if not hasattr(restaurant, "stock_manager"):
-            restaurant.stock_manager = StockManager()
+            restaurant.stock_manager = AdvancedStockManager()
         if not hasattr(restaurant, "sales_forecast"):
             restaurant.sales_forecast = {}
         if not hasattr(restaurant, "pending_po_lines"):
@@ -444,7 +444,7 @@ class DecisionMenu:
 
         # Structures d'état minimales attendues sur restaurant
         if not hasattr(restaurant, "stock_manager"):
-            restaurant.stock_manager = StockManager()
+            restaurant.stock_manager = AdvancedStockManager()
         if not hasattr(restaurant, "sales_forecast"):
             restaurant.sales_forecast = {}  # recipe_id -> qty next turn
         if not hasattr(restaurant, "pending_po_lines"):
@@ -568,7 +568,7 @@ class DecisionMenu:
         items = sorted(requirements.items(), key=lambda kv: kv[1], reverse=True)
         options = []
         index_to_ing: List[str] = []
-        expiring = restaurant.stock_manager.get_expiring_lots(days=3)
+        expiring = restaurant.stock_manager.get_lots_near_expiry(warning_days=3)
         expiring_set = {lt.ingredient_id for lt in expiring}
         for ing_id, need in items:
             stock = restaurant.stock_manager.get_available_quantity(ing_id)
@@ -1420,10 +1420,10 @@ class DecisionMenu:
             )
         self.ui.print_box(view, "BON DE RÉCEPTION", "success")
 
-        expiring = restaurant.stock_manager.get_expiring_lots(days=3)
+        expiring = restaurant.stock_manager.get_lots_near_expiry(warning_days=3)
         if expiring:
             msg = ["⚠️ LOTS PROCHE DLC:"] + [
-                f"• {lt.ingredient_id} ({lt.quantity}) — DLC {lt.dlc}"
+                f"• {lt.ingredient_id} ({lt.quantity}) — EXP {lt.expiry_date}"
                 for lt in expiring
             ]
             self.ui.print_box(msg, "ALERTES DLC", "warning")
@@ -1508,7 +1508,7 @@ class DecisionMenu:
         self.ui.pause()
 
     def _stock_management_interface(self, restaurant: Restaurant) -> None:
-        """Interface de gestion des stocks (réel, via StockManager)."""
+        """Interface de gestion des stocks (réel, via AdvancedStockManager)."""
         self.ui.show_info("📦 GESTION DES STOCKS")
 
         if not hasattr(restaurant, "stock_manager"):
@@ -1529,29 +1529,44 @@ class DecisionMenu:
         view = ["STOCKS ACTUELS", ""]
         for ing, ing_lots in by_ing.items():
             view.append(f"🍽️ {ing}:")
-            ing_lots.sort(key=lambda x: x.dlc)
+            ing_lots.sort(key=lambda x: x.expiry_date)
             for lt in ing_lots:
-                emoji = "🚨" if lt.is_near_expiry(1) else ("⚠️" if lt.is_near_expiry(3) else "✅")
+                status = lt.status
+                emoji = {
+                    StockStatus.EXPIRED: "❌",
+                    StockStatus.NEAR_EXPIRY: "⚠️",
+                    StockStatus.PROMOTION: "🏷️",
+                }.get(status, "✅")
                 view.append(
-                    f"  Lot {lt.lot_number or '-'}: {lt.quantity} (DLC {lt.dlc}) {emoji} | Prix {lt.unit_cost_ht} HT, TVA {lt.vat_rate}, Fournisseur {lt.supplier_id}"
+                    f"  Lot {lt.lot_number or '-'}: {lt.quantity} (EXP {lt.expiry_date}) {emoji} | Prix {lt.unit_cost_ht} HT, Fournisseur {lt.supplier_id}"
                 )
-        total_value = restaurant.stock_manager.get_stock_value()
+        total_value = sum(
+            lt.total_value_ht for lt in restaurant.stock_manager.lots if not lt.is_expired
+        )
         view.append("")
         view.append(f"Valeur stock HT: {total_value:.2f}€")
         self.ui.print_box(view, "ÉTAT DES STOCKS", "info")
         self.ui.pause()
 
         # Alertes DLC (rappel)
-        expiring = restaurant.stock_manager.get_expiring_lots(days=3)
+        expiring = restaurant.stock_manager.get_lots_near_expiry(warning_days=3)
         if expiring:
-            msg = ["⚠️ LOTS PROCHE DLC:"] + [f"• {lt.ingredient_id} ({lt.quantity}) — DLC {lt.dlc}" for lt in expiring]
+            msg = [
+                "⚠️ LOTS PROCHE DLC:",
+            ] + [
+                f"• {lt.ingredient_id} ({lt.quantity}) — EXP {lt.expiry_date}" for lt in expiring
+            ]
             self.ui.print_box(msg, "ALERTES DLC", "warning")
             self.ui.pause()
 
-        # Option: purge des périmés
-        if self.ui.confirm("Supprimer les lots périmés ?"):
-            removed = restaurant.stock_manager.remove_expired_lots()
-            self.ui.show_info(f"{len(removed)} lots périmés supprimés.")
+        # Option: traitement des périmés et dégradations
+        if self.ui.confirm("Traiter les lots périmés ?"):
+            before = len(restaurant.stock_manager.lots)
+            report = restaurant.stock_manager.process_daily_operations()
+            removed = before - len(restaurant.stock_manager.lots)
+            self.ui.show_info(
+                f"{removed} lots périmés supprimés, pertes totales {report['total_waste_value']:.2f}€"
+            )
             self.ui.pause()
     # Suppression de l'affichage statique pour éviter les doublons et confusion
 
