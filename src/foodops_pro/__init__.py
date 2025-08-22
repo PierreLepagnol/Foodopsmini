@@ -11,5 +11,4 @@ __author__ = "FoodOps Team"
 __email__ = "contact@foodops.pro"
 
 from .domain import *
-from .core import *
 from .io import *

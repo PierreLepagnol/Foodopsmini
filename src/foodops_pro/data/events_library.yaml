@@ -1,0 +1,62 @@
+weather:
+  été:
+    - id: heatwave
+      title: "\U0001F321\uFE0F Canicule"
+      description: "Forte chaleur ! Les clients recherchent des boissons fraîches et des plats légers."
+      probability: 0.15
+      duration: 3
+      demand_multiplier: 1.25
+      segment_effects:
+        étudiants: 1.4
+        familles: 1.3
+  automne:
+    - id: heavy_rain
+      title: "\u2602\uFE0F Pluie battante"
+      description: "Mauvais temps persistant. Les gens sortent moins et préfèrent rester chez eux."
+      probability: 0.20
+      duration: 2
+      demand_multiplier: 0.80
+  hiver:
+    - id: snow_storm
+      title: "\u2744\uFE0F Tempête de neige"
+      description: "Chutes de neige importantes. Circulation difficile, moins de clients."
+      probability: 0.12
+      duration: 2
+      demand_multiplier: 0.70
+
+economic:
+  toutes_saisons:
+    - id: economic_crisis
+      title: "\U0001F4C9 Crise économique"
+      description: "Difficultés économiques. Les consommateurs deviennent très sensibles aux prix."
+      probability: 0.08
+      duration: 5
+      price_sensitivity: 1.6
+      segment_effects:
+        étudiants: 0.7
+        familles: 0.8
+    - id: bonus_payment
+      title: "\U0001F4B0 Prime exceptionnelle"
+      description: "Les salariés reçoivent une prime. Augmentation temporaire du pouvoir d'achat."
+      probability: 0.15
+      duration: 3
+      demand_multiplier: 1.20
+      price_sensitivity: 0.85
+
+social:
+  été:
+    - id: local_festival
+      title: "\U0001F389 Festival local"
+      description: "Afflux de visiteurs grâce à un événement culturel."
+      probability: 0.18
+      duration: 2
+      demand_multiplier: 1.30
+
+competition:
+  toutes_saisons:
+    - id: new_competitor
+      title: "\U0001F3EA Nouveau concurrent"
+      description: "Un nouveau restaurant ouvre à proximité."
+      probability: 0.10
+      duration: 2
+      demand_multiplier: 0.90
