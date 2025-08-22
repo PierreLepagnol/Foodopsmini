@@ -9,6 +9,8 @@ from enum import Enum
 from datetime import date
 import random
 
+from .restaurant import Restaurant
+
 
 class EventType(Enum):
     """Types d'événements aléatoires."""
@@ -46,6 +48,7 @@ class MarketEvent:
     price_sensitivity_modifier: Decimal = Decimal("1.0")  # Sensibilité prix
     quality_importance_modifier: Decimal = Decimal("1.0")  # Importance qualité
     segment_impact: Dict[str, Decimal] = field(default_factory=dict)
+    competitor_impact: Dict[str, Dict[str, Decimal]] = field(default_factory=dict)
 
     # Conditions d'activation
     season_requirements: List[str] = field(default_factory=list)
@@ -91,6 +94,11 @@ class CompetitionManager:
         # État de la concurrence
         self.market_volatility = Decimal("0.1")  # 10% de volatilité de base
         self.competitive_pressure = Decimal("1.0")  # Pression concurrentielle
+        # Modificateurs calculés lors du traitement des événements
+        self.segment_event_modifiers: Dict[str, Decimal] = {}
+        self.competitor_event_modifiers: Dict[str, Dict[str, Decimal]] = {}
+        # Historique des réactions concurrentielles pour éviter les répétitions
+        self.last_reaction_turn: Dict[str, int] = {}
 
     def _load_market_events(self) -> List[MarketEvent]:
         """Charge la liste des événements de marché possibles."""
@@ -266,6 +274,7 @@ class CompetitionManager:
                     price_sensitivity_modifier=event_template.price_sensitivity_modifier,
                     quality_importance_modifier=event_template.quality_importance_modifier,
                     segment_impact=event_template.segment_impact.copy(),
+                    competitor_impact=event_template.competitor_impact.copy(),
                 )
 
                 new_events.append(new_event)
@@ -282,6 +291,22 @@ class CompetitionManager:
             if event.duration_days == 0:
                 self.event_history.append(event)
 
+        # Recalculer les modificateurs par segment et par concurrent
+        self.segment_event_modifiers = {}
+        self.competitor_event_modifiers = {}
+        for event in self.active_events:
+            for segment, modifier in event.segment_impact.items():
+                current = self.segment_event_modifiers.get(segment, Decimal("1.0"))
+                self.segment_event_modifiers[segment] = current * modifier
+            for comp_id, impacts in event.competitor_impact.items():
+                comp_mod = self.competitor_event_modifiers.setdefault(
+                    comp_id, {"price": Decimal("1.0"), "quality": Decimal("1.0")}
+                )
+                if "price" in impacts:
+                    comp_mod["price"] *= impacts["price"]
+                if "quality" in impacts:
+                    comp_mod["quality"] *= impacts["quality"]
+
         return new_events
 
     def get_market_modifiers(self) -> Dict[str, Decimal]:
@@ -295,22 +320,15 @@ class CompetitionManager:
             "demand_modifier": Decimal("1.0"),
             "price_sensitivity_modifier": Decimal("1.0"),
             "quality_importance_modifier": Decimal("1.0"),
-            "segment_modifiers": {},
+            "segment_modifiers": self.segment_event_modifiers.copy(),
+            "competitor_modifiers": self.competitor_event_modifiers.copy(),
         }
 
-        # Appliquer les effets des événements actifs
+        # Appliquer les effets globaux des événements actifs
         for event in self.active_events:
             modifiers["demand_modifier"] *= event.demand_modifier
             modifiers["price_sensitivity_modifier"] *= event.price_sensitivity_modifier
-            modifiers["quality_importance_modifier"] *= (
-                event.quality_importance_modifier
-            )
-
-            # Modificateurs par segment
-            for segment, modifier in event.segment_impact.items():
-                if segment not in modifiers["segment_modifiers"]:
-                    modifiers["segment_modifiers"][segment] = Decimal("1.0")
-                modifiers["segment_modifiers"][segment] *= modifier
+            modifiers["quality_importance_modifier"] *= event.quality_importance_modifier
 
         return modifiers
 
@@ -382,6 +400,69 @@ class CompetitionManager:
             }
 
         return {}
+
+    def apply_competitor_reactions(
+        self,
+        restaurants: List[Restaurant],
+        market_shares: Dict[str, Decimal],
+        current_turn: int,
+    ) -> List[CompetitorAction]:
+        """Ajuste prix ou qualité des concurrents selon la domination du marché.
+
+        Les concurrents qui perdent trop de parts de marché réagissent en
+        baissant leurs prix ou en améliorant légèrement leur réputation.
+
+        Args:
+            restaurants: Liste complète des restaurants en concurrence
+            market_shares: Parts de marché actuelles par restaurant
+            current_turn: Tour courant de la simulation
+
+        Returns:
+            Liste des actions générées
+        """
+
+        if not market_shares:
+            return []
+
+        leader_id, leader_share = max(market_shares.items(), key=lambda x: x[1])
+        actions: List[CompetitorAction] = []
+
+        for restaurant in restaurants:
+            if restaurant.id == leader_id:
+                continue
+
+            share = market_shares.get(restaurant.id, Decimal("0"))
+            # Si l'écart est important, le concurrent réagit
+            if leader_share - share >= Decimal("0.15"):
+                # Éviter de réagir plusieurs fois le même tour
+                if self.last_reaction_turn.get(restaurant.id) == current_turn:
+                    continue
+
+                price_factor = Decimal("0.90")
+                for recipe_id, price in list(restaurant.menu.items()):
+                    new_price = (price * price_factor).quantize(Decimal("0.01"))
+                    restaurant.set_recipe_price(recipe_id, new_price)
+
+                quality_boost = Decimal("0.3")
+                restaurant.reputation = min(
+                    Decimal("10.0"), restaurant.reputation + quality_boost
+                )
+
+                action = CompetitorAction(
+                    competitor_id=restaurant.id,
+                    action_type="reactive_adjustment",
+                    parameters={
+                        "price_factor": float(price_factor),
+                        "quality_boost": float(quality_boost),
+                    },
+                    turn_executed=current_turn,
+                    impact_duration=1,
+                )
+                actions.append(action)
+                self.competitor_actions.append(action)
+                self.last_reaction_turn[restaurant.id] = current_turn
+
+        return actions
 
     def get_competition_summary(self) -> Dict[str, any]:
         """Retourne un résumé de l'état de la concurrence."""
