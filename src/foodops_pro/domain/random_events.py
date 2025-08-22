@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 from decimal import Decimal
 from enum import Enum
+from copy import deepcopy
 import random
 
 
@@ -57,178 +58,14 @@ class RandomEventManager:
         self.events_pool = self._create_events_pool()
 
     def _create_events_pool(self) -> List[RandomEvent]:
-        """Crée la liste des événements possibles."""
+        """Crée la liste des événements possibles à partir de la bibliothèque."""
+        from .event_library import EVENT_LIBRARY
+
         return [
-            # Événements météorologiques
-            RandomEvent(
-                id="heatwave",
-                title="🌡️ Canicule",
-                description="Forte chaleur ! Les clients recherchent des boissons fraîches et des plats légers.",
-                category=EventCategory.WEATHER,
-                probability=0.15,
-                duration=3,
-                demand_multiplier=Decimal("1.25"),
-                segment_effects={
-                    "étudiants": Decimal("1.4"),
-                    "familles": Decimal("1.3"),
-                },
-                season_required="été",
-            ),
-            RandomEvent(
-                id="heavy_rain",
-                title="🌧️ Pluie battante",
-                description="Mauvais temps persistant. Les gens sortent moins et préfèrent rester chez eux.",
-                category=EventCategory.WEATHER,
-                probability=0.20,
-                duration=2,
-                demand_multiplier=Decimal("0.80"),
-                season_required="automne",
-            ),
-            RandomEvent(
-                id="snow_storm",
-                title="❄️ Tempête de neige",
-                description="Chutes de neige importantes. Circulation difficile, moins de clients.",
-                category=EventCategory.WEATHER,
-                probability=0.12,
-                duration=2,
-                demand_multiplier=Decimal("0.70"),
-                season_required="hiver",
-            ),
-            # Événements économiques
-            RandomEvent(
-                id="economic_crisis",
-                title="📉 Crise économique",
-                description="Difficultés économiques. Les consommateurs deviennent très sensibles aux prix.",
-                category=EventCategory.ECONOMIC,
-                probability=0.08,
-                duration=5,
-                price_sensitivity=Decimal("1.6"),
-                segment_effects={
-                    "étudiants": Decimal("0.7"),
-                    "familles": Decimal("0.8"),
-                },
-            ),
-            RandomEvent(
-                id="bonus_payment",
-                title="💰 Prime exceptionnelle",
-                description="Les salariés reçoivent une prime. Augmentation temporaire du pouvoir d'achat.",
-                category=EventCategory.ECONOMIC,
-                probability=0.15,
-                duration=3,
-                demand_multiplier=Decimal("1.20"),
-                price_sensitivity=Decimal("0.85"),
-            ),
-            # Événements sociaux
-            RandomEvent(
-                id="local_festival",
-                title="🎪 Festival local",
-                description="Grand événement culturel dans le quartier. Affluence exceptionnelle !",
-                category=EventCategory.SOCIAL,
-                probability=0.25,
-                duration=2,
-                demand_multiplier=Decimal("1.50"),
-                segment_effects={"foodies": Decimal("1.8"), "familles": Decimal("1.4")},
-            ),
-            RandomEvent(
-                id="transport_strike",
-                title="🚇 Grève des transports",
-                description="Grève générale des transports. Difficultés pour venir au restaurant.",
-                category=EventCategory.SOCIAL,
-                probability=0.10,
-                duration=1,
-                demand_multiplier=Decimal("0.65"),
-            ),
-            RandomEvent(
-                id="university_exams",
-                title="📚 Période d'examens",
-                description="Examens universitaires. Les étudiants sortent moins mais commandent plus à emporter.",
-                category=EventCategory.SOCIAL,
-                probability=0.30,
-                duration=4,
-                segment_effects={"étudiants": Decimal("0.6")},
-                min_turn=3,
-            ),
-            # Événements de concurrence
-            RandomEvent(
-                id="new_competitor",
-                title="🏪 Nouveau concurrent",
-                description="Ouverture d'un nouveau restaurant dans le quartier. La concurrence s'intensifie.",
-                category=EventCategory.COMPETITION,
-                probability=0.06,
-                duration=10,
-                demand_multiplier=Decimal("0.85"),
-                min_turn=5,
-            ),
-            RandomEvent(
-                id="competitor_closure",
-                title="🔒 Fermeture concurrent",
-                description="Un restaurant concurrent ferme définitivement. Opportunité de récupérer sa clientèle !",
-                category=EventCategory.COMPETITION,
-                probability=0.04,
-                duration=999,  # Permanent
-                demand_multiplier=Decimal("1.25"),
-                min_turn=8,
-            ),
-            # Événements d'approvisionnement
-            RandomEvent(
-                id="meat_shortage",
-                title="🥩 Pénurie de viande",
-                description="Problèmes d'approvisionnement en viande. Prix en hausse, qualité plus importante.",
-                category=EventCategory.SUPPLY,
-                probability=0.08,
-                duration=4,
-                quality_importance=Decimal("1.4"),
-            ),
-            RandomEvent(
-                id="excellent_harvest",
-                title="🥬 Récolte exceptionnelle",
-                description="Excellente récolte de légumes locaux. Produits frais abondants et moins chers.",
-                category=EventCategory.SUPPLY,
-                probability=0.20,
-                duration=6,
-                quality_importance=Decimal("1.2"),
-                season_required="automne",
-            ),
-            # Événements réglementaires
-            RandomEvent(
-                id="health_inspection",
-                title="🔍 Contrôle sanitaire",
-                description="Inspection d'hygiène dans le secteur. L'importance de la qualité est renforcée.",
-                category=EventCategory.REGULATION,
-                probability=0.18,
-                duration=3,
-                quality_importance=Decimal("1.5"),
-            ),
-            RandomEvent(
-                id="tax_reduction",
-                title="📋 Réduction de charges",
-                description="Baisse temporaire des charges sociales. Amélioration des marges pour tous.",
-                category=EventCategory.REGULATION,
-                probability=0.12,
-                duration=8,
-                demand_multiplier=Decimal("1.10"),
-            ),
-            # Événements spéciaux
-            RandomEvent(
-                id="food_trend",
-                title="📱 Nouvelle tendance culinaire",
-                description="Buzz sur les réseaux sociaux autour d'un type de cuisine. Les foodies sont très actifs.",
-                category=EventCategory.SOCIAL,
-                probability=0.22,
-                duration=5,
-                segment_effects={"foodies": Decimal("1.6")},
-                quality_importance=Decimal("1.3"),
-            ),
-            RandomEvent(
-                id="celebrity_visit",
-                title="⭐ Visite de célébrité",
-                description="Une célébrité est aperçue dans le quartier. Effet de mode temporaire !",
-                category=EventCategory.SOCIAL,
-                probability=0.05,
-                duration=2,
-                demand_multiplier=Decimal("1.80"),
-                segment_effects={"foodies": Decimal("2.2")},
-            ),
+            deepcopy(event)
+            for periods in EVENT_LIBRARY.values()
+            for event_list in periods.values()
+            for event in event_list
         ]
 
     def process_turn(self, turn: int, season: str) -> List[RandomEvent]:
