@@ -19,6 +19,7 @@ from .core.costing import RecipeCostCalculator
 from .ui.console_ui import ConsoleUI
 from .ui.decision_menu import DecisionMenu
 from .admin.admin_config import AdminConfigManager, AdminSettings
+from .network.client import NetworkClient
 
 
 class FoodOpsProGame:
@@ -26,7 +27,12 @@ class FoodOpsProGame:
     Jeu FoodOps Pro avec interface professionnelle.
     """
 
-    def __init__(self, scenario_path: Optional[Path] = None, admin_mode: bool = False):
+    def __init__(
+        self,
+        scenario_path: Optional[Path] = None,
+        admin_mode: bool = False,
+        server_uri: Optional[str] = None,
+    ):
         """
         Initialise le jeu.
 
@@ -73,6 +79,8 @@ class FoodOpsProGame:
         self.players: List[Restaurant] = []
         self.ai_competitors: List[Restaurant] = []
         self.current_turn = 1
+        self.server_uri = server_uri
+        self.network_client: Optional[NetworkClient] = None
 
         self.ui.show_progress_bar(5, 5, "Prêt !")
         print()  # Ligne vide après la barre de progression
@@ -97,6 +105,10 @@ class FoodOpsProGame:
 
             # Création des concurrents IA
             self._create_ai_competitors()
+
+            if self.server_uri:
+                self.network_client = NetworkClient(self.server_uri)
+                self.network_client.connect()
 
             # Boucle de jeu principale
             self._game_loop()
@@ -499,9 +511,12 @@ class FoodOpsProGame:
             # Mise à jour des restaurants
             self._update_restaurants(results)
 
-            # Pause entre les tours
+            # Pause / synchronisation entre les tours
             if turn < total_turns:
-                self.ui.pause("Appuyez sur Entrée pour continuer au tour suivant...")
+                if self.network_client:
+                    self.network_client.sync_turn()
+                else:
+                    self.ui.pause("Appuyez sur Entrée pour continuer au tour suivant...")
 
     def _apply_player_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Applique les décisions du joueur au restaurant."""
@@ -770,11 +785,12 @@ def main() -> None:
     )
     parser.add_argument("--admin", action="store_true", help="Mode administrateur")
     parser.add_argument("--debug", action="store_true", help="Mode debug")
+    parser.add_argument("--server", help="URI du serveur WebSocket")
 
     args = parser.parse_args()
 
     try:
-        game = FoodOpsProGame(args.scenario, args.admin)
+        game = FoodOpsProGame(args.scenario, args.admin, args.server)
         # Passer les recettes au DecisionMenu pour Achats & Stocks
         game.decision_menu.cache_available_recipes(game.recipes)
         game.start_game()
