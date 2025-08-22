@@ -18,6 +18,10 @@ from .core.market import MarketEngine
 from .core.costing import RecipeCostCalculator
 from .ui.console_ui import ConsoleUI
 from .ui.decision_menu import DecisionMenu
+from .ui.turn_report import (
+    generate_turn_report,
+    display_turn_report,
+)
 from .admin.admin_config import AdminConfigManager, AdminSettings
 
 
@@ -499,9 +503,24 @@ class FoodOpsProGame:
             # Mise à jour des restaurants
             self._update_restaurants(results)
 
+            # Rapport de synthèse du tour
+            self.run_turn(turn, results)
+
             # Pause entre les tours
             if turn < total_turns:
                 self.ui.pause("Appuyez sur Entrée pour continuer au tour suivant...")
+
+    def run_turn(self, turn: int, results: Dict) -> None:
+        """Génère et affiche un rapport de synthèse pour le tour."""
+        report = generate_turn_report(
+            turn,
+            self.players + self.ai_competitors,
+            results,
+            self.market_engine,
+            month=((turn - 1) % 12) + 1,
+        )
+        display_turn_report(self.ui, report)
+        report.export(Path("exports/turn_reports"), fmt="json")
 
     def _apply_player_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Applique les décisions du joueur au restaurant."""
