@@ -518,7 +518,6 @@ class DataLoader:
         """
         return (
             Path(__file__).parent.parent.parent.parent
-            / "examples"
             / "scenarios"
             / "base.yaml"
         )
