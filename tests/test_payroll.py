@@ -168,13 +168,13 @@ class TestPayrollCalculator:
         calculator = PayrollCalculator(sample_social_charges_config)
         employee = sample_employees[0]  # CDI, éligible aux heures sup
 
-        # 160 heures (151.67 normales + 8.33 heures sup)
+        # 160 heures (140 normales + 20 heures sup)
         hours_worked = Decimal("160.0")
 
         result = calculator.calculate_payroll(employee, hours_worked=hours_worked)
 
         # Vérification des heures supplémentaires
-        normal_hours = Decimal("151.67")
+        normal_hours = Decimal("140")
         overtime_hours = hours_worked - normal_hours
 
         assert result.overtime_hours == overtime_hours
@@ -290,7 +290,7 @@ class TestPayrollCalculator:
         # Heures spécifiques par employé
         hours_per_employee = {
             "emp1": Decimal("155.0"),
-            "emp2": Decimal("151.67"),
+            "emp2": Decimal("140.0"),
             "emp3": Decimal("140.0"),
             "emp4": Decimal("75.0"),  # Mi-temps
         }
@@ -345,7 +345,7 @@ class TestPayrollCalculator:
         employee = sample_employees[0]
 
         # Calcul manuel
-        monthly_hours = Decimal("151.67")  # 35h * 52 semaines / 12 mois
+        monthly_hours = Decimal("140")  # 35h * 4 semaines / mois standard
         expected_hourly_rate = employee.salary_gross_monthly / monthly_hours
 
         assert abs(employee.hourly_rate - expected_hourly_rate) < Decimal("0.01")
@@ -355,7 +355,7 @@ class TestPayrollCalculator:
         employee = sample_employees[3]  # Mi-temps
 
         # Le taux horaire devrait être basé sur le salaire effectif
-        monthly_hours = Decimal("151.67")
+        monthly_hours = Decimal("140")
         effective_salary = employee.salary_gross_monthly * employee.part_time_ratio
         expected_hourly_rate = effective_salary / monthly_hours
 
@@ -369,7 +369,7 @@ class TestPayrollCalculator:
         employee = sample_employees[0]
 
         # 12 heures supplémentaires (8 à 25%, 4 à 50%)
-        hours_worked = Decimal("163.67")  # 151.67 + 12
+        hours_worked = Decimal("152.0")  # 140 + 12 heures sup
 
         result = calculator.calculate_payroll(employee, hours_worked=hours_worked)
 

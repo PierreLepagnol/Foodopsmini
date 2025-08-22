@@ -93,6 +93,7 @@ class Scenario:
         name: Nom du scénario
         description: Description du scénario
         turns: Nombre de tours
+        turn_scale: Unité de temps des tours ("month" = mois de 4 semaines)
         base_demand: Demande de base par tour
         demand_noise: Variabilité de la demande (0.0-1.0)
         segments: Segments de marché
@@ -109,6 +110,7 @@ class Scenario:
     base_demand: int
     demand_noise: Decimal
     segments: List[MarketSegment]
+    turn_scale: str = "month"
     vat_rates: Dict[str, Decimal] = field(default_factory=dict)
     social_charges: Dict[str, Decimal] = field(default_factory=dict)
     interest_rate: Decimal = Decimal("0.05")
@@ -197,7 +199,7 @@ class Scenario:
         Calcule la demande totale pour un tour donné.
 
         Args:
-            turn: Numéro du tour
+            turn: Numéro du tour (1 tour = 1 mois standard de 4 semaines)
             month: Mois de l'année (pour saisonnalité)
 
         Returns:

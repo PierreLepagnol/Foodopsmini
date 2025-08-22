@@ -76,7 +76,7 @@ class PayrollCalculator:
     def calculate_payroll(
         self,
         employee: Employee,
-        hours_worked: Decimal = Decimal("151.67"),
+        hours_worked: Decimal = Decimal("140"),
         sunday_hours: Decimal = Decimal("0"),
         period: str = "",
     ) -> PayrollResult:
@@ -93,7 +93,7 @@ class PayrollCalculator:
             Résultat du calcul de paie
         """
         # Heures normales et supplémentaires
-        monthly_normal_hours = Decimal("151.67")  # 35h * 52 semaines / 12 mois
+        monthly_normal_hours = Decimal("140")  # 35h * 4 semaines / mois standard
         normal_hours = min(hours_worked, monthly_normal_hours)
         overtime_hours = max(Decimal("0"), hours_worked - monthly_normal_hours)
 
@@ -266,9 +266,9 @@ class PayrollCalculator:
 
         for employee in employees:
             hours = (
-                hours_per_employee.get(employee.id, Decimal("151.67"))
+                hours_per_employee.get(employee.id, Decimal("140"))
                 if hours_per_employee
-                else Decimal("151.67")
+                else Decimal("140")
             )
             sunday_hours = (
                 sunday_hours_per_employee.get(employee.id, Decimal("0"))
