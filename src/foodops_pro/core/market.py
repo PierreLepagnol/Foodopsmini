@@ -38,6 +38,7 @@ class AllocationResult:
     revenue: Decimal = Decimal("0")
     average_ticket: Decimal = Decimal("0")
     recipe_sales: Dict[str, int] = field(default_factory=dict)
+    recipe_revenues: Dict[str, Decimal] = field(default_factory=dict)
 
 
     def __post_init__(self) -> None:
@@ -74,6 +75,7 @@ class MarketEngine:
         """
         # Exposition des facteurs pour affichage des résultats
         self._last_factors_by_restaurant: Dict[str, Dict[str, Decimal]] = {}
+        self._last_turn_info: Dict[str, any] = {}
 
         self.scenario = scenario
         self.rng = random.Random(random_seed or scenario.random_seed)
@@ -110,6 +112,18 @@ class MarketEngine:
         event_demand_modifier = float(market_modifiers["demand_modifier"])
         total_demand = int(base_demand * noise_factor * event_demand_modifier)
 
+        # Stocker les informations de demande pour le rapport
+        self._last_turn_info = {
+            "base_demand": base_demand,
+            "noise_factor": Decimal(str(noise_factor)),
+            "event_demand_modifier": market_modifiers["demand_modifier"],
+            "total_demand": total_demand,
+            "active_events": [e.name for e in self.competition_manager.active_events],
+            "segment_details": {},
+        }
+        if new_events:
+            self._last_turn_info["new_events"] = [e.name for e in new_events]
+
         # Allocation par segment de marché
         results = {}
         total_allocated = 0
@@ -119,7 +133,20 @@ class MarketEngine:
 
             # NOUVEAU: Application de la saisonnalité
             seasonal_bonus = self._get_seasonal_demand_bonus(segment.name, month)
-            segment_demand = int(base_segment_demand * seasonal_bonus)
+            segment_mod = market_modifiers["segment_modifiers"].get(
+                segment.name, Decimal("1.0")
+            )
+            segment_demand = int(
+                base_segment_demand * seasonal_bonus * float(segment_mod)
+            )
+
+            # Enregistrer détails segment pour le rapport
+            self._last_turn_info["segment_details"][segment.name] = {
+                "base": base_segment_demand,
+                "seasonal_bonus": seasonal_bonus,
+                "event_modifier": segment_mod,
+                "final": segment_demand,
+            }
 
             segment_allocation = self._allocate_segment_demand(
                 restaurants, segment, segment_demand
@@ -137,7 +164,10 @@ class MarketEngine:
                 # NOUVEAU: ventes par recette si disponibles
                 if "recipe_sales" in allocation:
                     for rid, sold_qty in allocation["recipe_sales"].items():
-                        results[restaurant_id].recipe_sales[rid] = results[restaurant_id].recipe_sales.get(rid, 0) + int(sold_qty)
+                        results[restaurant_id].recipe_sales[rid] = (
+                            results[restaurant_id].recipe_sales.get(rid, 0)
+                            + int(sold_qty)
+                        )
 
         # Application des contraintes de capacité et redistribution
         results = self._apply_capacity_constraints(restaurants, results)
@@ -421,12 +451,6 @@ class MarketEngine:
         except Exception:
             return Decimal('1.00')
 
-            restaurant: Restaurant évalué
-            segment: Segment de marché
-
-        Returns:
-            Facteur qualité (0.5 à 2.0)
-        """
         # NOUVEAU: Utilisation du score de qualité du restaurant
         quality_score = restaurant.get_overall_quality_score()
 
@@ -464,8 +488,6 @@ class MarketEngine:
         reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
         reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
         final_factor += reputation_bonus
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
         return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
 
     def _get_season_name(self, month: int) -> str:
@@ -626,11 +648,14 @@ class MarketEngine:
 
         # Utiliser les ventes par recette si disponibles
         total_revenue = Decimal("0")
+        recipe_revenues: Dict[str, Decimal] = {}
         if result.recipe_sales:
             for rid, sold in result.recipe_sales.items():
                 price = active_menu.get(rid)
                 if price:
-                    total_revenue += price * Decimal(int(sold))
+                    revenue = price * Decimal(int(sold))
+                    total_revenue += revenue
+                    recipe_revenues[rid] = revenue
         else:
             # fallback équitable
             customers_served = result.served_customers
@@ -643,6 +668,7 @@ class MarketEngine:
                     total_revenue += price * recipe_customers
 
         result.revenue = total_revenue
+        result.recipe_revenues = recipe_revenues
 
         # NOUVEAU: Calcul et mise à jour de la satisfaction client
         if result.served_customers > 0:
@@ -743,3 +769,12 @@ class MarketEngine:
             if total_served > 0
             else 0,
         }
+
+    def get_turn_report(self, turn: int = -1) -> Dict[str, any]:
+        """Retourne un rapport détaillé du tour pour affichage."""
+        if not self.turn_history:
+            return {}
+        data = self._last_turn_info.copy()
+        data["results"] = self.turn_history[turn]
+        data["factors"] = self._last_factors_by_restaurant.copy()
+        return data

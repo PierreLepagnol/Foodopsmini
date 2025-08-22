@@ -7,7 +7,9 @@ from decimal import Decimal
 from datetime import date, datetime
 
 from ..core.ledger import Ledger
+from ..core.market import MarketEngine
 from ..domain.restaurant import Restaurant
+from ..domain.recipe import Recipe
 from .console_ui import ConsoleUI
 
 
@@ -397,3 +399,60 @@ class FinancialReports:
         ]
 
         self.ui.print_box(balance_sheet, style="info")
+
+    def show_turn_report(
+        self,
+        market_engine: MarketEngine,
+        recipes: Dict[str, Recipe],
+        restaurants: List[Restaurant],
+    ) -> None:
+        """Affiche un rapport détaillé du tour de marché."""
+        report = market_engine.get_turn_report()
+        if not report:
+            return
+
+        demand_lines = [
+            "📈 DEMANDE ET MODIFICATEURS:",
+            f"• Demande initiale: {report.get('base_demand', 0)}",
+            f"• Bruit: {report.get('noise_factor', 1):.2f}",
+            f"• Modificateur événements: {report.get('event_demand_modifier', 1):.2f}",
+        ]
+        events = report.get("active_events", [])
+        if events:
+            demand_lines.append("• Événements actifs: " + ", ".join(events))
+
+        segment_details = report.get("segment_details", {})
+        for name, det in segment_details.items():
+            demand_lines.append(
+                f"  - {name}: saison {det['seasonal_bonus']:.2f} × événement {det['event_modifier']:.2f} → {det['final']} clients"
+            )
+        self.ui.print_box(demand_lines, style="info")
+
+        name_map = {r.id: r.name for r in restaurants}
+        factors = report.get("factors", {})
+        for rid, res in report.get("results", {}).items():
+            rest_lines = [f"🏪 {name_map.get(rid, rid)}:"]
+            rest_lines.append(
+                f"• Clients servis: {res.served_customers} | perdus: {res.lost_customers}"
+            )
+            if res.recipe_revenues:
+                rest_lines.append("• Revenus par recette:")
+                for rcp_id, rev in res.recipe_revenues.items():
+                    recipe_name = recipes.get(rcp_id).name if rcp_id in recipes else rcp_id
+                    rest_lines.append(f"   - {recipe_name}: {rev:.0f}€")
+            f = factors.get(rid)
+            if f:
+                rest_lines.append(
+                    "• Facteurs satisfaction: "
+                    f"{f.get('type_affinity', 0):.2f} × {f.get('price_factor', 0):.2f} × {f.get('quality_factor', 0):.2f} × {f.get('production_quality_factor', 0):.2f}"
+                )
+            rest_lines.append(f"• Revenu total: {res.revenue:.0f}€")
+            self.ui.print_box(rest_lines, style="success")
+
+        market = market_engine.get_market_analysis()
+        final_lines = [
+            "📊 RÉSULTAT FINAL:",
+            f"• CA total marché: {market.get('total_revenue', 0):.0f}€",
+            f"• Satisfaction de la demande: {market.get('demand_satisfaction', 0):.1%}",
+        ]
+        self.ui.print_box(final_lines, style="warning")
