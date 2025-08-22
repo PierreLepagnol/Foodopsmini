@@ -398,3 +398,22 @@ class Ledger:
             "expenses": expenses,
             "profit": revenues - expenses,
         }
+
+    def check_consistency(self, tolerance: Decimal = Decimal("0.01")) -> bool:
+        """Vérifie la cohérence basique entre résultat et trésorerie.
+
+        Compare la trésorerie disponible (banque + caisse) avec le résultat
+        cumulatif (produits - charges). Une différence trop importante peut
+        indiquer un problème de calcul ou d'enregistrement.
+
+        Args:
+            tolerance: Écart accepté entre résultat et trésorerie.
+
+        Returns:
+            True si l'écart est dans la tolérance, False sinon.
+        """
+
+        cash_balance = self.get_balance("512") + self.get_balance("530")
+        profit_loss = self.get_profit_loss()["profit"]
+        discrepancy = cash_balance - profit_loss
+        return abs(discrepancy) <= tolerance
