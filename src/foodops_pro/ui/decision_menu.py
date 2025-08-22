@@ -7,7 +7,7 @@ from decimal import Decimal
 
 from ..domain.restaurant import Restaurant
 from ..domain.employee import Employee, EmployeePosition, EmployeeContract
-from ..domain.random_events import RandomEventManager
+from ..domain.competition import CompetitionManager
 from ..domain.stock import StockManager
 from ..domain.supplier import Supplier
 from ..core.costing import RecipeCostCalculator
@@ -2418,8 +2418,8 @@ class DecisionMenu:
         self.ui.show_info("Investissements - En développement")
         self.ui.pause()
 
-    def show_random_events(self, event_manager: RandomEventManager) -> None:
-        """Affiche les événements aléatoires actifs."""
+    def show_random_events(self, event_manager: CompetitionManager) -> None:
+        """Affiche les événements de marché actifs."""
         events_summary = event_manager.get_events_summary()
 
         if not events_summary["active_events"]:
@@ -2433,27 +2433,28 @@ class DecisionMenu:
             print(f"\n{event['title']}")
             print(f"   📝 {event['description']}")
             print(f"   📊 Catégorie: {event['category']}")
+            print(f"   📈 Impact: {event['impact']}")
             print(f"   ⏱️ Reste: {event['remaining_turns']} tour(s)")
 
         # Afficher les effets cumulés
-        effects = event_manager.get_current_effects()
+        effects = event_manager.get_market_modifiers()
 
         print(f"\n📈 EFFETS CUMULÉS:")
-        if effects["demand_multiplier"] != 1.0:
-            change = (effects["demand_multiplier"] - 1) * 100
+        if effects["demand_modifier"] != 1.0:
+            change = (effects["demand_modifier"] - 1) * 100
             print(f"   Demande globale: {change:+.0f}%")
 
-        if effects["price_sensitivity"] != 1.0:
-            change = (effects["price_sensitivity"] - 1) * 100
+        if effects["price_sensitivity_modifier"] != 1.0:
+            change = (effects["price_sensitivity_modifier"] - 1) * 100
             print(f"   Sensibilité aux prix: {change:+.0f}%")
 
-        if effects["quality_importance"] != 1.0:
-            change = (effects["quality_importance"] - 1) * 100
+        if effects["quality_importance_modifier"] != 1.0:
+            change = (effects["quality_importance_modifier"] - 1) * 100
             print(f"   Importance de la qualité: {change:+.0f}%")
 
-        if effects["segment_effects"]:
+        if effects["segment_modifiers"]:
             print(f"   Effets par segment:")
-            for segment, multiplier in effects["segment_effects"].items():
+            for segment, multiplier in effects["segment_modifiers"].items():
                 change = (multiplier - 1) * 100
                 print(f"     • {segment}: {change:+.0f}%")
 

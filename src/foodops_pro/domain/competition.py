@@ -383,6 +383,46 @@ class CompetitionManager:
 
         return {}
 
+    # --- Méthodes inspirées de RandomEventManager ---
+    def get_events_summary(self) -> Dict[str, any]:
+        """Retourne un résumé des événements de marché actifs."""
+        return {
+            "active_events": [
+                {
+                    "title": event.name,
+                    "description": event.description,
+                    "category": event.type.value,
+                    "impact": event.impact.value,
+                    "remaining_turns": event.duration_days,
+                }
+                for event in self.active_events
+            ],
+            "total_active": len(self.active_events),
+            "total_history": len(self.event_history),
+        }
+
+    def get_event_notification(self, event: MarketEvent) -> str:
+        """Génère une notification lisible pour un événement."""
+        icons = {
+            EventType.WEATHER: "🌤️",
+            EventType.ECONOMIC: "💰",
+            EventType.SOCIAL: "👥",
+            EventType.COMPETITION: "🏪",
+            EventType.SUPPLY: "📦",
+            EventType.REGULATION: "📋",
+        }
+        icon = icons.get(event.type, "📢")
+
+        notification = f"{icon} ÉVÉNEMENT: {event.name}\n"
+        notification += f"   {event.description}\n"
+        notification += f"   Durée: {event.duration_days} jour(s)\n"
+
+        impact_desc = self.get_event_impact_description(event)
+        if impact_desc and impact_desc != "Aucun impact direct":
+            notification += f"   Effets: {impact_desc}"
+
+        return notification
+
     def get_competition_summary(self) -> Dict[str, any]:
         """Retourne un résumé de l'état de la concurrence."""
         return {
