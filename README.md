@@ -74,12 +74,12 @@ pip install pyyaml pandas pytest
 ```bash
 # Version classique
 python -m src.foodops_pro.cli
-python -m src.foodops_pro.cli --scenario examples/scenarios/base.yaml
+python -m src.foodops_pro.cli --scenario scenarios/base.yaml
 python -m src.foodops_pro.cli --debug --seed 42
 
 # Version Pro (interface enrichie)
 python -m src.foodops_pro.cli_pro
-python -m src.foodops_pro.cli_pro --scenario examples/scenarios/base.yaml
+python -m src.foodops_pro.cli_pro --scenario scenarios/base.yaml
 
 # Mode Administrateur (Professeur)
 python -m src.foodops_pro.cli_pro --admin
@@ -140,8 +140,10 @@ src/foodops_pro/
 │   ├── suppliers.csv    # 8 fournisseurs avec conditions
 │   └── hr_tables.json   # Tables RH françaises
 
-examples/scenarios/
-└── base.yaml
+scenarios/
+├── base.yaml
+├── demo.yaml
+└── standard.yaml
 
 tests/
 ├── test_market_allocation.py
@@ -236,7 +238,7 @@ python -m pytest tests/test_integration.py -v
 ## 🔧 Configuration avancée
 
 ### Scénarios personnalisés
-Modifiez `examples/scenarios/base.yaml` pour :
+Modifiez `scenarios/base.yaml` pour :
 - Ajuster les segments de marché
 - Modifier les taux de TVA
 - Configurer la concurrence IA

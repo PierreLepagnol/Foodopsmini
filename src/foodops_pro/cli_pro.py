@@ -624,6 +624,9 @@ class FoodOpsProGame:
                     lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
                 self.ui.print_box(lines, style='info')
         except Exception as e:
+            if self.admin_mode:
+                print(f"[DEBUG] display factors failed: {e}")
+
         # Chiffres clés par restaurant
         try:
             key_lines = ["📌 Chiffres clés (tour):"]
@@ -653,9 +656,6 @@ class FoodOpsProGame:
         except Exception as e:
             if self.admin_mode:
                 print(f"[DEBUG] key figures failed: {e}")
-
-            if self.admin_mode:
-                print(f"[DEBUG] display factors failed: {e}")
 
         market_analysis = self.market_engine.get_market_analysis()
         analysis_lines = [
