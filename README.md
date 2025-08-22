@@ -14,6 +14,8 @@ Former des futurs entrepreneurs/restaurateurs aux aspects clés de la gestion :
 ## ✨ Fonctionnalités
 
 - **Jeu tour par tour** multi-joueurs (1-4 joueurs sur la même machine)
+- **Serveur léger** pour parties réseau avec synchronisation des tours,
+  classement et mur d'actualité
 - **Modèles réalistes** : 35+ ingrédients, 20+ recettes, fournisseurs, employés
 - **Marché dynamique** avec 3 segments de clientèle et concurrence IA
 - **Comptabilité française** avec TVA (10%, 5.5%, 20%), charges sociales, amortissements
@@ -89,6 +91,25 @@ python start_pro.py        # Version Pro
 python start_admin.py      # Mode Admin
 python start_demo.py       # Démo 3 tours
 ```
+
+## 🌐 Serveur léger
+
+Un petit serveur FastAPI est disponible pour organiser des parties
+réseau. Il synchronise les tours, affiche un classement et propose un
+mur d'actualité pour que les équipes commentent leurs stratégies.
+
+Lancer le serveur :
+
+```bash
+uvicorn foodops_pro.server:app --reload
+```
+
+Les endpoints principaux :
+
+- `POST /join` – rejoindre une session
+- `POST /submit` – envoyer son score de tour
+- `GET /ranking` – consulter le classement actuel
+- `GET/POST /messages` – mur d'actualité
 
 ### Presets de configuration
 
