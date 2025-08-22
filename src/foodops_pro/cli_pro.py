@@ -624,6 +624,8 @@ class FoodOpsProGame:
                     lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
                 self.ui.print_box(lines, style='info')
         except Exception as e:
+            # Ignore les erreurs d'affichage des facteurs pour ne pas interrompre le flux de jeu
+            self.ui.print(f"Erreur analyse attractivité: {e}", style='error')
         # Chiffres clés par restaurant
         try:
             key_lines = ["📌 Chiffres clés (tour):"]
