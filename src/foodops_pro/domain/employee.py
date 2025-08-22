@@ -97,7 +97,7 @@ class Employee:
     @property
     def hourly_rate(self) -> Decimal:
         """Taux horaire brut (base 35h/semaine)."""
-        monthly_hours = Decimal("151.67")  # 35h * 52 semaines / 12 mois
+        monthly_hours = Decimal("140")  # 35h * 4 semaines / mois standard
         return self.effective_salary_monthly / monthly_hours
 
     @property

@@ -13,7 +13,7 @@ Former des futurs entrepreneurs/restaurateurs aux aspects clés de la gestion :
 
 ## ✨ Fonctionnalités
 
-- **Jeu tour par tour** multi-joueurs (1-4 joueurs sur la même machine)
+- **Jeu tour par tour** multi-joueurs (1-4 joueurs sur la même machine, 1 tour = 1 mois standard de 4 semaines de 7 jours, d'autres échelles à venir)
 - **Modèles réalistes** : 35+ ingrédients, 20+ recettes, fournisseurs, employés
 - **Marché dynamique** avec 3 segments de clientèle et concurrence IA
 - **Comptabilité française** avec TVA (10%, 5.5%, 20%), charges sociales, amortissements
