@@ -146,7 +146,7 @@ class MarketEngine:
         try:
             for restaurant in restaurants:
                 units_ready = getattr(restaurant, "production_units_ready", None)
-                if units_ready is None or restaurant.id not in results:
+                if not units_ready or restaurant.id not in results:
                     continue
                 # Approximation: somme des unités prêtes toutes recettes confondues
                 total_units_ready = sum(int(v) for v in units_ready.values())
@@ -170,6 +170,12 @@ class MarketEngine:
 
         # Sauvegarde de l'historique
         self.turn_history.append(results.copy())
+
+        # Permettre aux concurrents de réagir aux parts de marché observées
+        market_shares = {r.id: self.get_market_share(r.id) for r in restaurants}
+        self.competition_manager.apply_competitor_reactions(
+            restaurants, market_shares, current_turn=turn
+        )
 
         return results
 
@@ -340,8 +346,8 @@ class MarketEngine:
             # Prix élevé mais acceptable
             return Decimal("0.4") * (2 - sensitivity)
         else:
-            # Prix trop élevé
-            return Decimal("0.1") * (2 - sensitivity)
+            # Prix trop élevé: la demande disparaît
+            return Decimal("0.0")
 
     def _calculate_quality_factor(
         self, restaurant: Restaurant, segment: MarketSegment
@@ -420,54 +426,7 @@ class MarketEngine:
             return max(Decimal('0.90'), min(Decimal('1.10'), factor))
         except Exception:
             return Decimal('1.00')
-
-            restaurant: Restaurant évalué
-            segment: Segment de marché
-
-        Returns:
-            Facteur qualité (0.5 à 2.0)
-        """
-        # NOUVEAU: Utilisation du score de qualité du restaurant
-        quality_score = restaurant.get_overall_quality_score()
-
-        # Conversion du score qualité (1-5) en facteur d'attractivité
-        if quality_score <= Decimal("1.5"):
-            base_factor = Decimal("0.70")  # -30%
-        elif quality_score <= Decimal("2.5"):
-            base_factor = Decimal("1.00")  # Neutre
-        elif quality_score <= Decimal("3.5"):
-            base_factor = Decimal("1.20")  # +20%
-        elif quality_score <= Decimal("4.5"):
-            base_factor = Decimal("1.40")  # +40%
-        else:
-            base_factor = Decimal("1.60")  # +60%
-
-        # NOUVEAU: Sensibilité à la qualité par segment
-        segment_name = segment.name.lower()
-        quality_sensitivity = Decimal("1.0")
-
-        if "student" in segment_name or "étudiant" in segment_name:
-            quality_sensitivity = Decimal("0.6")  # Moins sensibles
-        elif "foodie" in segment_name or "gourmet" in segment_name:
-            quality_sensitivity = Decimal("1.4")  # Très sensibles
-        elif "family" in segment_name or "famille" in segment_name:
-            quality_sensitivity = Decimal("1.0")  # Sensibilité normale
-
-        # Ajustement selon la sensibilité du segment
-        if base_factor > Decimal("1.0"):
-            bonus = (base_factor - Decimal("1.0")) * quality_sensitivity
-            final_factor = Decimal("1.0") + bonus
-        else:
-            malus = (Decimal("1.0") - base_factor) * quality_sensitivity
-            final_factor = Decimal("1.0") - malus
-        # NOUVEAU: Impact de la réputation
-        reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
-        reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
-        final_factor += reputation_bonus
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
+    
     def _get_season_name(self, month: int) -> str:
         """Retourne le nom de la saison selon le mois."""
         if month in [12, 1, 2]:

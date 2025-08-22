@@ -296,3 +296,33 @@ class TestSegmentAllocation:
         assert (
             total_demand < sample_scenario.base_demand * 0.5
         )  # Moins de 50% de la demande normale
+
+
+class TestCompetitorReactions:
+    """Tests des réactions concurrentielles automatiques."""
+
+    def test_market_share_evolves_with_competition(
+        self, sample_scenario, sample_restaurants
+    ):
+        """Les concurrents ajustent leurs prix lorsque le joueur domine."""
+
+        engine = MarketEngine(sample_scenario, random_seed=42)
+
+        # Rendre le concurrent initialement moins attractif
+        sample_restaurants[1].set_recipe_price("pasta", Decimal("20.0"))
+        sample_restaurants[0].capacity_base = 80
+        sample_restaurants[1].capacity_base = 120
+
+        # Tour 1 : le joueur prend une large part de marché
+        engine.allocate_demand(sample_restaurants, turn=1)
+        share_fast_t1 = engine.get_market_share(sample_restaurants[0].id)
+        share_classic_t1 = engine.get_market_share(sample_restaurants[1].id)
+        assert share_fast_t1 > share_classic_t1
+
+        # Tour 2 : après réaction, la part du concurrent augmente
+        engine.allocate_demand(sample_restaurants, turn=2)
+        share_fast_t2 = engine.get_market_share(sample_restaurants[0].id)
+        share_classic_t2 = engine.get_market_share(sample_restaurants[1].id)
+
+        assert share_classic_t2 > share_classic_t1
+        assert share_fast_t2 < share_fast_t1
