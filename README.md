@@ -198,6 +198,18 @@ Scénarios pédagogiques types :
 - **Marché** : part de marché, satisfaction de la demande
 - **RH** : coût personnel, productivité
 - **Rapports** : compte de résultat, bilan, flux de trésorerie, KPIs et analyse
+- **Rapport de tour** : demande initiale, modificateurs (saison, événements, concurrence), clients servis/perdus, CA par segment et recette, facteurs de satisfaction
+
+### Interpréter le rapport de tour
+
+Après chaque tour, un rapport textuel récapitule :
+
+- la demande initiale et les modificateurs appliqués (saison, événements, concurrence) ;
+- le nombre de clients servis et perdus pour chaque restaurant ;
+- le chiffre d'affaires détaillé par segment de marché et par recette ;
+- les facteurs de satisfaction (affinité de type, sensibilité prix, qualité, qualité de production) et la satisfaction finale.
+
+Ce rapport permet de comprendre l'impact des décisions et du contexte de marché sur la performance du tour.
 
 ## 🧪 Tests
 

@@ -18,6 +18,7 @@ from .core.market import MarketEngine
 from .core.costing import RecipeCostCalculator
 from .ui.console_ui import ConsoleUI
 from .ui.decision_menu import DecisionMenu
+from .ui.financial_reports import FinancialReports
 from .admin.admin_config import AdminConfigManager, AdminSettings
 
 
@@ -62,6 +63,7 @@ class FoodOpsProGame:
         self.market_engine = MarketEngine(self.scenario, self.scenario.random_seed)
         self.cost_calculator = RecipeCostCalculator(self.ingredients)
         self.decision_menu = DecisionMenu(self.ui, self.cost_calculator)
+        self.financial_reports = FinancialReports(self.ui)
         # Injection des catalogues et paramètres admin
         self.decision_menu.set_suppliers_catalog(self.suppliers_catalog)
         self.decision_menu.set_suppliers_map(self.suppliers)
@@ -565,6 +567,8 @@ class FoodOpsProGame:
         results_lines.append("-" * 80)
 
         all_restaurants = self.players + self.ai_competitors
+        factors = getattr(self.market_engine, '_last_factors_by_restaurant', {})
+        market_ctx = getattr(self.market_engine, '_last_market_context', {})
 
         for restaurant in all_restaurants:
             if restaurant.id in results:
@@ -610,7 +614,6 @@ class FoodOpsProGame:
         # Analyse du marché
         # Détails d'attractivité par restaurant
         try:
-            factors = getattr(self.market_engine, '_last_factors_by_restaurant', {})
             if factors:
                 lines = ["🔍 Détails d'attractivité (ce tour):", "(Type × Prix × Qualité × Qualité prod)"]
                 for r in self.players + self.ai_competitors:
@@ -624,6 +627,9 @@ class FoodOpsProGame:
                     lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
                 self.ui.print_box(lines, style='info')
         except Exception as e:
+            if self.admin_mode:
+                print(f"[DEBUG] display factors failed: {e}")
+
         # Chiffres clés par restaurant
         try:
             key_lines = ["📌 Chiffres clés (tour):"]
@@ -654,9 +660,6 @@ class FoodOpsProGame:
             if self.admin_mode:
                 print(f"[DEBUG] key figures failed: {e}")
 
-            if self.admin_mode:
-                print(f"[DEBUG] display factors failed: {e}")
-
         market_analysis = self.market_engine.get_market_analysis()
         analysis_lines = [
             f"📈 ANALYSE DU MARCHÉ:",
@@ -668,6 +671,9 @@ class FoodOpsProGame:
 
         print()
         self.ui.print_box(analysis_lines, style="warning")
+
+        # Rapport détaillé du tour
+        self.financial_reports.show_turn_report(market_ctx, results, factors, all_restaurants)
 
     def _update_restaurants(self, results: Dict) -> None:
         """Met à jour l'état des restaurants après le tour."""
