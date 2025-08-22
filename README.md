@@ -18,6 +18,7 @@ Former des futurs entrepreneurs/restaurateurs aux aspects clés de la gestion :
 - **Marché dynamique** avec 3 segments de clientèle et concurrence IA
 - **Comptabilité française** avec TVA (10%, 5.5%, 20%), charges sociales, amortissements
 - **KPIs métier** : ticket moyen, coût matière, marge, taux de saturation, cash-flow
+- **Gestion par rôles** : chaque participant choisit un rôle (marketing, RH, finance…) avec actions limitées et un résumé collectif des décisions
 - **Données paramétrables** via CSV/JSON et scénarios YAML
 
 ## 🚀 Start & Play (1 clic)
@@ -168,7 +169,9 @@ tests/
 3. **Achat** : choisissez un fonds de commerce (prix, loyer, rénovation, trafic, concurrence)
 4. **Configuration** : nommez votre restaurant, un menu de base est appliqué
 5. **Tour de jeu (décisions enrichies)** :
+   - Chaque participant choisit ou reçoit un rôle qui limite ou met en avant ses actions
    - 📋 Menu & Pricing, 👥 RH, 🛒 Achats, 📈 Marketing, 🏗 Investissements, 💰 Finance, 📊 Rapports
+   - Un résumé commun des décisions est affiché pour validation collective
 6. **Résultats** : demande allouée, clients servis, utilisation, CA, ticket moyen, marges, etc.
 7. **Fin** : classement final par trésorerie et analyses
 
