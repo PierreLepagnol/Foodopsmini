@@ -199,6 +199,18 @@ Scénarios pédagogiques types :
 - **RH** : coût personnel, productivité
 - **Rapports** : compte de résultat, bilan, flux de trésorerie, KPIs et analyse
 
+## ⚠️ Gestion des incohérences de demande
+
+Des écarts peuvent survenir lors de l'ajustement des clients servis en fonction des
+unités prêtes disponibles (mode *production-aware*). Lorsque cela se produit :
+
+- l'erreur est journalisée via `logging` (niveau ERROR),
+- le message est ajouté à `turn_history` dans `AllocationResult.errors` pour chaque
+  restaurant concerné.
+
+Ces informations permettent d'analyser a posteriori les incohérences entre demande
+allouée et service effectif.
+
 ## 🧪 Tests
 
 ```bash

@@ -5,6 +5,7 @@ Moteur de marché et allocation de la demande pour FoodOps Pro.
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from decimal import Decimal
+import logging
 import random
 
 from ..domain.restaurant import Restaurant
@@ -38,6 +39,7 @@ class AllocationResult:
     revenue: Decimal = Decimal("0")
     average_ticket: Decimal = Decimal("0")
     recipe_sales: Dict[str, int] = field(default_factory=dict)
+    errors: List[str] = field(default_factory=list)
 
 
     def __post_init__(self) -> None:
@@ -142,19 +144,25 @@ class MarketEngine:
         # Application des contraintes de capacité et redistribution
         results = self._apply_capacity_constraints(restaurants, results)
 
-        # Si des unités prêtes sont disponibles (production-aware), limiter le servi au minimum(capacité, unités prêtes)
-        try:
-            for restaurant in restaurants:
-                units_ready = getattr(restaurant, "production_units_ready", None)
-                if units_ready is None or restaurant.id not in results:
-                    continue
+        # Si des unités prêtes sont disponibles (production-aware), limiter le servi
+        # au minimum(capacité, unités prêtes). Les erreurs sont journalisées et
+        # stockées pour analyse ultérieure.
+        for restaurant in restaurants:
+            units_ready = getattr(restaurant, "production_units_ready", None)
+            if units_ready is None or restaurant.id not in results:
+                continue
+            try:
                 # Approximation: somme des unités prêtes toutes recettes confondues
                 total_units_ready = sum(int(v) for v in units_ready.values())
                 res = results[restaurant.id]
                 res.served_customers = min(res.served_customers, total_units_ready)
-        except Exception:
-            # En cas d'erreur on garde le comportement classique
-            pass
+            except (TypeError, ValueError, AttributeError) as exc:
+                logging.error(
+                    "Erreur lors de l'ajustement des clients servis pour %s: %s",
+                    restaurant.id,
+                    exc,
+                )
+                results[restaurant.id].errors.append(str(exc))
 
         # S'assurer que la capacité est définie dans les résultats
         for restaurant in restaurants:
