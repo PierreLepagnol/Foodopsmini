@@ -309,15 +309,57 @@ class Restaurant:
         else:
             return "⭐ Économique"
 
-    def update_customer_satisfaction(self, satisfaction: Decimal) -> None:
-        """
-        Met à jour la satisfaction client et la réputation.
+    def update_customer_satisfaction(
+        self,
+        satisfaction: Decimal,
+        *,
+        utilization_rate: Decimal = Decimal("0"),
+        stockout_rate: Decimal = Decimal("0"),
+        price_deviation: Decimal = Decimal("0"),
+    ) -> None:
+        """Met à jour la satisfaction client et la réputation.
+
+        Cette méthode intègre désormais plusieurs facteurs susceptibles
+        d'altérer la perception des clients :
+
+        - ``utilization_rate`` : un taux d'utilisation élevé implique un temps
+          d'attente plus long et diminue la satisfaction.
+        - ``stockout_rate`` : proportion de clients non servis suite à une
+          rupture de stock.
+        - ``price_deviation`` : écart relatif entre le ticket moyen constaté et
+          le prix attendu du menu.
 
         Args:
-            satisfaction: Score de satisfaction (0-5)
+            satisfaction: Score de satisfaction de base (0-5)
+            utilization_rate: Taux d'utilisation de la capacité (0-1)
+            stockout_rate: Part de clients non servis (0-1)
+            price_deviation: Écart relatif du prix moyen (0-1)
         """
+
+        penalty = Decimal("0")
+
+        # Pénalité liée au temps d'attente
+        if utilization_rate > Decimal("0.90"):
+            penalty += Decimal("1.0")
+        elif utilization_rate > Decimal("0.75"):
+            penalty += Decimal("0.5")
+
+        # Pénalité liée aux ruptures de stock
+        if stockout_rate > Decimal("0.30"):
+            penalty += Decimal("1.0")
+        elif stockout_rate > Decimal("0"):
+            penalty += Decimal("0.5")
+
+        # Pénalité liée à la cohérence des prix
+        if price_deviation > Decimal("0.20"):
+            penalty += Decimal("0.5")
+
+        final_satisfaction = max(
+            Decimal("0"), min(Decimal("5"), satisfaction - penalty)
+        )
+
         # Ajouter à l'historique
-        self.customer_satisfaction_history.append(satisfaction)
+        self.customer_satisfaction_history.append(final_satisfaction)
 
         # Garder seulement les 10 dernières mesures
         if len(self.customer_satisfaction_history) > 10:
@@ -326,7 +368,7 @@ class Restaurant:
             ]
 
         # Mise à jour progressive de la réputation
-        target_reputation = satisfaction * 2  # Satisfaction 0-5 -> Réputation 0-10
+        target_reputation = final_satisfaction * 2  # Satisfaction 0-5 -> Réputation 0-10
         reputation_change = (target_reputation - self.reputation) * Decimal("0.15")
         self.reputation = max(
             Decimal("0"), min(Decimal("10"), self.reputation + reputation_change)

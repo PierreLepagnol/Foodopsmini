@@ -259,8 +259,70 @@ def test_strategic_scenarios():
             print(f"    Qualité: {quality_score:.1f}/5")
             print(f"    Clients: {result.served_customers}")
             print(f"    CA: {result.revenue:.0f}€")
-            print(f"    Satisfaction: {resto.get_average_satisfaction():.1f}/5")
+        print(f"    Satisfaction: {resto.get_average_satisfaction():.1f}/5")
 
+
+def test_satisfaction_factors():
+    """Vérifie l'impact de la qualité, du prix et de l'attente sur la réputation."""
+
+    # Baseline : excellente satisfaction
+    resto_base = Restaurant(
+        id="base",
+        name="Base",
+        type=RestaurantType.FAST,
+        capacity_base=50,
+        speed_service=Decimal("1.0"),
+        cash=Decimal("0"),
+        staffing_level=2,
+    )
+    resto_base.update_customer_satisfaction(Decimal("5"))
+    base_rep = resto_base.reputation
+
+    # Prix incohérent
+    resto_price = Restaurant(
+        id="price",
+        name="Price",
+        type=RestaurantType.FAST,
+        capacity_base=50,
+        speed_service=Decimal("1.0"),
+        cash=Decimal("0"),
+        staffing_level=2,
+    )
+    resto_price.update_customer_satisfaction(
+        Decimal("5"), price_deviation=Decimal("0.5")
+    )
+    assert resto_price.customer_satisfaction_history[-1] < Decimal("5")
+    assert resto_price.reputation < base_rep
+
+    # Attente excessive
+    resto_wait = Restaurant(
+        id="wait",
+        name="Wait",
+        type=RestaurantType.FAST,
+        capacity_base=50,
+        speed_service=Decimal("1.0"),
+        cash=Decimal("0"),
+        staffing_level=2,
+    )
+    resto_wait.update_customer_satisfaction(
+        Decimal("5"), utilization_rate=Decimal("0.95")
+    )
+    assert resto_wait.customer_satisfaction_history[-1] < Decimal("5")
+    assert resto_wait.reputation < base_rep
+
+    # Qualité moindre (score de base plus faible)
+    resto_quality = Restaurant(
+        id="quality",
+        name="Quality",
+        type=RestaurantType.FAST,
+        capacity_base=50,
+        speed_service=Decimal("1.0"),
+        cash=Decimal("0"),
+        staffing_level=2,
+    )
+    resto_quality.update_customer_satisfaction(Decimal("3"))
+    assert resto_quality.customer_satisfaction_history[-1] == Decimal("3")
+    assert resto_quality.reputation < base_rep
 
 def main():
     """Test complet du système intégré."""
