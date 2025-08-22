@@ -4,6 +4,7 @@ Gestionnaire de sauvegarde et chargement pour FoodOps Pro.
 
 import json
 import os
+import importlib
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -11,7 +12,13 @@ from dataclasses import asdict
 from decimal import Decimal
 
 from ..domain.restaurant import Restaurant
-from ..domain.scenario import Scenario
+from ..domain.scenario import Scenario, MarketSegment
+
+# Mapping des classes autorisées pour la désérialisation
+ALLOWED_CLASS_MODULES = {
+    "src.foodops_pro.domain.restaurant": {"Restaurant"},
+    "src.foodops_pro.domain.scenario": {"Scenario", "MarketSegment"},
+}
 
 
 class SaveManager:
@@ -159,21 +166,20 @@ class SaveManager:
         elif isinstance(data, Decimal):
             return float(data)
         elif hasattr(data, "__dict__"):
-            # Objet avec attributs - convertir en dictionnaire
             if hasattr(data, "__dataclass_fields__"):
-                # Dataclass
                 return {
                     "__class__": data.__class__.__name__,
                     "__module__": data.__class__.__module__,
-                    **self._prepare_for_serialization(asdict(data)),
+                    **{
+                        field: self._prepare_for_serialization(getattr(data, field))
+                        for field in data.__dataclass_fields__
+                    },
                 }
-            else:
-                # Objet normal
-                return {
-                    "__class__": data.__class__.__name__,
-                    "__module__": data.__class__.__module__,
-                    **self._prepare_for_serialization(data.__dict__),
-                }
+            return {
+                "__class__": data.__class__.__name__,
+                "__module__": data.__class__.__module__,
+                **self._prepare_for_serialization(data.__dict__),
+            }
         else:
             return data
 
@@ -181,24 +187,37 @@ class SaveManager:
         """Restaure les données depuis la sérialisation JSON."""
         if isinstance(data, dict):
             if "__class__" in data and "__module__" in data:
-                # Objet sérialisé - pour l'instant, retourner comme dictionnaire
-                # TODO: Implémenter la désérialisation complète des objets
+                module_name = data["__module__"]
+                class_name = data["__class__"]
+
                 restored_data = {
                     key: self._restore_from_serialization(value)
                     for key, value in data.items()
-                    if key not in ["__class__", "__module__"]
+                    if key not in {"__class__", "__module__"}
                 }
-                restored_data["__original_class__"] = data["__class__"]
+
+                if (
+                    module_name in ALLOWED_CLASS_MODULES
+                    and class_name in ALLOWED_CLASS_MODULES[module_name]
+                ):
+                    try:
+                        module = importlib.import_module(module_name)
+                        cls = getattr(module, class_name)
+                        return cls(**restored_data)
+                    except Exception:
+                        pass
+
+                restored_data["__original_class__"] = class_name
                 return restored_data
-            else:
-                return {
-                    key: self._restore_from_serialization(value)
-                    for key, value in data.items()
-                }
-        elif isinstance(data, list):
+            return {
+                key: self._restore_from_serialization(value)
+                for key, value in data.items()
+            }
+        if isinstance(data, list):
             return [self._restore_from_serialization(item) for item in data]
-        else:
-            return data
+        if isinstance(data, float):
+            return Decimal(str(data))
+        return data
 
     def export_save(self, save_name: str, export_path: str) -> bool:
         """
