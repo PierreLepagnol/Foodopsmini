@@ -8,12 +8,17 @@ from datetime import date, timedelta
 
 from src.foodops_pro.domain.ingredient import Ingredient
 from src.foodops_pro.domain.recipe import Recipe, RecipeItem
-from src.foodops_pro.domain.stock import StockLot
+from src.foodops_pro.domain.stock import StockLot, StockManager
+from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
 from src.foodops_pro.core.costing import (
     RecipeCostCalculator,
     CostBreakdown,
     IngredientCost,
 )
+from src.foodops_pro.core.production import execute_manual_production_plan
+from src.foodops_pro.core.ledger import Ledger
+from src.foodops_pro.ui.financial_reports import FinancialReports
+from src.foodops_pro.ui.console_ui import ConsoleUI
 
 
 @pytest.fixture
@@ -323,6 +328,113 @@ class TestRecipeCostCalculator:
             assert suggestion["current_cost"] >= Decimal("0")
             assert suggestion["percentage_of_total"] >= Decimal("0")
             assert suggestion["reduction_potential"] >= Decimal("0")
+
+    def test_production_cost_coherence(
+        self, sample_ingredients, sample_recipe
+    ):
+        """Vérifie la cohérence entre coût de production et rapports."""
+        # Préparer stock manager avec lots spécifiques
+        today = date.today()
+        stock_manager = StockManager()
+        # Lots de test (incluant le pain)
+        stock_manager.add_lot(
+            StockLot(
+                ingredient_id="beef",
+                quantity=Decimal("3.0"),
+                dlc=today + timedelta(days=2),
+                unit_cost_ht=Decimal("7.50"),
+                vat_rate=Decimal("0.055"),
+                supplier_id="s1",
+                received_date=today,
+            )
+        )
+        stock_manager.add_lot(
+            StockLot(
+                ingredient_id="cheese",
+                quantity=Decimal("1.0"),
+                dlc=today + timedelta(days=20),
+                unit_cost_ht=Decimal("13.00"),
+                vat_rate=Decimal("0.055"),
+                supplier_id="s1",
+                received_date=today,
+            )
+        )
+        stock_manager.add_lot(
+            StockLot(
+                ingredient_id="bread",
+                quantity=Decimal("10"),
+                dlc=today + timedelta(days=2),
+                unit_cost_ht=Decimal("0.30"),
+                vat_rate=Decimal("0.055"),
+                supplier_id="s1",
+                received_date=today,
+            )
+        )
+
+        # Restaurant minimal avec plan de production
+        restaurant = Restaurant(
+            id="r1",
+            name="Test",
+            type=RestaurantType.FAST,
+            capacity_base=10,
+            speed_service=Decimal("1.0"),
+        )
+        restaurant.stock_manager = stock_manager
+        restaurant.production_plan_draft = {
+            sample_recipe.id: {"qty": 1, "size": "L", "quality": Decimal("1.0")}
+        }
+
+        execute_manual_production_plan(restaurant, {sample_recipe.id: sample_recipe})
+
+        # Coût de production par portion attendu
+        cost_pp = restaurant.production_cost_per_portion[sample_recipe.id]
+
+        # Comparer avec calculateur de recette
+        lots_for_calc = [
+            StockLot(
+                ingredient_id="beef",
+                quantity=Decimal("3.0"),
+                dlc=today + timedelta(days=2),
+                unit_cost_ht=Decimal("7.50"),
+                vat_rate=Decimal("0.055"),
+                supplier_id="s1",
+                received_date=today,
+            ),
+            StockLot(
+                ingredient_id="cheese",
+                quantity=Decimal("1.0"),
+                dlc=today + timedelta(days=20),
+                unit_cost_ht=Decimal("13.00"),
+                vat_rate=Decimal("0.055"),
+                supplier_id="s1",
+                received_date=today,
+            ),
+            StockLot(
+                ingredient_id="bread",
+                quantity=Decimal("10"),
+                dlc=today + timedelta(days=2),
+                unit_cost_ht=Decimal("0.30"),
+                vat_rate=Decimal("0.055"),
+                supplier_id="s1",
+                received_date=today,
+            ),
+        ]
+        calculator = RecipeCostCalculator(sample_ingredients)
+        breakdown = calculator.calculate_recipe_cost(sample_recipe, lots_for_calc)
+        assert abs(cost_pp - breakdown.cost_per_portion.quantize(Decimal("0.01"))) < Decimal(
+            "0.01"
+        )
+
+        # Vérifier intégration dans rapports financiers
+        ledger = Ledger()
+        reports = FinancialReports(ConsoleUI())
+        pnl = ledger.get_profit_loss()
+        balance = ledger.get_trial_balance()
+        metrics = reports._calculate_detailed_metrics(restaurant, pnl, balance)
+        expected_total_cost = cost_pp * Decimal(
+            restaurant.production_produced_units[sample_recipe.id]
+        )
+        assert metrics["achats_mp"] == expected_total_cost
 
 
 class TestIngredientCost:
