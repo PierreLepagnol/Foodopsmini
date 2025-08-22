@@ -18,6 +18,9 @@ Former des futurs entrepreneurs/restaurateurs aux aspects clés de la gestion :
 - **Marché dynamique** avec 3 segments de clientèle et concurrence IA
 - **Comptabilité française** avec TVA (10%, 5.5%, 20%), charges sociales, amortissements
 - **KPIs métier** : ticket moyen, coût matière, marge, taux de saturation, cash-flow
+- **Banque d'événements modulables** (fêtes locales, grèves, etc.)
+- **Éditeur de scénarios** pour créer rapidement de nouveaux contextes
+- **Campagne progressive** avec déblocage de fonctionnalités
 - **Données paramétrables** via CSV/JSON et scénarios YAML
 
 ## 🚀 Start & Play (1 clic)

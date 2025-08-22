@@ -1,0 +1,23 @@
+name: "Scénario Événements"
+description: "Exemple intégrant une banque d'événements et progression"
+turns: 6
+base_demand: 300
+demand_noise: 0.1
+ai_competitors: 1
+segments:
+  - name: "Général"
+    share: 1.0
+    budget: 15.0
+    price_sensitivity: 1.0
+    quality_sensitivity: 1.0
+    type_affinity:
+      fast: 1.0
+      classic: 1.0
+      gastronomique: 1.0
+      brasserie: 1.0
+events:
+  - local_festival
+  - strike
+new_features:
+  - "Gestion des stocks"
+  - "RH avancé"

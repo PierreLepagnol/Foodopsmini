@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 from decimal import Decimal
 
 from .restaurant import RestaurantType
+from .events import Event
 
 
 @dataclass(frozen=True)
@@ -27,10 +28,11 @@ class MarketSegment:
     name: str
     share: Decimal
     budget: Decimal
-    type_affinity: Dict[RestaurantType, Decimal]
+    type_affinity: Dict[RestaurantType, Decimal] = field(default_factory=dict)
     price_sensitivity: Decimal = Decimal("1.0")
     quality_sensitivity: Decimal = Decimal("1.0")
     seasonality: Dict[int, Decimal] = field(default_factory=dict)
+    type_preferences: Optional[Dict[RestaurantType, Decimal]] = None
 
     def __post_init__(self) -> None:
         """Validation des données."""
@@ -46,6 +48,10 @@ class MarketSegment:
             raise ValueError(
                 f"La sensibilité qualité doit être entre 0 et 2: {self.quality_sensitivity}"
             )
+
+        # Gérer l'alias type_preferences pour compatibilité
+        if self.type_preferences and not self.type_affinity:
+            object.__setattr__(self, "type_affinity", self.type_preferences)
 
         # Validation des affinités
         for restaurant_type, affinity in self.type_affinity.items():
@@ -114,6 +120,8 @@ class Scenario:
     interest_rate: Decimal = Decimal("0.05")
     ai_competitors: int = 2
     random_seed: Optional[int] = None
+    events: List[Event] = field(default_factory=list)
+    new_features: List[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         """Validation des données."""

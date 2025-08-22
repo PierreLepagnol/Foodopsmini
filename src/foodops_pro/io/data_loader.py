@@ -18,6 +18,7 @@ from ..domain.recipe import Recipe, RecipeItem
 from ..domain.supplier import Supplier
 from ..domain.restaurant import RestaurantType
 from ..domain.scenario import Scenario, MarketSegment
+from ..domain.events import EventBank
 
 
 class DataLoader:
@@ -64,6 +65,11 @@ class DataLoader:
                 ingredients[ingredient.id] = ingredient
 
         return ingredients
+
+    def load_events(self) -> EventBank:
+        """Charge la banque d'événements depuis le fichier YAML."""
+        events_path = self.data_path / "events.yaml"
+        return EventBank.from_yaml(events_path)
 
     def load_recipes(self) -> Dict[str, Recipe]:
         """
@@ -414,6 +420,13 @@ class DataLoader:
         for contract_type, rate in data.get("social_charges", {}).items():
             social_charges[contract_type] = Decimal(str(rate))
 
+        event_bank = self.load_events()
+        events = []
+        for event_id in data.get("events", []):
+            event = event_bank.get(event_id)
+            if event:
+                events.append(event)
+
         scenario = Scenario(
             name=data["name"],
             description=data["description"],
@@ -426,6 +439,8 @@ class DataLoader:
             interest_rate=Decimal(str(data.get("interest_rate", 0.05))),
             ai_competitors=data.get("ai_competitors", 2),
             random_seed=data.get("random_seed"),
+            events=events,
+            new_features=data.get("new_features", []),
         )
 
         return scenario
