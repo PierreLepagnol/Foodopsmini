@@ -1,8 +1,7 @@
-"""
-Menu de décisions enrichi pour FoodOps Pro.
-"""
+"""Menu de décisions enrichi pour FoodOps Pro."""
 
 from typing import Dict, List, Optional, Tuple
+from enum import Enum
 from decimal import Decimal
 
 from ..domain.restaurant import Restaurant
@@ -14,6 +13,29 @@ from ..core.costing import RecipeCostCalculator
 from ..core.procurement import ProcurementPlanner, ReceivingService, POLine
 from .console_ui import ConsoleUI
 from .financial_reports import FinancialReports
+
+
+class PlayerRole(str, Enum):
+    """Rôles possibles pour les participants."""
+
+    GENERAL_MANAGER = "Direction générale"
+    PRODUCTION = "Responsable production"
+    HR = "Responsable RH"
+    PURCHASING = "Responsable achats"
+    MARKETING = "Responsable marketing"
+    FINANCE = "Directeur financier"
+    ANALYST = "Analyste"
+
+
+ROLE_MENU_OPTIONS = {
+    PlayerRole.GENERAL_MANAGER: {1, 2, 3, 4, 5, 6, 7, 8, 9},
+    PlayerRole.PRODUCTION: {2, 9},
+    PlayerRole.HR: {3, 9},
+    PlayerRole.PURCHASING: {4, 9},
+    PlayerRole.MARKETING: {5, 9},
+    PlayerRole.FINANCE: {7, 9},
+    PlayerRole.ANALYST: {8, 9},
+}
 
 
 class DecisionMenu:
@@ -45,26 +67,32 @@ class DecisionMenu:
     def cache_available_recipes(self, recipes: Dict[str, any]) -> None:
         self._available_recipes_cache = recipes or {}
 
+    def _select_role(self) -> PlayerRole:
+        """Permet au participant de choisir son rôle."""
+        options = [role.value for role in PlayerRole]
+        choice = self.ui.show_menu("Sélectionnez votre rôle", options, allow_back=False)
+        return list(PlayerRole)[choice - 1]
+
     def show_decision_menu(
         self,
         restaurant: Restaurant,
         turn: int,
         available_recipes: Dict,
         available_employees: List = None,
+        role: Optional[PlayerRole] = None,
     ) -> Dict[str, any]:
-        """
-        Affiche le menu de décisions principal et retourne les choix du joueur.
+        """Affiche le menu de décisions principal et retourne les choix du joueur."""
 
-        Returns:
-            Dict contenant toutes les décisions prises
-        """
-        decisions = {}
+        role = role or self._select_role()
+        allowed_options = ROLE_MENU_OPTIONS.get(role, {9})
+
+        decisions: Dict[str, any] = {}
 
         while True:
             self.ui.clear_screen()
             self._show_restaurant_status(restaurant, turn)
 
-            menu_options = [
+            all_options = [
                 "📋 Menu & Pricing",
                 "👨‍🍳 Production & Mise en place",
                 "👥 Ressources Humaines",
@@ -76,35 +104,43 @@ class DecisionMenu:
                 "✅ Valider et passer au tour suivant",
             ]
 
+            display_options: List[str] = []
+            option_map: List[int] = []
+            for idx, opt in enumerate(all_options, 1):
+                if idx in allowed_options:
+                    display_options.append(opt)
+                    option_map.append(idx)
+
             choice = self.ui.show_menu(
                 f"DÉCISIONS - TOUR {turn} - {restaurant.name}",
-                menu_options,
+                display_options,
                 allow_back=False,
             )
 
-            if choice == 1:
+            selected = option_map[choice - 1]
+
+            if selected == 1:
                 self._menu_pricing_decisions(restaurant, available_recipes, decisions)
-            elif choice == 2:
+            elif selected == 2:
                 self._production_decisions(restaurant)
-            elif choice == 3:
+            elif selected == 3:
                 self._hr_decisions(restaurant, available_employees, decisions)
-            elif choice == 4:
+            elif selected == 4:
                 self._purchasing_decisions(restaurant, decisions)
-            elif choice == 5:
+            elif selected == 5:
                 self._marketing_decisions(restaurant, decisions)
-            elif choice == 6:
+            elif selected == 6:
                 self._investment_decisions(restaurant, decisions)
-            elif choice == 7:
+            elif selected == 7:
                 self._finance_decisions(restaurant, decisions)
-            elif choice == 8:
+            elif selected == 8:
                 self._reports_decisions(restaurant, decisions)
-            elif choice == 9:
-                if self._confirm_end_turn():
+            elif selected == 9:
+                if self._validate_decisions(restaurant, decisions):
                     break
-                else:
-                    continue
             else:
                 continue
+        return decisions
     def _production_decisions(self, restaurant,):
         """Saisie du plan de production manuel par recettes (taille, quantité, qualité)."""
         self.ui.clear_screen()
@@ -140,9 +176,6 @@ class DecisionMenu:
             qty = self.ui.ask_int("Quantité de portions à produire", min_val=0, default=int(draft.get(rid, {}).get("qty", 0) or 0))
             quality = self.ui.get_input("Qualité (0.5 à 1.5)", float, min_val=0.5, max_val=1.5, default=float(draft.get(rid, {}).get("quality", 1.0)))
             draft[rid] = {"size": size_val, "qty": qty, "quality": quality}
-
-
-        return decisions
 
     def _show_restaurant_status(self, restaurant: Restaurant, turn: int) -> None:
         """Affiche le statut actuel du restaurant."""
