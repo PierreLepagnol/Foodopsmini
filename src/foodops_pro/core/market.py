@@ -3,7 +3,7 @@ Moteur de marché et allocation de la demande pour FoodOps Pro.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from decimal import Decimal
 import random
 
@@ -38,6 +38,8 @@ class AllocationResult:
     revenue: Decimal = Decimal("0")
     average_ticket: Decimal = Decimal("0")
     recipe_sales: Dict[str, int] = field(default_factory=dict)
+    segment_demand: Dict[str, int] = field(default_factory=dict)
+    segment_revenue: Dict[str, Decimal] = field(default_factory=dict)
 
 
     def __post_init__(self) -> None:
@@ -74,6 +76,7 @@ class MarketEngine:
         """
         # Exposition des facteurs pour affichage des résultats
         self._last_factors_by_restaurant: Dict[str, Dict[str, Decimal]] = {}
+        self._last_market_context: Dict[str, Any] = {}
 
         self.scenario = scenario
         self.rng = random.Random(random_seed or scenario.random_seed)
@@ -110,6 +113,16 @@ class MarketEngine:
         event_demand_modifier = float(market_modifiers["demand_modifier"])
         total_demand = int(base_demand * noise_factor * event_demand_modifier)
 
+        # Sauvegarde du contexte de marché pour rapports
+        self._last_market_context = {
+            "base_demand": base_demand,
+            "noise_factor": Decimal(str(noise_factor)),
+            "event_modifier": Decimal(str(event_demand_modifier)),
+            "total_demand": total_demand,
+            "season": current_season,
+            "events": new_events,
+        }
+
         # Allocation par segment de marché
         results = {}
         total_allocated = 0
@@ -133,11 +146,18 @@ class MarketEngine:
                     )
 
                 results[restaurant_id].allocated_demand += allocation["demand"]
+                results[restaurant_id].segment_demand[segment.name] = (
+                    results[restaurant_id].segment_demand.get(segment.name, 0)
+                    + allocation["demand"]
+                )
                 total_allocated += allocation["demand"]
                 # NOUVEAU: ventes par recette si disponibles
                 if "recipe_sales" in allocation:
                     for rid, sold_qty in allocation["recipe_sales"].items():
-                        results[restaurant_id].recipe_sales[rid] = results[restaurant_id].recipe_sales.get(rid, 0) + int(sold_qty)
+                        results[restaurant_id].recipe_sales[rid] = (
+                            results[restaurant_id].recipe_sales.get(rid, 0)
+                            + int(sold_qty)
+                        )
 
         # Application des contraintes de capacité et redistribution
         results = self._apply_capacity_constraints(restaurants, results)
@@ -421,53 +441,6 @@ class MarketEngine:
         except Exception:
             return Decimal('1.00')
 
-            restaurant: Restaurant évalué
-            segment: Segment de marché
-
-        Returns:
-            Facteur qualité (0.5 à 2.0)
-        """
-        # NOUVEAU: Utilisation du score de qualité du restaurant
-        quality_score = restaurant.get_overall_quality_score()
-
-        # Conversion du score qualité (1-5) en facteur d'attractivité
-        if quality_score <= Decimal("1.5"):
-            base_factor = Decimal("0.70")  # -30%
-        elif quality_score <= Decimal("2.5"):
-            base_factor = Decimal("1.00")  # Neutre
-        elif quality_score <= Decimal("3.5"):
-            base_factor = Decimal("1.20")  # +20%
-        elif quality_score <= Decimal("4.5"):
-            base_factor = Decimal("1.40")  # +40%
-        else:
-            base_factor = Decimal("1.60")  # +60%
-
-        # NOUVEAU: Sensibilité à la qualité par segment
-        segment_name = segment.name.lower()
-        quality_sensitivity = Decimal("1.0")
-
-        if "student" in segment_name or "étudiant" in segment_name:
-            quality_sensitivity = Decimal("0.6")  # Moins sensibles
-        elif "foodie" in segment_name or "gourmet" in segment_name:
-            quality_sensitivity = Decimal("1.4")  # Très sensibles
-        elif "family" in segment_name or "famille" in segment_name:
-            quality_sensitivity = Decimal("1.0")  # Sensibilité normale
-
-        # Ajustement selon la sensibilité du segment
-        if base_factor > Decimal("1.0"):
-            bonus = (base_factor - Decimal("1.0")) * quality_sensitivity
-            final_factor = Decimal("1.0") + bonus
-        else:
-            malus = (Decimal("1.0") - base_factor) * quality_sensitivity
-            final_factor = Decimal("1.0") - malus
-        # NOUVEAU: Impact de la réputation
-        reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
-        reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
-        final_factor += reputation_bonus
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
     def _get_season_name(self, month: int) -> str:
         """Retourne le nom de la saison selon le mois."""
         if month in [12, 1, 2]:
@@ -485,7 +458,7 @@ class MarketEngine:
 
         Args:
             segment_name: Nom du segment
-            month: Mois de l'année (1-12)
+            month: Mois de l'annee (1-12)
 
         Returns:
             Multiplicateur saisonnier (0.8 à 1.3)
@@ -643,6 +616,22 @@ class MarketEngine:
                     total_revenue += price * recipe_customers
 
         result.revenue = total_revenue
+
+        # Répartition approximative du CA par segment
+        if result.segment_demand:
+            total_allocated = sum(result.segment_demand.values())
+            result.segment_revenue = {}
+            for seg, alloc in result.segment_demand.items():
+                if total_allocated > 0 and result.served_customers > 0:
+                    served_seg = (
+                        Decimal(result.served_customers) * Decimal(alloc) / Decimal(total_allocated)
+                    )
+                    revenue_seg = (
+                        result.revenue * served_seg / Decimal(result.served_customers)
+                    )
+                else:
+                    revenue_seg = Decimal("0")
+                result.segment_revenue[seg] = revenue_seg
 
         # NOUVEAU: Calcul et mise à jour de la satisfaction client
         if result.served_customers > 0:

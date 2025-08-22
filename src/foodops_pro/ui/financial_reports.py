@@ -7,6 +7,7 @@ from decimal import Decimal
 from datetime import date, datetime
 
 from ..core.ledger import Ledger
+from ..core.market import AllocationResult
 from ..domain.restaurant import Restaurant
 from .console_ui import ConsoleUI
 
@@ -397,3 +398,77 @@ class FinancialReports:
         ]
 
         self.ui.print_box(balance_sheet, style="info")
+
+    def show_turn_report(
+        self,
+        market_ctx: Dict,
+        results: Dict[str, AllocationResult],
+        factors: Dict[str, Dict[str, Decimal]],
+        restaurants: List[Restaurant],
+    ) -> None:
+        """Affiche un rapport texte détaillé pour le tour courant."""
+
+        lines: List[str] = ["RAPPORT DU TOUR:"]
+
+        base = market_ctx.get("base_demand", 0)
+        total = market_ctx.get("total_demand", 0)
+        noise = market_ctx.get("noise_factor", Decimal("1"))
+        event_mod = market_ctx.get("event_modifier", Decimal("1"))
+        season = market_ctx.get("season")
+        events = market_ctx.get("events", []) or []
+
+        lines.append(f"Demande initiale: {base}")
+        lines.append(
+            f"Modificateurs: bruit x{Decimal(noise):.2f}, événements x{Decimal(event_mod):.2f}"
+            + (f", saison {season}" if season else "")
+        )
+        for ev in events:
+            try:
+                lines.append(f"  Événement: {ev.name}")
+            except AttributeError:
+                lines.append(f"  Événement: {ev}")
+        lines.append(f"Demande totale ajustée: {total}")
+
+        for r in restaurants:
+            res = results.get(r.id)
+            if not res:
+                continue
+            lines.append("")
+            lines.append(f"{r.name}:")
+            lines.append(
+                f"  Clients servis: {res.served_customers} / {res.allocated_demand}"
+            )
+            lines.append(f"  Clients perdus: {res.lost_customers}")
+
+            if res.segment_revenue:
+                lines.append("  Revenus par segment:")
+                for seg, rev in res.segment_revenue.items():
+                    lines.append(f"    - {seg}: {rev:.0f}€")
+
+            if res.recipe_sales:
+                lines.append("  Revenus par recette:")
+                menu = r.get_active_menu()
+                for rid, qty in res.recipe_sales.items():
+                    price = menu.get(rid, Decimal("0"))
+                    lines.append(
+                        f"    - {rid}: {qty}×{price:.2f}€ = {(price * Decimal(qty)):.0f}€"
+                    )
+
+            f = factors.get(r.id, {})
+            if f:
+                lines.append("  Facteurs satisfaction:")
+                lines.append(
+                    "    Type {ta:.2f}, Prix {pf:.2f}, Qualité {qf:.2f}, Prod {pq:.2f}".format(
+                        ta=f.get("type_affinity", 0),
+                        pf=f.get("price_factor", 0),
+                        qf=f.get("quality_factor", 0),
+                        pq=f.get("production_quality_factor", 1),
+                    )
+                )
+
+            lines.append(
+                f"  Satisfaction finale: {r.get_average_satisfaction():.1f}/5"
+            )
+            lines.append(f"  CA total: {res.revenue:.0f}€")
+
+        self.ui.print_box(lines, style="info")
