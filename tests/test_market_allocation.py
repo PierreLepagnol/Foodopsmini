@@ -208,7 +208,9 @@ class TestMarketEngine:
         assert len(engine.turn_history) == 3
 
         for i, turn_data in enumerate(engine.turn_history):
-            assert len(turn_data) == len(sample_restaurants)
+            assert turn_data["turn"] == i + 1
+            assert len(turn_data["results"]) == len(sample_restaurants)
+            assert "errors" in turn_data
 
     def test_market_analysis(self, sample_scenario, sample_restaurants):
         """Test de l'analyse de marché."""

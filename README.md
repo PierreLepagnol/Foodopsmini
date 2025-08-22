@@ -267,6 +267,13 @@ Modifiez les fichiers CSV dans `src/foodops_pro/data/` :
 - Analyse concurrentielle
 - Gestion de la capacité
 
+## 🛠️ Gestion des erreurs d'allocation
+
+En cas de données incohérentes (ex. attribut `production_units_ready` invalide),
+le moteur de marché consigne l'erreur avec `logging` et l'ajoute à
+`turn_history` dans le champ `errors` du tour correspondant. Ces informations
+permettent d'analyser a posteriori les incohérences éventuelles.
+
 ## 📝 TODO et améliorations
 
 - [ ] Achats & Stocks complets (FEFO visible dans le CLI Pro)
