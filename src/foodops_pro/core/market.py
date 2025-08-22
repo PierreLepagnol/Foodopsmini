@@ -3,9 +3,10 @@ Moteur de marché et allocation de la demande pour FoodOps Pro.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from decimal import Decimal
 import random
+import logging
 
 from ..domain.restaurant import Restaurant
 from ..domain.scenario import Scenario, MarketSegment
@@ -77,7 +78,8 @@ class MarketEngine:
 
         self.scenario = scenario
         self.rng = random.Random(random_seed or scenario.random_seed)
-        self.turn_history: List[Dict[str, AllocationResult]] = []
+        # Historique détaillé des tours: [{"turn": int, "results": Dict[str, AllocationResult], "errors": List[str]}]
+        self.turn_history: List[Dict[str, Any]] = []
         self.seasonality_manager = SeasonalityManager()  # Gestionnaire saisonnalité
         self.competition_manager = CompetitionManager(
             random_seed
@@ -143,6 +145,7 @@ class MarketEngine:
         results = self._apply_capacity_constraints(restaurants, results)
 
         # Si des unités prêtes sont disponibles (production-aware), limiter le servi au minimum(capacité, unités prêtes)
+        errors: List[str] = []
         try:
             for restaurant in restaurants:
                 units_ready = getattr(restaurant, "production_units_ready", None)
@@ -152,9 +155,11 @@ class MarketEngine:
                 total_units_ready = sum(int(v) for v in units_ready.values())
                 res = results[restaurant.id]
                 res.served_customers = min(res.served_customers, total_units_ready)
-        except Exception:
-            # En cas d'erreur on garde le comportement classique
-            pass
+        except (AttributeError, TypeError, ValueError) as exc:
+            logging.getLogger(__name__).error(
+                "Erreur lors de l'application des unités de production", exc_info=True
+            )
+            errors.append(str(exc))
 
         # S'assurer que la capacité est définie dans les résultats
         for restaurant in restaurants:
@@ -168,8 +173,9 @@ class MarketEngine:
                     restaurant, results[restaurant.id]
                 )
 
-        # Sauvegarde de l'historique
-        self.turn_history.append(results.copy())
+        # Sauvegarde de l'historique avec erreurs éventuelles
+        turn_data = {"turn": turn, "results": results.copy(), "errors": errors}
+        self.turn_history.append(turn_data)
 
         return results
 
@@ -421,53 +427,6 @@ class MarketEngine:
         except Exception:
             return Decimal('1.00')
 
-            restaurant: Restaurant évalué
-            segment: Segment de marché
-
-        Returns:
-            Facteur qualité (0.5 à 2.0)
-        """
-        # NOUVEAU: Utilisation du score de qualité du restaurant
-        quality_score = restaurant.get_overall_quality_score()
-
-        # Conversion du score qualité (1-5) en facteur d'attractivité
-        if quality_score <= Decimal("1.5"):
-            base_factor = Decimal("0.70")  # -30%
-        elif quality_score <= Decimal("2.5"):
-            base_factor = Decimal("1.00")  # Neutre
-        elif quality_score <= Decimal("3.5"):
-            base_factor = Decimal("1.20")  # +20%
-        elif quality_score <= Decimal("4.5"):
-            base_factor = Decimal("1.40")  # +40%
-        else:
-            base_factor = Decimal("1.60")  # +60%
-
-        # NOUVEAU: Sensibilité à la qualité par segment
-        segment_name = segment.name.lower()
-        quality_sensitivity = Decimal("1.0")
-
-        if "student" in segment_name or "étudiant" in segment_name:
-            quality_sensitivity = Decimal("0.6")  # Moins sensibles
-        elif "foodie" in segment_name or "gourmet" in segment_name:
-            quality_sensitivity = Decimal("1.4")  # Très sensibles
-        elif "family" in segment_name or "famille" in segment_name:
-            quality_sensitivity = Decimal("1.0")  # Sensibilité normale
-
-        # Ajustement selon la sensibilité du segment
-        if base_factor > Decimal("1.0"):
-            bonus = (base_factor - Decimal("1.0")) * quality_sensitivity
-            final_factor = Decimal("1.0") + bonus
-        else:
-            malus = (Decimal("1.0") - base_factor) * quality_sensitivity
-            final_factor = Decimal("1.0") - malus
-        # NOUVEAU: Impact de la réputation
-        reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
-        reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
-        final_factor += reputation_bonus
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
     def _get_season_name(self, month: int) -> str:
         """Retourne le nom de la saison selon le mois."""
         if month in [12, 1, 2]:
@@ -697,8 +656,10 @@ class MarketEngine:
         if not self.turn_history:
             return Decimal("0")
 
-        turn_data = self.turn_history[turn]
-        total_customers = sum(result.served_customers for result in turn_data.values())
+        turn_data = self.turn_history[turn]["results"]
+        total_customers = sum(
+            result.served_customers for result in turn_data.values()
+        )
 
         if total_customers == 0:
             return Decimal("0")
@@ -721,10 +682,14 @@ class MarketEngine:
         if not self.turn_history:
             return {}
 
-        turn_data = self.turn_history[turn]
+        turn_data = self.turn_history[turn]["results"]
 
-        total_demand = sum(result.allocated_demand for result in turn_data.values())
-        total_served = sum(result.served_customers for result in turn_data.values())
+        total_demand = sum(
+            result.allocated_demand for result in turn_data.values()
+        )
+        total_served = sum(
+            result.served_customers for result in turn_data.values()
+        )
         total_capacity = sum(result.capacity for result in turn_data.values())
         total_revenue = sum(result.revenue for result in turn_data.values())
 
