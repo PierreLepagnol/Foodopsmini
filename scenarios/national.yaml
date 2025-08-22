@@ -1,0 +1,79 @@
+name: "Chaîne Nationale"
+description: "Expansion à l'échelle nationale"
+difficulty: "difficile"
+
+# Configuration du marché
+market:
+  base_demand: 800
+  demand_noise: 0.20
+  price_sensitivity: 1.3
+  quality_importance: 1.2
+
+# Segments de clientèle
+segments:
+  étudiants:
+    size: 250
+    budget: 11.0
+    price_sensitivity: 1.8
+    quality_sensitivity: 0.7
+    description: "Étudiants à petit budget"
+
+  familles:
+    size: 300
+    budget: 17.0
+    price_sensitivity: 1.2
+    quality_sensitivity: 1.1
+    description: "Familles équilibrées"
+
+  foodies:
+    size: 150
+    budget: 25.0
+    price_sensitivity: 0.6
+    quality_sensitivity: 1.8
+    description: "Amateurs de gastronomie"
+
+# Configuration restaurant
+restaurant:
+  initial_budget: 40000
+  base_capacity: 300
+  base_staff_cost: 6000
+  base_overhead: 2500
+
+# Concurrents
+competitors:
+  - name: "FoodExpress"
+    strategy: "prix_bas"
+    base_price: 9.20
+    quality_level: 1
+
+  - name: "Bistrot Régional"
+    strategy: "equilibre"
+    base_price: 14.00
+    quality_level: 2
+
+  - name: "Cuisine Créative"
+    strategy: "premium"
+    base_price: 20.00
+    quality_level: 4
+
+  - name: "Gastro Luxe"
+    strategy: "premium"
+    base_price: 30.00
+    quality_level: 5
+
+# Paramètres de jeu
+game:
+  max_turns: 15
+  starting_month: 1
+  enable_seasonality: true
+  enable_events: true
+  enable_marketing: true
+  enable_advanced_finance: true
+
+# Objectifs
+objectives:
+  primary: "Devenir une chaîne nationale rentable"
+  secondary:
+    - "Atteindre 40% de part de marché"
+    - "Ouvrir plusieurs points de vente"
+    - "Maintenir une satisfaction client > 4.0"

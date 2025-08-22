@@ -1,0 +1,15 @@
+missions:
+  - name: "Snack de quartier"
+    scenario: "demo.yaml"
+    objectives:
+      profit: 2000
+  - name: "Brasserie régionale"
+    scenario: "standard.yaml"
+    objectives:
+      profit: 5000
+      market_share: 0.25
+  - name: "Chaîne nationale"
+    scenario: "national.yaml"
+    objectives:
+      profit: 10000
+      market_share: 0.40

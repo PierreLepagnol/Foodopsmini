@@ -6,7 +6,13 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 from decimal import Decimal
 from enum import Enum
+from pathlib import Path
 import random
+
+try:  # Chargement optionnel de PyYAML
+    import yaml
+except Exception:  # pragma: no cover - PyYAML peut être absent
+    yaml = None
 
 
 class EventCategory(Enum):
@@ -58,6 +64,11 @@ class RandomEventManager:
 
     def _create_events_pool(self) -> List[RandomEvent]:
         """Crée la liste des événements possibles."""
+        library_path = (
+            Path(__file__).resolve().parent.parent / "data" / "events_library.yaml"
+        )
+        if yaml and library_path.exists():
+            return self._load_from_yaml(library_path)
         return [
             # Événements météorologiques
             RandomEvent(
@@ -230,6 +241,42 @@ class RandomEventManager:
                 segment_effects={"foodies": Decimal("2.2")},
             ),
         ]
+
+    def _load_from_yaml(self, path: Path) -> List[RandomEvent]:
+        """Charge les événements depuis un fichier YAML."""
+        events: List[RandomEvent] = []
+        if not yaml:  # PyYAML non disponible
+            return events
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        for category_name, periods in data.items():
+            try:
+                category = EventCategory[category_name.upper()]
+            except KeyError:
+                continue
+            for period, items in periods.items():
+                for item in items:
+                    events.append(
+                        RandomEvent(
+                            id=item["id"],
+                            title=item["title"],
+                            description=item["description"],
+                            category=category,
+                            probability=float(item.get("probability", 0.1)),
+                            duration=int(item.get("duration", 1)),
+                            demand_multiplier=Decimal(str(item.get("demand_multiplier", 1.0))),
+                            price_sensitivity=Decimal(str(item.get("price_sensitivity", 1.0))),
+                            quality_importance=Decimal(str(item.get("quality_importance", 1.0))),
+                            segment_effects={
+                                k: Decimal(str(v))
+                                for k, v in item.get("segment_effects", {}).items()
+                            },
+                            season_required=None
+                            if period in ("all", "toutes_saisons")
+                            else period,
+                        )
+                    )
+        return events
 
     def process_turn(self, turn: int, season: str) -> List[RandomEvent]:
         """
