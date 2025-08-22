@@ -46,6 +46,9 @@ class MarketEvent:
     price_sensitivity_modifier: Decimal = Decimal("1.0")  # Sensibilité prix
     quality_importance_modifier: Decimal = Decimal("1.0")  # Importance qualité
     segment_impact: Dict[str, Decimal] = field(default_factory=dict)
+    competitor_impact: Dict[str, Decimal] = field(
+        default_factory=dict
+    )  # Impact spécifique par concurrent
 
     # Conditions d'activation
     season_requirements: List[str] = field(default_factory=list)
@@ -91,6 +94,8 @@ class CompetitionManager:
         # État de la concurrence
         self.market_volatility = Decimal("0.1")  # 10% de volatilité de base
         self.competitive_pressure = Decimal("1.0")  # Pression concurrentielle
+        # Pénalités appliquées aux restaurants du joueur (1.0 = neutre)
+        self.restaurant_penalties: Dict[str, Decimal] = {}
 
     def _load_market_events(self) -> List[MarketEvent]:
         """Charge la liste des événements de marché possibles."""
@@ -271,6 +276,13 @@ class CompetitionManager:
                 new_events.append(new_event)
                 self.active_events.append(new_event)
 
+                # Application immédiate des impacts spécifiques aux concurrents
+                for restaurant_id, modifier in new_event.competitor_impact.items():
+                    current = self.restaurant_penalties.get(
+                        restaurant_id, Decimal("1.0")
+                    )
+                    self.restaurant_penalties[restaurant_id] = current * modifier
+
         # Supprimer les événements expirés
         self.active_events = [
             event for event in self.active_events if event.duration_days > 0
@@ -308,11 +320,24 @@ class CompetitionManager:
 
             # Modificateurs par segment
             for segment, modifier in event.segment_impact.items():
-                if segment not in modifiers["segment_modifiers"]:
-                    modifiers["segment_modifiers"][segment] = Decimal("1.0")
-                modifiers["segment_modifiers"][segment] *= modifier
+                seg_key = segment.lower()
+                if seg_key not in modifiers["segment_modifiers"]:
+                    modifiers["segment_modifiers"][seg_key] = Decimal("1.0")
+                modifiers["segment_modifiers"][seg_key] *= modifier
 
         return modifiers
+
+        return modifiers
+
+    def adjust_competitor_strategy(self, market_shares: Dict[str, Decimal]) -> None:
+        """Met à jour les pénalités concurrentes selon les parts de marché."""
+        for restaurant_id, share in market_shares.items():
+            current = self.restaurant_penalties.get(restaurant_id, Decimal("1.0"))
+            if share > Decimal("0.5"):
+                current *= Decimal("0.7")
+            else:
+                current = min(Decimal("1.0"), current * Decimal("1.05"))
+            self.restaurant_penalties[restaurant_id] = max(Decimal("0.7"), current)
 
     def simulate_competitor_actions(
         self, current_turn: int, market_data: Dict

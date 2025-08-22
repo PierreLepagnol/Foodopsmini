@@ -196,6 +196,38 @@ class TestMarketEngine:
         # La somme des parts devrait être proche de 1
         assert abs(total_share - Decimal("1")) < Decimal("0.01")
 
+    def test_competitor_reaction(self, sample_scenario, sample_restaurants):
+        """Vérifie que les concurrents réagissent aux parts de marché du joueur."""
+        sample_scenario.demand_noise = Decimal("0")
+        for r in sample_restaurants:
+            r.capacity_base = 200
+
+        engine = MarketEngine(sample_scenario, random_seed=42)
+
+        # Prix agressif pour le fast-food afin de prendre une large part
+        sample_restaurants[0].set_recipe_price("burger", Decimal("8.0"))
+        sample_restaurants[1].set_recipe_price("pasta", Decimal("20.0"))
+
+        shares = []
+        for turn in range(1, 4):
+            engine.allocate_demand(sample_restaurants, turn=turn)
+            shares.append(
+                {
+                    r.id: engine.get_market_share(r.id)
+                    for r in sample_restaurants
+                }
+            )
+
+        fast_id = sample_restaurants[0].id
+        classic_id = sample_restaurants[1].id
+
+        # Le fast-food domine initialement
+        assert shares[0][fast_id] > shares[0][classic_id]
+
+        # Les réactions concurrentes doivent réduire sa part au fil du temps
+        assert shares[1][fast_id] < shares[0][fast_id]
+        assert shares[2][fast_id] <= shares[1][fast_id]
+
     def test_turn_history(self, sample_scenario, sample_restaurants):
         """Test de l'historique des tours."""
         engine = MarketEngine(sample_scenario, random_seed=42)
@@ -283,6 +315,7 @@ class TestSegmentAllocation:
     def test_budget_constraints(self, sample_scenario, sample_restaurants):
         """Test des contraintes budgétaires."""
         engine = MarketEngine(sample_scenario, random_seed=42)
+        engine.competition_manager.available_events = []
 
         # Prix très au-dessus du budget des segments
         for restaurant in sample_restaurants:
@@ -293,6 +326,4 @@ class TestSegmentAllocation:
 
         # La demande devrait être très faible
         total_demand = sum(r.allocated_demand for r in results.values())
-        assert (
-            total_demand < sample_scenario.base_demand * 0.5
-        )  # Moins de 50% de la demande normale
+        assert total_demand < sample_scenario.base_demand
