@@ -198,6 +198,16 @@ Scénarios pédagogiques types :
 - **Marché** : part de marché, satisfaction de la demande
 - **RH** : coût personnel, productivité
 - **Rapports** : compte de résultat, bilan, flux de trésorerie, KPIs et analyse
+- **Rapport de tour** : répartition clients/coûts par jours ouverts/fermés et
+  journées spéciales
+
+### Lire le rapport de tour
+
+Le rapport de tour présente une table indiquant comment se répartissent les
+clients et les coûts entre les jours ouverts, fermés et chaque journée
+spéciale. La section **Décisions sur le calendrier** résume l’impact direct de
+vos choix (ex. fermer 2 jours = –20 % de demande mais –15 % de coûts). Ces
+informations vous aident à évaluer vos décisions d’ouverture.
 
 ## 🧪 Tests
 
