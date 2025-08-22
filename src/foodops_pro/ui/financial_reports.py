@@ -123,41 +123,31 @@ class FinancialReports:
         stock_manager=None, start_date=None, end_date=None
     ) -> Dict[str, Decimal]:
         """Calcule les métriques détaillées du compte de résultat."""
-        metrics = {}
+        metrics: Dict[str, Decimal] = {}
 
         # Produits
         metrics["ca_ht"] = pnl_data.get("revenues", Decimal("0"))
         metrics["subventions"] = Decimal("0")  # À implémenter si nécessaire
         metrics["total_produits"] = metrics["ca_ht"] + metrics["subventions"]
 
-        # Charges d'exploitation
+        # Fonction utilitaire pour récupérer le débit d'un compte
+        def debit(account: str) -> Decimal:
+            return balance_data.get(account, {}).get("debit", Decimal("0"))
+
         total_expenses = pnl_data.get("expenses", Decimal("0"))
 
-        # Achats matières premières : coût réel des lots reçus sur la période
-        if stock_manager and start_date and end_date:
-            lots = stock_manager.get_lots_received_between(start_date, end_date)
-            metrics["achats_mp"] = sum(lot.unit_cost_ht * lot.quantity for lot in lots)
-        else:
-            metrics["achats_mp"] = total_expenses * Decimal("0.30")  # fallback heuristique
+        metrics["achats_mp"] = debit("601")
+        metrics["loyer"] = debit("613")
+        metrics["energie"] = debit("6061")
+        metrics["assurances"] = debit("616")
+        metrics["marketing"] = debit("623")
+        metrics["autres_externes"] = Decimal("0")
 
-        metrics["loyer"] = restaurant.rent_monthly
-        metrics["energie"] = restaurant.rent_monthly * Decimal("0.15")  # Estimation
-        metrics["assurances"] = restaurant.rent_monthly * Decimal("0.05")  # Estimation
-        metrics["marketing"] = total_expenses * Decimal("0.03")  # 3% du total (à améliorer)
-        metrics["autres_externes"] = total_expenses * Decimal("0.07")  # 7% autres
+        metrics["salaires_bruts"] = debit("641")
+        metrics["charges_sociales"] = debit("645")
+        metrics["amortissements"] = debit("681")
 
-        # Personnel (estimation basée sur les employés)
-        total_personnel_cost = sum(
-            emp.salary_gross_monthly * Decimal("1.42")  # Brut + charges
-            for emp in restaurant.employees
-        )
-        metrics["salaires_bruts"] = total_personnel_cost / Decimal("1.42")
-        metrics["charges_sociales"] = total_personnel_cost - metrics["salaires_bruts"]
-
-        metrics["amortissements"] = restaurant.equipment_value / Decimal("60")  # 5 ans
-        metrics["autres_charges"] = total_expenses * Decimal("0.05")  # 5% autres
-
-        metrics["total_charges"] = (
+        known_expenses = (
             metrics["achats_mp"]
             + metrics["loyer"]
             + metrics["energie"]
@@ -167,17 +157,15 @@ class FinancialReports:
             + metrics["salaires_bruts"]
             + metrics["charges_sociales"]
             + metrics["amortissements"]
-            + metrics["autres_charges"]
         )
+        metrics["autres_charges"] = total_expenses - known_expenses
+
+        metrics["total_charges"] = known_expenses + metrics["autres_charges"]
 
         # Résultats
-        metrics["resultat_exploitation"] = (
-            metrics["total_produits"] - metrics["total_charges"]
-        )
+        metrics["resultat_exploitation"] = metrics["total_produits"] - metrics["total_charges"]
         metrics["interets"] = Decimal("0")  # À implémenter avec les emprunts
-        metrics["resultat_avant_impots"] = (
-            metrics["resultat_exploitation"] - metrics["interets"]
-        )
+        metrics["resultat_avant_impots"] = metrics["resultat_exploitation"] - metrics["interets"]
 
         # Impôts (estimation 25% si bénéfice)
         if metrics["resultat_avant_impots"] > 0:

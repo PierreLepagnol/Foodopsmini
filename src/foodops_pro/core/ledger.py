@@ -135,6 +135,12 @@ class Ledger:
         self.accounts: Dict[str, Account] = {}
         self.entries: List[AccountingEntry] = []
         self._initialize_chart_of_accounts()
+        # Mapping des catégories de comptes de charges
+        self.account_categories: Dict[str, List[str]] = {
+            "loyer": ["613"],
+            "energie": ["6061"],
+            "marketing": ["623"],
+        }
 
     def _initialize_chart_of_accounts(self) -> None:
         """Initialise le plan comptable de base."""
@@ -165,6 +171,8 @@ class Ledger:
             "601", "Achats matières premières", AccountType.EXPENSE
         )
         self.accounts["613"] = Account("613", "Loyers", AccountType.EXPENSE)
+        self.accounts["6061"] = Account("6061", "Énergie", AccountType.EXPENSE)
+        self.accounts["623"] = Account("623", "Marketing", AccountType.EXPENSE)
         self.accounts["621"] = Account(
             "621", "Personnel extérieur", AccountType.EXPENSE
         )
@@ -359,6 +367,14 @@ class Ledger:
         return self.accounts.get(
             account_number, Account("", "", AccountType.ASSET)
         ).balance
+
+    def get_category_balance(self, category: str) -> Decimal:
+        """Retourne le solde total d'une catégorie de charges."""
+        accounts = self.account_categories.get(category, [])
+        total = Decimal("0")
+        for acc in accounts:
+            total += self.get_balance(acc)
+        return total
 
     def get_trial_balance(self) -> Dict[str, Dict[str, Decimal]]:
         """

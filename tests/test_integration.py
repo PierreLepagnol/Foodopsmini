@@ -5,6 +5,7 @@ Tests d'intégration pour FoodOps Pro.
 import pytest
 from pathlib import Path
 from decimal import Decimal
+from datetime import date
 
 from src.foodops_pro.io.data_loader import DataLoader
 from src.foodops_pro.core.market import MarketEngine
@@ -12,6 +13,8 @@ from src.foodops_pro.core.costing import RecipeCostCalculator
 from src.foodops_pro.core.payroll_fr import PayrollCalculator
 from src.foodops_pro.core.ledger import Ledger
 from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
+from src.foodops_pro.ui.financial_reports import FinancialReports
+from src.foodops_pro.ui.console_ui import ConsoleUI
 
 
 @pytest.mark.integration
@@ -127,10 +130,20 @@ class TestGameIntegration:
 
         assert ledger.get_balance("641") == total_gross  # Rémunérations
         assert ledger.get_balance("645") == total_charges  # Charges sociales
+        ledger.accounts["530"].balance = Decimal("5000.00")
+        ledger.record_cash_payment(Decimal("1000.00"), "613", date.today(), "Loyer")
+        ledger.record_cash_payment(Decimal("200.00"), "6061", date.today(), "Énergie")
+        ledger.record_cash_payment(Decimal("300.00"), "623", date.today(), "Marketing")
 
-        # Génération du compte de résultat
+        # Génération du compte de résultat et des métriques détaillées
         pnl = ledger.get_profit_loss()
-        assert pnl["expenses"] == total_gross + total_charges
+        assert pnl["expenses"] == total_gross + total_charges + Decimal("1500.00")
+        balance = ledger.get_trial_balance()
+        reports = FinancialReports(ConsoleUI())
+        metrics = reports._calculate_detailed_metrics(sample_restaurant, pnl, balance)
+        assert metrics["loyer"] == Decimal("1000.00")
+        assert metrics["energie"] == Decimal("200.00")
+        assert metrics["marketing"] == Decimal("300.00")
 
     def test_complete_turn_simulation(self):
         """Test de simulation d'un tour complet."""

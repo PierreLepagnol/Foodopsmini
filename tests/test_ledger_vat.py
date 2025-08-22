@@ -233,6 +233,8 @@ class TestLedger:
         assert "601" in ledger.accounts  # Achats
         assert "44566" in ledger.accounts  # TVA déductible
         assert "44571" in ledger.accounts  # TVA collectée
+        assert "6061" in ledger.accounts  # Énergie
+        assert "623" in ledger.accounts  # Marketing
 
         # Vérification des soldes initiaux
         for account in ledger.accounts.values():
@@ -375,13 +377,31 @@ class TestLedger:
         payment_date = date.today()
 
         ledger.record_cash_payment(amount, "613", payment_date, "Paiement loyer")
+        ledger.record_cash_payment(Decimal("200.00"), "6061", payment_date, "Paiement énergie")
+        ledger.record_cash_payment(Decimal("300.00"), "623", payment_date, "Paiement marketing")
 
-        # Vérification de l'écriture
-        assert len(ledger.entries) == 1
+        # Vérification des écritures
+        assert len(ledger.entries) == 3
 
         # Vérification des soldes
         assert ledger.get_balance("613") == amount  # Loyers
-        assert ledger.get_balance("530") == Decimal("850.00")  # Caisse diminuée
+        assert ledger.get_balance("6061") == Decimal("200.00")  # Énergie
+        assert ledger.get_balance("623") == Decimal("300.00")  # Marketing
+        expected_cash = Decimal("1000.00") - amount - Decimal("200.00") - Decimal("300.00")
+        assert ledger.get_balance("530") == expected_cash  # Caisse diminuée
+
+    def test_category_balances(self):
+        """Test des soldes par catégorie."""
+        ledger = Ledger()
+        ledger.accounts["530"].balance = Decimal("1000.00")
+        today = date.today()
+        ledger.record_cash_payment(Decimal("100.00"), "613", today, "Loyer")
+        ledger.record_cash_payment(Decimal("50.00"), "6061", today, "Énergie")
+        ledger.record_cash_payment(Decimal("25.00"), "623", today, "Marketing")
+
+        assert ledger.get_category_balance("loyer") == Decimal("100.00")
+        assert ledger.get_category_balance("energie") == Decimal("50.00")
+        assert ledger.get_category_balance("marketing") == Decimal("25.00")
 
     def test_get_trial_balance(self):
         """Test de génération de la balance comptable."""

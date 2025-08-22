@@ -421,6 +421,10 @@ class MarketEngine:
         except Exception:
             return Decimal('1.00')
 
+    def _get_quality_factor(self, restaurant: Restaurant, segment: MarketSegment) -> Decimal:
+        """Calcule un facteur de qualité global pour un segment donné.
+
+        Args:
             restaurant: Restaurant évalué
             segment: Segment de marché
 
@@ -460,11 +464,11 @@ class MarketEngine:
         else:
             malus = (Decimal("1.0") - base_factor) * quality_sensitivity
             final_factor = Decimal("1.0") - malus
+
         # NOUVEAU: Impact de la réputation
         reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
         reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
         final_factor += reputation_bonus
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
 
         return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
 
@@ -485,7 +489,7 @@ class MarketEngine:
 
         Args:
             segment_name: Nom du segment
-            month: Mois de l'année (1-12)
+            month: Mois de l\'annee (1-12)
 
         Returns:
             Multiplicateur saisonnier (0.8 à 1.3)
