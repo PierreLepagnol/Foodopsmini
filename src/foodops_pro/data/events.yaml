@@ -1,0 +1,13 @@
+- id: local_festival
+  name: "Fête locale"
+  description: "Afflux de clients grâce à une fête de quartier"
+  demand_factor: 1.3
+- id: strike
+  name: "Grève"
+  description: "Mouvement social perturbant les approvisionnements"
+  demand_factor: 0.8
+  cost_factor: 1.1
+- id: heat_wave
+  name: "Vague de chaleur"
+  description: "Chaleur réduisant la fréquentation mais augmentant les boissons"
+  demand_factor: 0.9

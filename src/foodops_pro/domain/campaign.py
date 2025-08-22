@@ -55,3 +55,10 @@ class CampaignManager:
     def is_completed(self) -> bool:
         """Indique si tous les scénarios de la campagne ont été terminés."""
         return self.progress.current_index >= len(self.scenarios) - 1
+
+    def unlocked_features(self) -> List[str]:
+        """Retourne toutes les fonctionnalités débloquées jusqu'à présent."""
+        features: List[str] = []
+        for idx in range(self.progress.current_index + 1):
+            features.extend(self.scenarios[idx].new_features)
+        return features

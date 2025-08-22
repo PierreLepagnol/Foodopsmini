@@ -623,7 +623,8 @@ class FoodOpsProGame:
                     pq = f.get('production_quality_factor', 1)
                     lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
                 self.ui.print_box(lines, style='info')
-        except Exception as e:
+        except Exception:
+            pass
         # Chiffres clés par restaurant
         try:
             key_lines = ["📌 Chiffres clés (tour):"]

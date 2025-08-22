@@ -398,75 +398,23 @@ class MarketEngine:
         return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
 
     def _calculate_production_quality_factor(self, restaurant: Restaurant) -> Decimal:
-        """Calcule un facteur d'attractivité basé sur la qualité de production du tour.
-        Moyenne pondérée par quantités produites; renvoie un multiplicateur ~0.9–1.1.
-        """
+        """Calcule un multiplicateur lié à la qualité de production du tour."""
         try:
-            qmap = getattr(restaurant, 'production_quality_score', {}) or {}
-            pmap = getattr(restaurant, 'production_produced_units', {}) or {}
+            qmap = getattr(restaurant, "production_quality_score", {}) or {}
+            pmap = getattr(restaurant, "production_produced_units", {}) or {}
             total_qty = sum(int(q) for q in pmap.values())
             if total_qty <= 0 or not qmap:
-                return Decimal('1.00')
-            # qualité moyenne (entrée 0.5–1.5)
-            weighted = Decimal('0')
+                return Decimal("1.00")
+            weighted = Decimal("0")
             for rid, qty in pmap.items():
-                q = Decimal(str(qmap.get(rid, Decimal('1.0'))))
+                q = Decimal(str(qmap.get(rid, Decimal("1.0"))))
                 weighted += q * Decimal(int(qty))
-            avg_q = (weighted / Decimal(total_qty)).quantize(Decimal('0.01'))
-            # mapper 0.5..1.5 -> 0.9..1.1 (linéaire)
-            # 1.0 -> 1.0, 0.5 -> 0.9, 1.5 -> 1.1
-            span = Decimal('0.2')  # demi-ampleur
-            factor = Decimal('1.0') + (avg_q - Decimal('1.0')) * span
-            return max(Decimal('0.90'), min(Decimal('1.10'), factor))
+            avg_q = (weighted / Decimal(total_qty)).quantize(Decimal("0.01"))
+            span = Decimal("0.2")
+            factor = Decimal("1.0") + (avg_q - Decimal("1.0")) * span
+            return max(Decimal("0.90"), min(Decimal("1.10"), factor))
         except Exception:
-            return Decimal('1.00')
-
-            restaurant: Restaurant évalué
-            segment: Segment de marché
-
-        Returns:
-            Facteur qualité (0.5 à 2.0)
-        """
-        # NOUVEAU: Utilisation du score de qualité du restaurant
-        quality_score = restaurant.get_overall_quality_score()
-
-        # Conversion du score qualité (1-5) en facteur d'attractivité
-        if quality_score <= Decimal("1.5"):
-            base_factor = Decimal("0.70")  # -30%
-        elif quality_score <= Decimal("2.5"):
-            base_factor = Decimal("1.00")  # Neutre
-        elif quality_score <= Decimal("3.5"):
-            base_factor = Decimal("1.20")  # +20%
-        elif quality_score <= Decimal("4.5"):
-            base_factor = Decimal("1.40")  # +40%
-        else:
-            base_factor = Decimal("1.60")  # +60%
-
-        # NOUVEAU: Sensibilité à la qualité par segment
-        segment_name = segment.name.lower()
-        quality_sensitivity = Decimal("1.0")
-
-        if "student" in segment_name or "étudiant" in segment_name:
-            quality_sensitivity = Decimal("0.6")  # Moins sensibles
-        elif "foodie" in segment_name or "gourmet" in segment_name:
-            quality_sensitivity = Decimal("1.4")  # Très sensibles
-        elif "family" in segment_name or "famille" in segment_name:
-            quality_sensitivity = Decimal("1.0")  # Sensibilité normale
-
-        # Ajustement selon la sensibilité du segment
-        if base_factor > Decimal("1.0"):
-            bonus = (base_factor - Decimal("1.0")) * quality_sensitivity
-            final_factor = Decimal("1.0") + bonus
-        else:
-            malus = (Decimal("1.0") - base_factor) * quality_sensitivity
-            final_factor = Decimal("1.0") - malus
-        # NOUVEAU: Impact de la réputation
-        reputation_factor = restaurant.reputation / Decimal("10")  # 0-1
-        reputation_bonus = (reputation_factor - Decimal("0.5")) * Decimal("0.2")  # ±10%
-        final_factor += reputation_bonus
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
-
-        return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
+            return Decimal("1.00")
 
     def _get_season_name(self, month: int) -> str:
         """Retourne le nom de la saison selon le mois."""
