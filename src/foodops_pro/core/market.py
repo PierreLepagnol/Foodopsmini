@@ -103,7 +103,9 @@ class MarketEngine:
         market_modifiers = self.competition_manager.get_market_modifiers()
 
         # Calcul de la demande totale avec bruit et événements
-        base_demand = self.scenario.calculate_total_demand(turn, month)
+        base_demand = self.scenario.calculate_total_demand(
+            turn, month, players_count=len(restaurants)
+        )
         noise_factor = 1 + self.rng.uniform(
             -float(self.scenario.demand_noise), float(self.scenario.demand_noise)
         )
