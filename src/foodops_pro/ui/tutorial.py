@@ -18,23 +18,52 @@ class InteractiveTutorial:
         """Charge les étapes du tutoriel."""
         return [
             {
-                "title": "🎮 Bienvenue dans FoodOps Pro !",
+                "title": "🚀 Étape 1: Installation initiale",
                 "content": [
-                    "Félicitations ! Vous venez d'acquérir votre premier restaurant.",
+                    "Avant de jouer, assurez-vous d'avoir Python 3.11+.",
+                    "Installez les dépendances avec:",
+                    "pip install pyyaml pandas pytest",
                     "",
-                    "🎯 VOTRE MISSION:",
-                    "• Gérer un restaurant rentable",
-                    "• Satisfaire vos clients",
-                    "• Battre la concurrence",
-                    "• Développer votre réputation",
-                    "",
-                    "📚 Ce tutoriel vous apprendra les bases en 5 étapes simples.",
+                    "Ce tutoriel vous guidera ensuite pas à pas.",
                 ],
-                "action": "Appuyez sur Entrée pour commencer",
-                "interactive": False,
+                "action": "Tapez 'ok' une fois l'installation terminée",
+                "interactive": True,
+                "expected": "ok",
             },
             {
-                "title": "💰 Étape 1: Comprendre vos finances",
+                "title": "🏗️ Étape 2: Nommer votre restaurant",
+                "content": [
+                    "Chaque partie commence par la création de votre établissement.",
+                    "Choisissez un nom qui représentera votre style !",
+                ],
+                "action": "Entrez le nom de votre restaurant",
+                "interactive": True,
+                "validation": lambda x: len(x.strip()) > 0,
+                "feedback": "Beau nom !",
+            },
+            {
+                "title": "🍴 Étape 3: Choisir le type de restaurant",
+                "content": [
+                    "Sélectionnez un positionnement de départ:",
+                    "fast-food, brasserie ou gastronomique.",
+                ],
+                "action": "Tapez votre choix (fast-food/brasserie/gastronomique)",
+                "interactive": True,
+                "validation": lambda x: x.lower() in ["fast-food", "brasserie", "gastronomique"],
+                "feedback": "Excellent choix !",
+            },
+            {
+                "title": "✅ Étape 4: Valider un tour",
+                "content": [
+                    "À chaque tour, prenez vos décisions puis validez pour voir les résultats.",
+                    "Utilisez l'option 'Valider et passer au tour suivant' dans le menu.",
+                ],
+                "action": "Tapez 'valider' pour continuer",
+                "interactive": True,
+                "expected": "valider",
+            },
+            {
+                "title": "💰 Étape 5: Comprendre vos finances",
                 "content": [
                     "Votre restaurant a un budget de départ de 10,000€.",
                     "",
@@ -53,7 +82,7 @@ class InteractiveTutorial:
                 "expected": "compris",
             },
             {
-                "title": "🍽️ Étape 2: Fixer vos prix",
+                "title": "🍽️ Étape 6: Fixer vos prix",
                 "content": [
                     "Le prix est votre principal levier stratégique.",
                     "",
@@ -74,7 +103,7 @@ class InteractiveTutorial:
                 "feedback": "Excellent choix ! Un prix entre 12-15€ est idéal pour débuter.",
             },
             {
-                "title": "⭐ Étape 3: Gérer la qualité",
+                "title": "⭐ Étape 7: Gérer la qualité",
                 "content": [
                     "La qualité différencie votre restaurant de la concurrence.",
                     "",
@@ -98,7 +127,7 @@ class InteractiveTutorial:
                 "feedback": "Bonne réflexion ! Chaque stratégie a ses avantages selon le marché.",
             },
             {
-                "title": "👥 Étape 4: Optimiser votre personnel",
+                "title": "👥 Étape 8: Optimiser votre personnel",
                 "content": [
                     "Votre équipe détermine la capacité de votre restaurant.",
                     "",
@@ -122,7 +151,7 @@ class InteractiveTutorial:
                 "feedback": "Parfait ! Adaptez votre personnel à cette prévision.",
             },
             {
-                "title": "🎯 Étape 5: Analyser vos résultats",
+                "title": "📊 Étape 9: Analyser vos résultats",
                 "content": [
                     "Après chaque tour, analysez vos performances.",
                     "",
@@ -183,7 +212,7 @@ class InteractiveTutorial:
         print("\n📚 Ce tutoriel vous apprendra à jouer en 5 minutes.")
         print("💡 Vous pouvez quitter à tout moment en tapant 'quit'.")
 
-        if not self.ui.ask_yes_no("\nCommencer le tutoriel ?", default=True):
+        if not self.ui.confirm("\nCommencer le tutoriel ?", default=True):
             return False
 
         for i, step in enumerate(self.tutorial_data):

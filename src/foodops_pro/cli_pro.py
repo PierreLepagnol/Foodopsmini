@@ -18,6 +18,7 @@ from .core.market import MarketEngine
 from .core.costing import RecipeCostCalculator
 from .ui.console_ui import ConsoleUI
 from .ui.decision_menu import DecisionMenu
+from .ui.tutorial import InteractiveTutorial
 from .admin.admin_config import AdminConfigManager, AdminSettings
 
 
@@ -83,6 +84,10 @@ class FoodOpsProGame:
             # Écran d'accueil avec scénario
             self.ui.show_welcome_screen(self.scenario, self.admin_mode)
             self.ui.pause()
+
+            tutorial = InteractiveTutorial(self.ui)
+            if self.ui.confirm("Souhaitez-vous suivre le tutoriel interactif ?", default=False):
+                tutorial.start_tutorial()
 
             # Configuration administrateur si activée
             if self.admin_mode:
@@ -624,6 +629,8 @@ class FoodOpsProGame:
                     lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
                 self.ui.print_box(lines, style='info')
         except Exception as e:
+            if self.admin_mode:
+                print(f"[DEBUG] factors display failed: {e}")
         # Chiffres clés par restaurant
         try:
             key_lines = ["📌 Chiffres clés (tour):"]

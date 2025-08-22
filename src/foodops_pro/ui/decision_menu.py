@@ -14,6 +14,7 @@ from ..core.costing import RecipeCostCalculator
 from ..core.procurement import ProcurementPlanner, ReceivingService, POLine
 from .console_ui import ConsoleUI
 from .financial_reports import FinancialReports
+from .help_page import show_help_page
 
 
 class DecisionMenu:
@@ -73,6 +74,7 @@ class DecisionMenu:
                 "🏗️ Investissements",
                 "💰 Finance & Comptabilité",
                 "📊 Rapports & Analyses",
+                "❓ Aide",
                 "✅ Valider et passer au tour suivant",
             ]
 
@@ -99,6 +101,8 @@ class DecisionMenu:
             elif choice == 8:
                 self._reports_decisions(restaurant, decisions)
             elif choice == 9:
+                show_help_page(self.ui)
+            elif choice == 10:
                 if self._confirm_end_turn():
                     break
                 else:
