@@ -66,7 +66,7 @@ try:
 
     # Test 5: Paie française
     print("\n5. Test paie française...")
-    from src.foodops_pro.core.payroll_fr import PayrollCalculator
+    from src.foodops_pro.core.payroll import PayrollCalculator
     from src.foodops_pro.domain.employee import (
         Employee,
         EmployeePosition,
@@ -91,7 +91,7 @@ try:
 
     print("\n✅ TOUS LES SYSTÈMES FONCTIONNENT PARFAITEMENT !")
     print("\n🎮 Pour jouer, lancez : python -m src.foodops_pro.cli")
-    print("📊 Pour voir la démo : python demo.py")
+    print("📊 Legacy demo available in legacy/demos/demo.py")
 
 except Exception as e:
     print(f"\n❌ Erreur durant le test : {e}")

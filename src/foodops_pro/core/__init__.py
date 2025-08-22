@@ -11,7 +11,7 @@ Ce module contient les algorithmes et calculs principaux :
 from .market import MarketEngine, AllocationResult
 from .costing import RecipeCostCalculator, CostBreakdown
 from .ledger import Ledger, AccountingEntry, VATCalculator
-from .payroll_fr import PayrollCalculator, PayrollResult
+from .payroll import PayrollCalculator, PayrollResult
 
 __all__ = [
     "MarketEngine",
