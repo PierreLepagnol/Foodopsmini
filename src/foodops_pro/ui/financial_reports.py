@@ -146,13 +146,30 @@ class FinancialReports:
         metrics["marketing"] = total_expenses * Decimal("0.03")  # 3% du total (à améliorer)
         metrics["autres_externes"] = total_expenses * Decimal("0.07")  # 7% autres
 
-        # Personnel (estimation basée sur les employés)
-        total_personnel_cost = sum(
-            emp.salary_gross_monthly * Decimal("1.42")  # Brut + charges
-            for emp in restaurant.employees
-        )
-        metrics["salaires_bruts"] = total_personnel_cost / Decimal("1.42")
-        metrics["charges_sociales"] = total_personnel_cost - metrics["salaires_bruts"]
+        # Personnel - utiliser les données de paie si disponibles
+        payroll_summary = getattr(restaurant, "last_payroll_summary", None)
+        if payroll_summary:
+            metrics["salaires_bruts"] = payroll_summary.get(
+                "total_gross_salary", Decimal("0")
+            )
+            metrics["charges_sociales"] = payroll_summary.get(
+                "total_employer_charges", Decimal("0")
+            )
+            metrics["overtime_hours"] = payroll_summary.get(
+                "overtime_hours", Decimal("0")
+            )
+            metrics["sunday_hours"] = payroll_summary.get(
+                "sunday_hours", Decimal("0")
+            )
+        else:
+            total_personnel_cost = sum(
+                emp.salary_gross_monthly * Decimal("1.42")
+                for emp in restaurant.employees
+            )
+            metrics["salaires_bruts"] = total_personnel_cost / Decimal("1.42")
+            metrics["charges_sociales"] = total_personnel_cost - metrics["salaires_bruts"]
+            metrics["overtime_hours"] = Decimal("0")
+            metrics["sunday_hours"] = Decimal("0")
 
         metrics["amortissements"] = restaurant.equipment_value / Decimal("60")  # 5 ans
         metrics["autres_charges"] = total_expenses * Decimal("0.05")  # 5% autres
@@ -295,6 +312,16 @@ class FinancialReports:
                 analysis.append(
                     f"✅ Charges personnel maîtrisées ({personnel_pct:.1f}%)"
                 )
+
+        # Signalement des dépassements d'heures
+        if metrics.get("overtime_hours", Decimal("0")) > 0:
+            analysis.append(
+                f"⚠️ Heures supplémentaires: {metrics['overtime_hours']:.1f} h"
+            )
+        if metrics.get("sunday_hours", Decimal("0")) > 0:
+            analysis.append(
+                f"⚠️ Heures travaillées le dimanche: {metrics['sunday_hours']:.1f} h"
+            )
 
         # Affichage de l'analyse
         if analysis:

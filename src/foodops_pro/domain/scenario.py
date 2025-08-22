@@ -98,6 +98,8 @@ class Scenario:
         segments: Segments de marché
         vat_rates: Taux de TVA par catégorie
         social_charges: Charges sociales par type de contrat
+        days_per_turn: Nombre de jours par tour
+        opening_hours: Heures d'ouverture par jour (par zone)
         interest_rate: Taux d'intérêt pour emprunts
         ai_competitors: Nombre de concurrents IA
         random_seed: Graine aléatoire pour reproductibilité
@@ -111,6 +113,10 @@ class Scenario:
     segments: List[MarketSegment]
     vat_rates: Dict[str, Decimal] = field(default_factory=dict)
     social_charges: Dict[str, Decimal] = field(default_factory=dict)
+    days_per_turn: int = 30
+    opening_hours: Dict[str, int] = field(
+        default_factory=lambda: {"kitchen": 8, "dining": 8}
+    )
     interest_rate: Decimal = Decimal("0.05")
     ai_competitors: int = 2
     random_seed: Optional[int] = None
@@ -123,6 +129,12 @@ class Scenario:
             raise ValueError(
                 f"La demande de base doit être positive: {self.base_demand}"
             )
+        if self.days_per_turn <= 0:
+            raise ValueError(
+                f"Le nombre de jours par tour doit être positif: {self.days_per_turn}"
+            )
+        if not self.opening_hours or any(h <= 0 for h in self.opening_hours.values()):
+            raise ValueError("Les heures d'ouverture doivent être positives")
         if not (0 <= self.demand_noise <= 1):
             raise ValueError(
                 f"Le bruit de demande doit être entre 0 et 1: {self.demand_noise}"
