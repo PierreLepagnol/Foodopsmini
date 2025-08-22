@@ -65,6 +65,8 @@ class Restaurant:
     )  # ingredient_id -> quality_level
     reputation: Decimal = Decimal("5.0")  # Réputation sur 10
     customer_satisfaction_history: List[Decimal] = field(default_factory=list)
+    online_reviews: List[Decimal] = field(default_factory=list)
+    last_staff_cost: Decimal = Decimal("0")
 
     # Units prêtes à servir par recette (remplies par le module de production)
     production_units_ready: Dict[str, int] = field(default_factory=dict)
@@ -239,6 +241,22 @@ class Restaurant:
             description: Description de l'opération
         """
         self.cash += amount
+
+    # === AVIS EN LIGNE ===
+
+    def add_online_review(self, rating: Decimal) -> None:
+        """Ajoute un avis en ligne (1-5) et conserve les 50 derniers."""
+        rating = max(Decimal("1"), min(Decimal("5"), rating))
+        self.online_reviews.append(rating)
+        if len(self.online_reviews) > 50:
+            self.online_reviews = self.online_reviews[-50:]
+
+    @property
+    def average_review(self) -> Decimal:
+        """Retourne la note moyenne des avis en ligne."""
+        if not self.online_reviews:
+            return Decimal("3.0")
+        return sum(self.online_reviews) / Decimal(len(self.online_reviews))
 
     # === MÉTHODES QUALITÉ ===
 

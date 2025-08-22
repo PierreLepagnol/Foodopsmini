@@ -32,6 +32,9 @@ class POLine:
     pack_unit: Optional[str] = None
     quality_level: Optional[int] = None
     eta_days: Optional[int] = None
+    min_qty: Optional[Decimal] = None
+    max_qty: Optional[Decimal] = None
+    expected_delivery: Optional[date] = None
     qty_rounded_pack: Optional[Decimal] = None
     moq_ok: Optional[bool] = None
     amount_ttc_estimated: Optional[Decimal] = None
@@ -163,12 +166,29 @@ class ProcurementPlanner:
                 moq_value = Decimal(str(offer.get("moq_value", 0)))
                 lead_time = offer.get("lead_time_days")
                 reliability = offer.get("reliability")
+                min_qty = (
+                    Decimal(str(offer.get("min_qty")))
+                    if offer.get("min_qty") is not None
+                    else None
+                )
+                max_qty = (
+                    Decimal(str(offer.get("max_qty")))
+                    if offer.get("max_qty") is not None
+                    else None
+                )
 
                 packs_needed = (target / pack).to_integral_value(
                     rounding="ROUND_CEILING"
                 )
                 qty = packs_needed * pack
                 order_value = qty * price
+
+                if min_qty is not None and qty < min_qty:
+                    qty = min_qty
+                    order_value = qty * price
+                if max_qty is not None and qty > max_qty:
+                    qty = max_qty
+                    order_value = qty * price
 
                 if order_value < moq_value and price > 0:
                     deficit_value = moq_value - order_value
@@ -178,6 +198,12 @@ class ProcurementPlanner:
                     qty += extra_qty
                     order_value = qty * price
 
+                expected_delivery = (
+                    date.today() + timedelta(days=lead_time)
+                    if lead_time is not None
+                    else None
+                )
+
                 line = POLine(
                     ingredient_id=ingredient_id,
                     quantity=qty,
@@ -185,6 +211,10 @@ class ProcurementPlanner:
                     vat_rate=vat,
                     supplier_id=supplier_id,
                     pack_size=pack,
+                    eta_days=lead_time,
+                    min_qty=min_qty,
+                    max_qty=max_qty,
+                    expected_delivery=expected_delivery,
                 )
 
                 score = self._score_offer(qty, price, lead_time, reliability)
