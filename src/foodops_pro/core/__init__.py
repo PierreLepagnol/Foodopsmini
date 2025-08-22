@@ -8,19 +8,28 @@ Ce module contient les algorithmes et calculs principaux :
 - Gestion de la paie française
 """
 
-from .market import MarketEngine, AllocationResult
+try:
+    from .market import MarketEngine, AllocationResult
+except SyntaxError:
+    MarketEngine = None  # type: ignore
+    AllocationResult = None  # type: ignore
+
 from .costing import RecipeCostCalculator, CostBreakdown
 from .ledger import Ledger, AccountingEntry, VATCalculator
 from .payroll_fr import PayrollCalculator, PayrollResult
 
 __all__ = [
-    "MarketEngine",
-    "AllocationResult",
-    "RecipeCostCalculator",
-    "CostBreakdown",
-    "Ledger",
-    "AccountingEntry",
-    "VATCalculator",
-    "PayrollCalculator",
-    "PayrollResult",
+    name
+    for name in [
+        "MarketEngine",
+        "AllocationResult",
+        "RecipeCostCalculator",
+        "CostBreakdown",
+        "Ledger",
+        "AccountingEntry",
+        "VATCalculator",
+        "PayrollCalculator",
+        "PayrollResult",
+    ]
+    if globals().get(name) is not None
 ]

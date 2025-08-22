@@ -20,6 +20,7 @@ def _make_scenario(name: str) -> Scenario:
         name=name,
         description="",
         turns=1,
+        days_per_turn=1,
         base_demand=100,
         demand_noise=Decimal("0"),
         segments=[segment],

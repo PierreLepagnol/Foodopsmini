@@ -24,7 +24,8 @@ def simulate_game_session():
         print(f"\n📋 SCÉNARIO CHARGÉ: {game.scenario.name}")
         print(f"📊 Paramètres:")
         print(f"  • Durée: {game.scenario.turns} tours")
-        print(f"  • Demande de base: {game.scenario.base_demand} clients/tour")
+        print(f"  • Demande de base: {game.scenario.base_demand} clients/jour")
+        print(f"  • Jours par tour: {game.scenario.days_per_turn}")
         print(f"  • Segments: {len(game.scenario.segments)}")
 
         # Affichage des segments de marché

@@ -93,7 +93,8 @@ class Scenario:
         name: Nom du scénario
         description: Description du scénario
         turns: Nombre de tours
-        base_demand: Demande de base par tour
+        days_per_turn: Nombre de jours simulés par tour
+        base_demand: Demande de base quotidienne par restaurant
         demand_noise: Variabilité de la demande (0.0-1.0)
         segments: Segments de marché
         vat_rates: Taux de TVA par catégorie
@@ -106,6 +107,7 @@ class Scenario:
     name: str
     description: str
     turns: int
+    days_per_turn: int
     base_demand: int
     demand_noise: Decimal
     segments: List[MarketSegment]
@@ -119,6 +121,10 @@ class Scenario:
         """Validation des données."""
         if self.turns <= 0:
             raise ValueError(f"Le nombre de tours doit être positif: {self.turns}")
+        if self.days_per_turn <= 0:
+            raise ValueError(
+                f"Le nombre de jours par tour doit être positif: {self.days_per_turn}"
+            )
         if self.base_demand <= 0:
             raise ValueError(
                 f"La demande de base doit être positive: {self.base_demand}"
@@ -192,13 +198,16 @@ class Scenario:
                 return segment
         return None
 
-    def calculate_total_demand(self, turn: int, month: int = 1) -> int:
+    def calculate_total_demand(
+        self, turn: int, month: int = 1, players_count: int = 1
+    ) -> int:
         """
         Calcule la demande totale pour un tour donné.
 
         Args:
             turn: Numéro du tour
             month: Mois de l'année (pour saisonnalité)
+            players_count: Nombre total de restaurants en compétition
 
         Returns:
             Demande totale ajustée
@@ -210,7 +219,12 @@ class Scenario:
             seasonal_factor += segment_seasonal * segment.share
 
         # Demande ajustée
-        adjusted_demand = self.base_demand * seasonal_factor
+        adjusted_demand = (
+            self.base_demand
+            * self.days_per_turn
+            * players_count
+            * seasonal_factor
+        )
         return int(adjusted_demand)
 
     def __str__(self) -> str:
