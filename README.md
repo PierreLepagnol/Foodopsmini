@@ -199,6 +199,17 @@ Scénarios pédagogiques types :
 - **RH** : coût personnel, productivité
 - **Rapports** : compte de résultat, bilan, flux de trésorerie, KPIs et analyse
 
+### Rapport de tour
+Après chaque tour, un rapport récapitulatif affiche :
+
+- la demande initiale et les modificateurs appliqués (saison, événements, concurrence) ;
+- le nombre de clients servis et perdus par restaurant ;
+- le chiffre d'affaires détaillé par recette ;
+- les facteurs de satisfaction (type, prix, qualité, production) ;
+- ainsi que les indicateurs globaux du marché (CA total, satisfaction de la demande).
+
+Ce rapport permet de comprendre comment le contexte influence les ventes et d'ajuster sa stratégie pour le tour suivant.
+
 ## 🧪 Tests
 
 ```bash
