@@ -43,13 +43,10 @@ Former des futurs entrepreneurs/restaurateurs aux aspects clés de la gestion :
 ### 📋 Terminal (Copier-coller)
 ```bash
 # 🍽️ Version Pro complète
-python start_pro.py
+python -m src.foodops_pro.cli_pro
 
 # 👨‍🏫 Mode Administrateur
-python start_admin.py
-
-# 🧪 Démonstration rapide
-python demo_pro.py
+python -m src.foodops_pro.cli_pro --admin
 
 # 🎮 Version classique
 python -m src.foodops_pro.cli
@@ -84,10 +81,6 @@ python -m src.foodops_pro.cli_pro --scenario examples/scenarios/base.yaml
 # Mode Administrateur (Professeur)
 python -m src.foodops_pro.cli_pro --admin
 
-# Scripts de lancement rapide
-python start_pro.py        # Version Pro
-python start_admin.py      # Mode Admin
-python start_demo.py       # Démo 3 tours
 ```
 
 ### Presets de configuration
@@ -128,7 +121,7 @@ src/foodops_pro/
 │   ├── market.py        # Allocation demande & concurrence
 │   ├── costing.py       # Calcul coûts recettes
 │   ├── ledger.py        # Comptabilité française
-│   └── payroll_fr.py    # Paie (charges, heures sup)
+│   └── payroll.py       # Paie (charges, heures sup)
 ├── io/
 │   ├── data_loader.py   # Chargement CSV/JSON/YAML
 │   ├── persistence.py   # Sauvegarde parties

@@ -9,7 +9,7 @@ from decimal import Decimal
 from src.foodops_pro.io.data_loader import DataLoader
 from src.foodops_pro.core.market import MarketEngine
 from src.foodops_pro.core.costing import RecipeCostCalculator
-from src.foodops_pro.core.payroll_fr import PayrollCalculator
+from src.foodops_pro.core.payroll import PayrollCalculator
 from src.foodops_pro.core.ledger import Ledger
 from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
 

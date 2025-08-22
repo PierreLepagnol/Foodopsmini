@@ -6,7 +6,7 @@ import pytest
 from decimal import Decimal
 
 from src.foodops_pro.domain.employee import Employee, EmployeePosition, EmployeeContract
-from src.foodops_pro.core.payroll_fr import PayrollCalculator, PayrollResult
+from src.foodops_pro.core.payroll import PayrollCalculator, PayrollResult
 
 
 @pytest.fixture
