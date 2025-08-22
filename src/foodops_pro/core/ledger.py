@@ -398,3 +398,17 @@ class Ledger:
             "expenses": expenses,
             "profit": revenues - expenses,
         }
+
+    def check_cash_consistency(self) -> Decimal:
+        """Compare la trésorerie avec le résultat comptable.
+
+        Un écart non nul peut indiquer une anomalie de calcul ou une écriture
+        manquante.
+
+        Returns:
+            Différence entre la trésorerie (banque + caisse) et le résultat.
+        """
+
+        cash_balance = self.get_balance("512") + self.get_balance("530")
+        profit = self.get_profit_loss()["profit"]
+        return cash_balance - profit
