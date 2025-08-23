@@ -66,6 +66,21 @@ class Restaurant:
     reputation: Decimal = Decimal("5.0")  # Réputation sur 10
     customer_satisfaction_history: List[Decimal] = field(default_factory=list)
 
+    # Units prêtes à servir par recette (remplies par le module de production)
+    production_units_ready: Dict[str, int] = field(default_factory=dict)
+    # Brouillon de plan de production saisi par le joueur: recipe_id -> {"size": "S"|"L", "qty": int, "quality": Decimal}
+    production_plan_draft: Dict[str, dict] = field(default_factory=dict)
+    # Qualité moyenne par recette pour la production du tour
+    production_quality_score: Dict[str, Decimal] = field(default_factory=dict)
+    # Coût de revient par portion produite ce tour (par recette)
+    production_cost_per_portion: Dict[str, Decimal] = field(default_factory=dict)
+    # Quantités produites par recette ce tour
+    production_produced_units: Dict[str, int] = field(default_factory=dict)
+    # Ingrédients consommés par recette (pour récap)
+    production_consumed_ingredients: Dict[str, Dict[str, Decimal]] = field(default_factory=dict)
+    # Historique par tour: turn -> { recipe_id: { produced, sold, lost, cost_per_portion } }
+    production_stats_history: Dict[int, Dict[str, dict]] = field(default_factory=dict)
+
     def __post_init__(self) -> None:
         """Validation des données."""
         if self.capacity_base <= 0:

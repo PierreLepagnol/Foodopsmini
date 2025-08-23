@@ -153,9 +153,7 @@ class Ledger:
         # Comptes de tiers (classe 4)
         self.accounts["401"] = Account("401", "Fournisseurs", AccountType.LIABILITY)
         self.accounts["411"] = Account("411", "Clients", AccountType.LIABILITY)
-        self.accounts["421"] = Account(
-            "421", "Personnel - Rémunérations dues", AccountType.LIABILITY
-        )
+        self.accounts["421"] = Account("421", "Personnel - Rémunérations dues", AccountType.LIABILITY)
         self.accounts["431"] = Account("431", "Sécurité sociale", AccountType.LIABILITY)
         self.accounts["44566"] = Account("44566", "TVA déductible", AccountType.ASSET)
         self.accounts["44571"] = Account(

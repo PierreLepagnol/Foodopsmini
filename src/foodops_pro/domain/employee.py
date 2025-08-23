@@ -27,6 +27,11 @@ class EmployeeContract(Enum):
     APPRENTI = "apprenti"
     STAGE = "stage"
 
+# Backward-compatibility aliases for tests
+# Some tests expect Position and ContractType names
+Position = EmployeePosition
+ContractType = EmployeeContract
+
 
 @dataclass
 class Employee:
@@ -74,9 +79,7 @@ class Employee:
                 f"L'expérience doit être positive: {self.experience_months}"
             )
         if not (0 < self.part_time_ratio <= 1):
-            raise ValueError(
-                f"Le ratio temps partiel doit être entre 0 et 1: {self.part_time_ratio}"
-            )
+            raise ValueError(f"Le ratio temps partiel doit être entre 0 et 1: {self.part_time_ratio}")
 
         # Validation selon le type de contrat
         if self.contract == EmployeeContract.APPRENTI and self.experience_months > 24:
@@ -84,9 +87,7 @@ class Employee:
                 "Un apprenti ne peut pas avoir plus de 24 mois d'expérience"
             )
         if self.contract == EmployeeContract.STAGE and self.salary_gross_monthly > 0:
-            raise ValueError(
-                "Un stagiaire ne peut pas avoir de salaire (gratification uniquement)"
-            )
+            raise ValueError("Un stagiaire ne peut pas avoir de salaire (gratification uniquement)")
 
     @property
     def effective_salary_monthly(self) -> Decimal:
@@ -130,28 +131,22 @@ class Employee:
             EmployeePosition.CAISSE: Decimal("0.05"),
         }
 
-        base_contribution = base_capacity * position_factors.get(
-            self.position, Decimal("0.1")
-        )
+        base_contribution = base_capacity * position_factors.get(self.position, Decimal("0.1"))
 
         # Application des modificateurs
         contribution = base_contribution * self.productivity * self.part_time_ratio
 
         # Bonus d'expérience
-        experience_bonus = min(
-            Decimal("0.2"), Decimal(self.experience_months) / Decimal("120")
-        )  # Max 20% après 10 ans
-        contribution *= Decimal("1") + experience_bonus
+        experience_bonus = min(Decimal("0.2"), Decimal(self.experience_months) / Decimal("120"))  # Max 20% après 10 ans
+        contribution *= (Decimal("1") + experience_bonus)
 
         return int(contribution)
 
     def is_eligible_for_overtime(self) -> bool:
         """Vérifie si l'employé peut faire des heures supplémentaires."""
-        return (
-            self.overtime_eligible
-            and self.contract in [EmployeeContract.CDI, EmployeeContract.CDD]
-            and not self.is_part_time
-        )
+        return (self.overtime_eligible and
+                self.contract in [EmployeeContract.CDI, EmployeeContract.CDD] and
+                not self.is_part_time)
 
     def get_contract_charges_rate(self) -> Decimal:
         """

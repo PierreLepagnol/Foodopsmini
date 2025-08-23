@@ -1,0 +1,12 @@
+[
+  {
+    "id": "demo",
+    "name": "Scénario Démonstration",
+    "description": "Configuration simplifiée pour démonstrations rapides"
+  },
+  {
+    "id": "standard",
+    "name": "Scénario Standard",
+    "description": "Configuration équilibrée pour apprentissage général"
+  }
+]

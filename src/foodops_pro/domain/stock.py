@@ -159,6 +159,17 @@ class StockManager:
                 f"Stock insuffisant pour {ingredient_id}: {quantity} demandé, {available} disponible"
             )
 
+    def get_lots_received_between(self, start_date, end_date):
+        """
+        Retourne la liste des lots reçus entre deux dates (incluses).
+        Args:
+            start_date (date): Date de début (incluse)
+            end_date (date): Date de fin (incluse)
+        Returns:
+            List[StockLot]: Lots reçus dans la période
+        """
+        return [lot for lot in self.lots if start_date <= lot.received_date <= end_date]
+
         remaining = quantity
         used_lots = []
 

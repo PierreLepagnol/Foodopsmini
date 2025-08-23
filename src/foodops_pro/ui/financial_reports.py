@@ -18,7 +18,8 @@ class FinancialReports:
         self.ui = ui
 
     def show_profit_loss_statement(
-        self, restaurant: Restaurant, ledger: Ledger, period: str = "Mois en cours"
+        self, restaurant: Restaurant, ledger: Ledger, period: str = "Mois en cours",
+        stock_manager=None, start_date=None, end_date=None
     ) -> None:
         """Affiche le compte de résultat professionnel."""
         self.ui.clear_screen()
@@ -28,7 +29,10 @@ class FinancialReports:
         balance_data = ledger.get_trial_balance()
 
         # Calcul des métriques détaillées
-        metrics = self._calculate_detailed_metrics(restaurant, pnl_data, balance_data)
+        metrics = self._calculate_detailed_metrics(
+            restaurant, pnl_data, balance_data,
+            stock_manager=stock_manager, start_date=start_date, end_date=end_date
+        )
 
         # En-tête du rapport
         header = [
@@ -115,7 +119,8 @@ class FinancialReports:
         self._show_financial_analysis(metrics)
 
     def _calculate_detailed_metrics(
-        self, restaurant: Restaurant, pnl_data: Dict, balance_data: Dict
+        self, restaurant: Restaurant, pnl_data: Dict, balance_data: Dict,
+        stock_manager=None, start_date=None, end_date=None
     ) -> Dict[str, Decimal]:
         """Calcule les métriques détaillées du compte de résultat."""
         metrics = {}
@@ -128,14 +133,17 @@ class FinancialReports:
         # Charges d'exploitation
         total_expenses = pnl_data.get("expenses", Decimal("0"))
 
-        # Répartition estimée des charges (à améliorer avec plus de détails comptables)
-        metrics["achats_mp"] = total_expenses * Decimal(
-            "0.30"
-        )  # 30% pour matières premières
+        # Achats matières premières : coût réel des lots reçus sur la période
+        if stock_manager and start_date and end_date:
+            lots = stock_manager.get_lots_received_between(start_date, end_date)
+            metrics["achats_mp"] = sum(lot.unit_cost_ht * lot.quantity for lot in lots)
+        else:
+            metrics["achats_mp"] = total_expenses * Decimal("0.30")  # fallback heuristique
+
         metrics["loyer"] = restaurant.rent_monthly
         metrics["energie"] = restaurant.rent_monthly * Decimal("0.15")  # Estimation
         metrics["assurances"] = restaurant.rent_monthly * Decimal("0.05")  # Estimation
-        metrics["marketing"] = total_expenses * Decimal("0.03")  # 3% du total
+        metrics["marketing"] = total_expenses * Decimal("0.03")  # 3% du total (à améliorer)
         metrics["autres_externes"] = total_expenses * Decimal("0.07")  # 7% autres
 
         # Personnel (estimation basée sur les employés)

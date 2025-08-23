@@ -64,6 +64,7 @@ class FoodOpsProGame:
         self.decision_menu = DecisionMenu(self.ui, self.cost_calculator)
         # Injection des catalogues et paramètres admin
         self.decision_menu.set_suppliers_catalog(self.suppliers_catalog)
+        self.decision_menu.set_suppliers_map(self.suppliers)
         self.decision_menu.set_admin_settings(self.admin_settings)
 
         self.ui.show_progress_bar(4, 5, "Finalisation")
@@ -433,6 +434,61 @@ class FoodOpsProGame:
             # Décisions de l'IA (simplifiées)
             self._ai_decisions()
 
+            # Production: purge des unités précédentes (DLC=1 tour), puis exécution du plan manuel s'il existe, sinon MVP plan
+            try:
+                from .core.production import ProductionPlanner, apply_production_plan, clear_previous_production, execute_manual_production_plan
+                planner = ProductionPlanner()
+                recipes_by_id = self.recipes
+                for r in self.players + self.ai_competitors:
+                    clear_previous_production(r)
+                    # Exécuter d'abord le plan saisi par le joueur (s'il existe), sinon fallback MVP auto-plan
+                    if getattr(r, "production_plan_draft", None):
+                        execute_manual_production_plan(r, recipes_by_id)
+                    else:
+                        plan = planner.plan(r, recipes_by_id)
+                        apply_production_plan(r, plan)
+                    total_ready = sum(int(v) for v in getattr(r, "production_units_ready", {}).values())
+                    if total_ready == 0:
+                        self.ui.print_box([
+                            f"⚠️ Aucune production prête pour {r.name} ce tour.",
+                            "Astuce: Réceptionnez vos commandes dans Achats & Stocks → Réception",
+                            "Ou saisissez une mise en place dans 👨‍🍳 Production & Mise en place",
+                        ], style="warning")
+            except Exception as e:
+                if getattr(self, "admin_mode", False):
+                    print(f"[DEBUG] Production planning failed: {e}")
+            # Récap de production réalisé
+            try:
+                for r in self.players + self.ai_competitors:
+                    produced = getattr(r, 'production_units_ready', {}) or {}
+                    # Mémoriser stats du tour (produites connues ici; vendues/perdues après marché)
+                    if not hasattr(r, 'production_stats_history'):
+                        r.production_stats_history = {}
+
+                    consumed = getattr(r, 'production_consumed_ingredients', {}) or {}
+                    cost_map = getattr(r, 'production_cost_per_portion', {}) or {}
+                    if produced:
+                        lines = [f"Production réalisée — {r.name}", ""]
+                        for rid, qty in produced.items():
+                            cost = cost_map.get(rid)
+                            line = f"• {rid}: {qty} portions"
+                            if cost is not None:
+                                line += f" | Coût/portion: {cost:.2f}€ HT"
+                            lines.append(line)
+                            cons = consumed.get(rid, {})
+                            if cons:
+                                parts = ", ".join([f"{ing}:{q}" for ing, q in cons.items()])
+                                lines.append(f"   Ingrédients: {parts}")
+                        self.ui.print_box(lines, style='info')
+            except Exception as e:
+                if self.admin_mode:
+                    print(f"[DEBUG] recap production failed: {e}")
+
+            except Exception as e:
+                # En cas d'échec, on continue sans production-aware
+                if getattr(self, "admin_mode", False):
+                    print(f"[DEBUG] Production planning failed: {e}")
+
             # Simulation du marché
             all_restaurants = self.players + self.ai_competitors
             results = self.market_engine.allocate_demand(all_restaurants, turn)
@@ -514,6 +570,28 @@ class FoodOpsProGame:
             if restaurant.id in results:
                 result = results[restaurant.id]
                 utilization_pct = f"{result.utilization_rate:.1%}"
+                # Enregistrer stats de production du tour
+                try:
+                    for r in self.players + self.ai_competitors:
+                        stats_turn = {}
+                        produced_map = getattr(r, 'production_produced_units', {}) or {}
+                        cost_map = getattr(r, 'production_cost_per_portion', {}) or {}
+                        sales_map = results.get(r.id).recipe_sales if r.id in results else {}
+                        for rid, produced_qty in produced_map.items():
+                            sold_qty = int(sales_map.get(rid, 0)) if sales_map else 0
+                            lost_qty = max(0, int(produced_qty) - sold_qty)
+                            stats_turn[rid] = {
+                                'produced': int(produced_qty),
+                                'sold': sold_qty,
+                                'lost': lost_qty,
+                                'cost_per_portion': cost_map.get(rid),
+                            }
+                        if hasattr(r, 'production_stats_history'):
+                            r.production_stats_history[self.current_turn] = stats_turn
+                except Exception as e:
+                    if self.admin_mode:
+                        print(f"[DEBUG] Save production stats failed: {e}")
+
 
                 # Marqueur pour les joueurs
                 marker = "👤" if restaurant in self.players else "🤖"
@@ -530,6 +608,55 @@ class FoodOpsProGame:
         self.ui.print_box(results_lines, "PERFORMANCE", "info")
 
         # Analyse du marché
+        # Détails d'attractivité par restaurant
+        try:
+            factors = getattr(self.market_engine, '_last_factors_by_restaurant', {})
+            if factors:
+                lines = ["🔍 Détails d'attractivité (ce tour):", "(Type × Prix × Qualité × Qualité prod)"]
+                for r in self.players + self.ai_competitors:
+                    f = factors.get(r.id)
+                    if not f:
+                        continue
+                    ta = f.get('type_affinity', 0)
+                    pf = f.get('price_factor', 0)
+                    qf = f.get('quality_factor', 0)
+                    pq = f.get('production_quality_factor', 1)
+                    lines.append(f"• {r.name}: {ta:.2f} × {pf:.2f} × {qf:.2f} × {pq:.2f}")
+                self.ui.print_box(lines, style='info')
+        except Exception as e:
+        # Chiffres clés par restaurant
+        try:
+            key_lines = ["📌 Chiffres clés (tour):"]
+            total_market = self.market_engine.get_market_analysis()
+            total_served = Decimal(str(total_market.get('total_served', 0) or 0))
+            total_revenue = Decimal(str(total_market.get('total_revenue', 0) or 0))
+            for r in self.players + self.ai_competitors:
+                res = results.get(r.id)
+                if not res:
+                    continue
+                # Part de marché
+                share = (Decimal(res.served_customers) / total_served) if total_served > 0 else Decimal('0')
+                # Satisfaction moyenne récente
+                sat = r.get_average_satisfaction()
+                # Marge brute approx = CA − coût PF vendus (si on a le coût/portion)
+                ca = res.revenue
+                produced_costs = getattr(r, 'production_cost_per_portion', {}) or {}
+                sales_map = res.recipe_sales or {}
+                cost_sold = Decimal('0')
+                for rid, sold in sales_map.items():
+                    cpp = produced_costs.get(rid)
+                    if cpp is not None:
+                        cost_sold += cpp * Decimal(int(sold))
+                marge = ca - cost_sold
+                key_lines.append(f"• {r.name}: CA {ca:.0f}€, Marge brute {marge:.0f}€, Satisf. {sat:.1f}/5, Part marché {share:.1%}")
+            self.ui.print_box(key_lines, style='info')
+        except Exception as e:
+            if self.admin_mode:
+                print(f"[DEBUG] key figures failed: {e}")
+
+            if self.admin_mode:
+                print(f"[DEBUG] display factors failed: {e}")
+
         market_analysis = self.market_engine.get_market_analysis()
         analysis_lines = [
             f"📈 ANALYSE DU MARCHÉ:",
