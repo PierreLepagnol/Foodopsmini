@@ -1,10 +1,11 @@
 # FoodOps Pro
 
-Jeu de gestion de restaurant **réaliste, pédagogique et accessible** en Python 3.11+.
+Jeu de gestion de restaurant **réaliste, pédagogique et accessible** en python.
 
 ## 🎯 Objectif pédagogique
 
 Former des futurs entrepreneurs/restaurateurs aux aspects clés de la gestion :
+
 - **Menu engineering** et calcul de coûts avec rendements
 - **Gestion des achats** et stocks (FEFO - First Expired, First Out)
 - **Ressources humaines** selon le droit du travail français
@@ -20,76 +21,64 @@ Former des futurs entrepreneurs/restaurateurs aux aspects clés de la gestion :
 - **KPIs métier** : ticket moyen, coût matière, marge, taux de saturation, cash-flow
 - **Données paramétrables** via CSV/JSON et scénarios YAML
 
-## 🚀 Start & Play (1 clic)
+## 🛠️ Installation & mise en route
 
-**🎮 LANCEMENT EN 1 CLIC :**
-
-### 🚀 Menu Principal (Recommandé)
-1. **Double-cliquez** sur `🎮_MENU_PRINCIPAL.bat`
-2. **Choisissez** votre mode de jeu (1-5)
-3. **Le jeu s'ouvre** dans une nouvelle console !
-
-### 🌐 Launcher Web (Instructions)
-1. **Double-cliquez** sur `🚀_LAUNCHER.bat` → Choisir "Launcher Web"
-2. **Ou ouvrez** `launcher.html` dans votre navigateur
-3. **Suivez** les instructions pour lancer manuellement
-
-### 💻 Windows (Double-clic direct)
-- **� `Jouer_Pro.bat`** ← Version complète
-- **👨‍🏫 `Mode_Admin.bat`** ← Configuration professeur
-- **🧪 `Demo_Rapide.bat`** ← Démonstration
-- **🎮 `MENU_PRINCIPAL.bat`** ← Menu interactif (NOUVEAU !)
-
-### 📋 Terminal (Copier-coller)
-```bash
-# 🍽️ Version Pro complète
-python start_pro.py
-
-# 👨‍🏫 Mode Administrateur
-python start_admin.py
-
-# 🧪 Démonstration rapide
-python demo_pro.py
-
-# 🎮 Version classique
-python -m src.foodops_pro.cli
-```
-
-### 🖥️ Raccourci Bureau
-```bash
-# Créer un raccourci sur le bureau
-python create_desktop_shortcut.py
-```
-
-## 🛠️ Installation
-
-### Prérequis
+1. Installer les dépendances du projet
 
 ```bash
-pip install pyyaml pandas pytest
+# Installe les dépendances avec uv (recommandée)
+uv sync
 ```
 
-### Commandes manuelles
+2. Lancer le projet selon mode de jeu
+
+- 👨‍🏫 Mode Administrateur
+Interface de configuration pour professeurs
+Configurez tous les paramètres de la partie
+
+```bash
+uv run -m cli_pro --admin
+```
+
+- 🍽️ Mode Professionnel Complet
+Version Pro - interface enrichie
+Achat de fonds de commerce, décisions avancées
+
+```bash
+# Lancer le jeu avec
+uv run -m cli_pro
+
+```
+
+- 🧪 Mode Test & Démonstration
+Lance les démonstrations et tests du système
+
+```bash
+uv run demo.py
+```
+
+
+
 
 ```bash
 # Version classique
 python -m src.foodops_pro.cli
 python -m src.foodops_pro.cli --scenario examples/scenarios/base.yaml
 python -m src.foodops_pro.cli --debug --seed 42
+```
 
+```bash
 # Version Pro (interface enrichie)
 python -m src.foodops_pro.cli_pro
 python -m src.foodops_pro.cli_pro --scenario examples/scenarios/base.yaml
-
-# Mode Administrateur (Professeur)
-python -m src.foodops_pro.cli_pro --admin
-
-# Scripts de lancement rapide
-python start_pro.py        # Version Pro
-python start_admin.py      # Mode Admin
-python start_demo.py       # Démo 3 tours
 ```
 
+```bash
+# Mode Administrateur (Professeur)
+python -m src.foodops_pro.cli_pro --admin
+```
+
+Choisissez votre :
 ### Presets de configuration
 
 **📋 Configurations prêtes à l'emploi :**
@@ -186,9 +175,9 @@ Démarrer : `python -m src.foodops_pro.cli_pro --admin`
 - ▶️ Lancer : démarre la partie avec vos paramètres
 
 Scénarios pédagogiques types :
-- Débutant : budget 40–60k€, 6–8 tours, IA facile, peu d’événements
-- Intermédiaire : budget 25–40k€, 12 tours, IA moyenne, événements modérés
-- Avancé : budget 15–25k€, 18–24 tours, IA difficile, événements fréquents, cycles activés
+- Débutant : budget 40-60k€, 6-8 tours, IA facile, peu d’événements
+- Intermédiaire : budget 25-40k€, 12 tours, IA moyenne, événements modérés
+- Avancé : budget 15-25k€, 18-24 tours, IA difficile, événements fréquents, cycles activés
 - Concours : conditions identiques, notation stricte, classement final, export résultats
 
 ## 📊 KPIs et rapports (Pro)

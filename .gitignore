@@ -168,3 +168,11 @@ cython_debug/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+not_to_git/
+.ruff_cache/
+.cursor/
+.cursorrules
+windows/
+.cursorignore
+trash/

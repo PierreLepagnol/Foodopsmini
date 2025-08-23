@@ -3,16 +3,16 @@
 Test complet du système qualité intégré dans FoodOps Pro.
 """
 
-import sys
 import os
+import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 from decimal import Decimal
-from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
-from src.foodops_pro.domain.scenario import Scenario, MarketSegment
+
 from src.foodops_pro.core.market import MarketEngine
-from src.foodops_pro.domain.employee import Employee, Position, ContractType
+from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
+from src.foodops_pro.domain.scenario import MarketSegment, Scenario
 
 
 def create_test_scenario():
