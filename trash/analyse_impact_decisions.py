@@ -97,20 +97,20 @@ def analyser_impact_decisions():
         print("=" * 60)
         print(f"📝 {data['description']}")
 
-        print(f"\n📈 IMPACTS DIRECTS:")
+        print("\n📈 IMPACTS DIRECTS:")
         for kpi, impact in data["impact_direct"].items():
             print(f"   • {kpi}: {impact}")
 
-        print(f"\n🔄 IMPACTS INDIRECTS:")
+        print("\n🔄 IMPACTS INDIRECTS:")
         for kpi, impact in data["impact_indirect"].items():
             print(f"   • {kpi}: {impact}")
 
-        print(f"\n💡 OPTIMISATION: {data['optimisation']}")
+        print("\n💡 OPTIMISATION: {data['optimisation']}")
 
 
 def analyser_kpis_cles():
     """Analyse les KPIs clés et leurs interdépendances."""
-    print(f"\n\n📊 ANALYSE DES KPIs CLÉS")
+    print("\n\n📊 ANALYSE DES KPIs CLÉS")
     print("=" * 60)
 
     kpis = {
@@ -158,7 +158,7 @@ def analyser_kpis_cles():
     }
 
     for kpi, data in kpis.items():
-        print(f"\n📊 {kpi}")
+        print("\n📊 {kpi}")
         print("-" * 40)
         print(f"📐 Formule: {data['formule']}")
         print(f"🎯 Facteurs clés: {', '.join(data['facteurs'])}")
@@ -168,7 +168,7 @@ def analyser_kpis_cles():
 
 def analyser_strategies_types():
     """Analyse les différents types de stratégies."""
-    print(f"\n\n🎯 ANALYSE DES STRATÉGIES TYPES")
+    print("\n\n🎯 ANALYSE DES STRATÉGIES TYPES")
     print("=" * 60)
 
     strategies = {
@@ -226,28 +226,28 @@ def analyser_strategies_types():
     }
 
     for strategie, data in strategies.items():
-        print(f"\n🎯 STRATÉGIE {strategie}")
+        print("\n🎯 STRATÉGIE {strategie}")
         print("=" * 50)
         print(f"📝 {data['description']}")
 
-        print(f"\n🎮 DÉCISIONS CLÉS:")
+        print("\n🎮 DÉCISIONS CLÉS:")
         for decision, valeur in data["decisions"].items():
             print(f"   • {decision}: {valeur}")
 
-        print(f"\n📊 KPIs CIBLES:")
+        print("\n📊 KPIs CIBLES:")
         for kpi, valeur in data["kpis_cibles"].items():
             print(f"   • {kpi}: {valeur}")
 
-        print(f"\n⚠️ RISQUES: {', '.join(data['risques'])}")
+        print("\n⚠️ RISQUES: {', '.join(data['risques'])}")
         print(f"✅ AVANTAGES: {', '.join(data['avantages'])}")
 
 
 def analyser_interdependances():
     """Analyse les interdépendances entre décisions."""
-    print(f"\n\n🔄 INTERDÉPENDANCES ENTRE DÉCISIONS")
+    print("\n\n🔄 INTERDÉPENDANCES ENTRE DÉCISIONS")
     print("=" * 60)
 
-    print(f"\n🎯 COHÉRENCE STRATÉGIQUE REQUISE:")
+    print("\n🎯 COHÉRENCE STRATÉGIQUE REQUISE:")
     print("-" * 40)
 
     coherences = [
@@ -261,7 +261,7 @@ def analyser_interdependances():
     for coherence in coherences:
         print(f"   • {coherence}")
 
-    print(f"\n⚠️ PIÈGES À ÉVITER:")
+    print("\n⚠️ PIÈGES À ÉVITER:")
     print("-" * 30)
 
     pieges = [
@@ -275,7 +275,7 @@ def analyser_interdependances():
     for piege in pieges:
         print(f"   ❌ {piege}")
 
-    print(f"\n✅ SYNERGIES POSITIVES:")
+    print("\n✅ SYNERGIES POSITIVES:")
     print("-" * 30)
 
     synergies = [
@@ -297,7 +297,7 @@ def main():
     analyser_strategies_types()
     analyser_interdependances()
 
-    print(f"\n\n🎉 CONCLUSIONS CLÉS")
+    print("\n\n🎉 CONCLUSIONS CLÉS")
     print("=" * 40)
     print("✅ Chaque décision impacte plusieurs KPIs")
     print("✅ Cohérence stratégique = Clé du succès")

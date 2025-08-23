@@ -1,0 +1,38 @@
+{
+    "quartier_etudiant": {
+        "name": "Quartier étudiant animé",
+        "population_total": 5000,
+        "segments_share": {
+            "etudiant": 0.6,
+            "actif": 0.2,
+            "famille": 0.1,
+            "touriste": 0.05,
+            "senior": 0.05
+        },
+        "note": "Fort volume midi, sensibilité prix élevée."
+    },
+    "centre_ville": {
+        "name": "Centre-ville mixte",
+        "population_total": 8000,
+        "segments_share": {
+            "etudiant": 0.25,
+            "actif": 0.4,
+            "famille": 0.15,
+            "touriste": 0.1,
+            "senior": 0.1
+        },
+        "note": "Mix équilibré, budgets variés."
+    },
+    "zone_touristique": {
+        "name": "Zone touristique",
+        "population_total": 7000,
+        "segments_share": {
+            "etudiant": 0.1,
+            "actif": 0.25,
+            "famille": 0.15,
+            "touriste": 0.4,
+            "senior": 0.1
+        },
+        "note": "Forte attente expérience/qualité, sensibilité moindre au prix."
+    }
+}

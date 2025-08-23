@@ -1,0 +1,238 @@
+{
+    "Poulet": {
+        "categories": [
+            "VIANDE"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 7.5,
+            "G3_SURGELE": 6.2
+        },
+        "perish_days": 5,
+        "fit_score": {
+            "FAST_FOOD": 1.0,
+            "BISTRO": 0.85,
+            "GASTRO": 0.7
+        },
+        "tier": "ALL"
+    },
+    "Boeuf haché": {
+        "categories": [
+            "VIANDE"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 10.5,
+            "G3_SURGELE": 9.0
+        },
+        "perish_days": 4,
+        "fit_score": {
+            "FAST_FOOD": 1.0,
+            "BISTRO": 0.8,
+            "GASTRO": 0.6
+        },
+        "tier": "ALL"
+    },
+    "Filet de boeuf": {
+        "categories": [
+            "VIANDE"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 34.0,
+            "G3_SURGELE": 28.0
+        },
+        "perish_days": 5,
+        "fit_score": {
+            "FAST_FOOD": 0.5,
+            "BISTRO": 0.85,
+            "GASTRO": 1.0
+        },
+        "tier": "BISTRO_PLUS"
+    },
+    "Magret de canard": {
+        "categories": [
+            "VIANDE"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 22.0,
+            "G3_SURGELE": 18.5
+        },
+        "perish_days": 5,
+        "fit_score": {
+            "FAST_FOOD": 0.55,
+            "BISTRO": 0.9,
+            "GASTRO": 0.95
+        },
+        "tier": "BISTRO_PLUS"
+    },
+    "Saumon": {
+        "categories": [
+            "POISSON"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 18.0,
+            "G3_SURGELE": 14.5
+        },
+        "perish_days": 3,
+        "fit_score": {
+            "FAST_FOOD": 0.7,
+            "BISTRO": 0.9,
+            "GASTRO": 0.95
+        },
+        "tier": "ALL"
+    },
+    "Cabillaud": {
+        "categories": [
+            "POISSON"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 16.0,
+            "G3_SURGELE": 12.0
+        },
+        "perish_days": 3,
+        "fit_score": {
+            "FAST_FOOD": 0.75,
+            "BISTRO": 0.9,
+            "GASTRO": 0.9
+        },
+        "tier": "ALL"
+    },
+    "Saint-Jacques": {
+        "categories": [
+            "POISSON"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 38.0,
+            "G3_SURGELE": 30.0
+        },
+        "perish_days": 3,
+        "fit_score": {
+            "FAST_FOOD": 0.5,
+            "BISTRO": 0.85,
+            "GASTRO": 1.0
+        },
+        "tier": "BISTRO_PLUS"
+    },
+    "Homard": {
+        "categories": [
+            "POISSON"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 60.0,
+            "G3_SURGELE": 48.0
+        },
+        "perish_days": 2,
+        "fit_score": {
+            "FAST_FOOD": 0.3,
+            "BISTRO": 0.75,
+            "GASTRO": 1.0
+        },
+        "tier": "GASTRO_ONLY"
+    },
+    "Foie gras": {
+        "categories": [
+            "VIANDE"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 60.0,
+            "G3_SURGELE": 50.0
+        },
+        "perish_days": 7,
+        "fit_score": {
+            "FAST_FOOD": 0.4,
+            "BISTRO": 0.8,
+            "GASTRO": 1.0
+        },
+        "tier": "GASTRO_ONLY"
+    },
+    "Truffe noire": {
+        "categories": [
+            "CONDIMENT"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 900.0
+        },
+        "perish_days": 10,
+        "fit_score": {
+            "FAST_FOOD": 0.1,
+            "BISTRO": 0.7,
+            "GASTRO": 1.0
+        },
+        "tier": "GASTRO_ONLY"
+    },
+    "Pomme de terre": {
+        "categories": [
+            "LEGUME"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 1.5,
+            "G3_SURGELE": 1.8
+        },
+        "perish_days": 20,
+        "fit_score": {
+            "FAST_FOOD": 1.0,
+            "BISTRO": 0.95,
+            "GASTRO": 0.85
+        },
+        "tier": "ALL"
+    },
+    "Riz": {
+        "categories": [
+            "FECULENT"
+        ],
+        "prices_by_grade": {
+            "G3_SURGELE": 2.0
+        },
+        "perish_days": 180,
+        "fit_score": {
+            "FAST_FOOD": 0.95,
+            "BISTRO": 0.95,
+            "GASTRO": 0.9
+        },
+        "tier": "ALL"
+    },
+    "Asperge": {
+        "categories": [
+            "LEGUME"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 9.0,
+            "G3_SURGELE": 7.0
+        },
+        "perish_days": 4,
+        "fit_score": {
+            "FAST_FOOD": 0.6,
+            "BISTRO": 0.9,
+            "GASTRO": 0.95
+        },
+        "tier": "BISTRO_PLUS"
+    },
+    "Beurre": {
+        "categories": [
+            "PRODUIT_LAITIER"
+        ],
+        "prices_by_grade": {
+            "G1_FRAIS_BRUT": 5.5
+        },
+        "perish_days": 30,
+        "fit_score": {
+            "FAST_FOOD": 0.9,
+            "BISTRO": 1.0,
+            "GASTRO": 1.0
+        },
+        "tier": "ALL"
+    },
+    "Pain burger": {
+        "categories": [
+            "BOULANGERIE"
+        ],
+        "prices_by_grade": {
+            "G3_SURGELE": 3.2
+        },
+        "perish_days": 20,
+        "fit_score": {
+            "FAST_FOOD": 1.0,
+            "BISTRO": 0.7,
+            "GASTRO": 0.4
+        },
+        "tier": "ALL"
+    }
+}

@@ -8,7 +8,7 @@ market:
   demand_noise: 0.15
   price_sensitivity: 1.2
   quality_importance: 1.0
-  
+
 # Segments de clientèle
 segments:
   étudiants:
@@ -17,14 +17,14 @@ segments:
     price_sensitivity: 1.8
     quality_sensitivity: 0.7
     description: "Étudiants avec budget limité"
-    
+
   familles:
     size: 180
     budget: 17.0
     price_sensitivity: 1.2
     quality_sensitivity: 1.1
     description: "Familles recherchant bon rapport qualité/prix"
-    
+
   foodies:
     size: 90
     budget: 25.0
@@ -38,19 +38,19 @@ restaurant:
   base_capacity: 150
   base_staff_cost: 2800
   base_overhead: 1200
-  
+
 # Concurrents
 competitors:
   - name: "Resto Rapide"
     strategy: "prix_bas"
     base_price: 9.50
     quality_level: 1
-    
+
   - name: "Bistrot Central"
     strategy: "equilibre"
     base_price: 13.20
     quality_level: 3
-    
+
   - name: "Table Gourmande"
     strategy: "premium"
     base_price: 18.80

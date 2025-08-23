@@ -1,0 +1,56 @@
+BusinessGame Thomas - ASCII Diagram
+========================================
+
+Elève/Joueur                 Admin (UI)
+┌─────────────┐           ┌───────────────────────┐
+│             │           │                       │
+│             │           │  Créateur de scénario │───┐
+│   Elite     │           │                       │   │
+└─────────────┘           └───────────────────────┘   │
+       │                         │                    │
+       │                         │                    │
+       ▼                         ▼                    │
+┌─────────────┐           ┌─────────────┐             │
+│             │           │             │             │
+│  Decision   │◄──────────┤  Scenario   │             │
+│             │           │             │             │
+└─────────────┘           └─────────────┘             │
+       │                                              │
+       │                                              │
+       ▼                                              │
+                            ┌─────────────┐           │
+                            │             │           │
+                            │   Moteur    │           │
+                            │    Jeu      │           │
+                            │             │           │
+                            └─────────────┘           │
+       │                                              │
+       │                                              │
+       ▼                                              │
+┌─────────────┐                                       │
+│             │                                       │
+│  Resultat   │◄──────────────────────────────────────┘
+│             │
+└─────────────┘
+
+
+Legend:
+-------
+- Elise/Sav: Interface utilisateur Elite/Sauvegarde
+- UISoul Elite: Interface utilisateur âme/élite
+- Decision: Module de prise de décision
+- Moteur Jeu: Moteur de jeu principal
+- Resultat: Affichage des résultats
+- Admin (UI): Interface d'administration
+- Client: Module client
+- Scenario: Gestionnaire de scénarios
+
+Flow:
+-----
+1. L'utilisateur interagit via Elise/Sav (UISoul Elite)
+2. Les décisions sont traitées par le module Decision
+3. Le Moteur Jeu traite la logique de simulation
+4. Les Resultats sont générés et affichés
+5. L'Admin (UI) gère les configurations via Client et Scenario
+6. Le Scenario alimente le processus de décision
+7. Les résultats remontent vers l'interface d'administration

@@ -1,0 +1,159 @@
+[
+    {
+        "nom": "Manager",
+        "categorie": "direction",
+        "restaurant_types": {
+            "FAST_FOOD": {
+                "salaire_marche": 2200,
+                "capacite_couverts": 120,
+                "impact_qualite": 0.6
+            }
+        }
+    },
+    {
+        "nom": "Équipier polyvalent",
+        "categorie": "salle",
+        "restaurant_types": {
+            "FAST_FOOD": {
+                "salaire_marche": 1600,
+                "capacite_couverts": 80,
+                "impact_qualite": 0.5
+            }
+        }
+    },
+    {
+        "nom": "Chef",
+        "categorie": "cuisine",
+        "restaurant_types": {
+            "BISTRO": {
+                "salaire_marche": 2500,
+                "capacite_couverts": 60,
+                "impact_qualite": 0.8
+            },
+            "GASTRO": {
+                "salaire_marche": 3000,
+                "capacite_couverts": 50,
+                "impact_qualite": 0.9
+            }
+        }
+    },
+    {
+        "nom": "Second de cuisine",
+        "categorie": "cuisine",
+        "restaurant_types": {
+            "BISTRO": {
+                "salaire_marche": 2000,
+                "capacite_couverts": 50,
+                "impact_qualite": 0.7
+            },
+            "GASTRO": {
+                "salaire_marche": 2200,
+                "capacite_couverts": 40,
+                "impact_qualite": 0.8
+            }
+        }
+    },
+    {
+        "nom": "Serveur",
+        "categorie": "salle",
+        "restaurant_types": {
+            "BISTRO": {
+                "salaire_marche": 1600,
+                "capacite_couverts": 40,
+                "impact_qualite": 0.5
+            },
+            "GASTRO": {
+                "salaire_marche": 1600,
+                "capacite_couverts": 20,
+                "impact_qualite": 0.5
+            }
+        }
+    },
+    {
+        "nom": "Chef étoilé",
+        "categorie": "cuisine",
+        "restaurant_types": {
+            "GASTRO": {
+                "salaire_marche": 4000,
+                "capacite_couverts": 50,
+                "impact_qualite": 1.0
+            }
+        }
+    },
+    {
+        "nom": "Chef de partie",
+        "categorie": "cuisine",
+        "restaurant_types": {
+            "GASTRO": {
+                "salaire_marche": 2000,
+                "capacite_couverts": 35,
+                "impact_qualite": 0.7
+            }
+        }
+    },
+    {
+        "nom": "Commis",
+        "categorie": "cuisine",
+        "restaurant_types": {
+            "GASTRO": {
+                "salaire_marche": 1600,
+                "capacite_couverts": 25,
+                "impact_qualite": 0.4
+            }
+        }
+    },
+    {
+        "nom": "Maître d'hôtel",
+        "categorie": "salle",
+        "restaurant_types": {
+            "GASTRO": {
+                "salaire_marche": 2500,
+                "capacite_couverts": 0,
+                "impact_qualite": 0.9
+            }
+        }
+    },
+    {
+        "nom": "Sommelier",
+        "categorie": "salle",
+        "restaurant_types": {
+            "GASTRO": {
+                "salaire_marche": 2400,
+                "capacite_couverts": 0,
+                "impact_qualite": 0.8
+            }
+        }
+    },
+    {
+        "nom": "Chef de rang",
+        "categorie": "salle",
+        "restaurant_types": {
+            "GASTRO": {
+                "salaire_marche": 1800,
+                "capacite_couverts": 20,
+                "impact_qualite": 0.6
+            }
+        }
+    },
+    {
+        "nom": "Plongeur",
+        "categorie": "cuisine",
+        "restaurant_types": {
+            "FAST_FOOD": {
+                "salaire_marche": 1500,
+                "capacite_couverts": 40,
+                "impact_qualite": 0.2
+            },
+            "BISTRO": {
+                "salaire_marche": 1500,
+                "capacite_couverts": 30,
+                "impact_qualite": 0.2
+            },
+            "GASTRO": {
+                "salaire_marche": 1500,
+                "capacite_couverts": 20,
+                "impact_qualite": 0.2
+            }
+        }
+    }
+]

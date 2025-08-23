@@ -1,0 +1,50 @@
+[
+    {
+        "nom": "Kiosque Campus",
+        "surface": 50.0,
+        "capacite_clients": 40,
+        "loyer": 2200.0,
+        "prix_fond": 140000.0,
+        "visibility": 1.1
+    },
+    {
+        "nom": "Galerie Marchande",
+        "surface": 80.0,
+        "capacite_clients": 80,
+        "loyer": 4500.0,
+        "prix_fond": 270000.0,
+        "visibility": 1.3
+    },
+    {
+        "nom": "Angle République",
+        "surface": 60.0,
+        "capacite_clients": 40,
+        "loyer": 2500.0,
+        "prix_fond": 200000.0,
+        "visibility": 1.1
+    },
+    {
+        "nom": "Centre ville",
+        "surface": 100.0,
+        "capacite_clients": 80,
+        "loyer": 5200.0,
+        "prix_fond": 260000.0,
+        "visibility": 1.3
+    },
+    {
+        "nom": "Local en périphérie",
+        "surface": 70.0,
+        "capacite_clients": 30,
+        "loyer": 3000.0,
+        "prix_fond": 300000.0,
+        "visibility": 1.4
+    },
+    {
+        "nom": "Quartier Chic",
+        "surface": 90.0,
+        "capacite_clients": 70,
+        "loyer": 12000.0,
+        "prix_fond": 400000.0,
+        "visibility": 1.5
+    }
+]

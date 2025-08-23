@@ -1,0 +1,22 @@
+{
+    "etudiant": {
+        "budget_moyen": 10.0,
+        "description": "Étudiants avec budget limité, sensibles au prix"
+    },
+    "actif": {
+        "budget_moyen": 18.0,
+        "description": "Actifs avec revenus moyens, recherchent praticité"
+    },
+    "famille": {
+        "budget_moyen": 55.0,
+        "description": "Familles avec panier pour 3-4 personnes"
+    },
+    "touriste": {
+        "budget_moyen": 28.0,
+        "description": "Touristes avec budget moyen, recherchent l'expérience"
+    },
+    "senior": {
+        "budget_moyen": 20.0,
+        "description": "Seniors avec budget modéré, privilégient le service"
+    }
+}

@@ -1,0 +1,23 @@
+{
+    "FAST_FOOD": {
+        "etudiant": 0.90,
+        "actif": 0.60,
+        "famille": 0.60,
+        "touriste": 0.50,
+        "senior": 0.40
+    },
+    "BISTRO": {
+        "etudiant": 0.60,
+        "actif": 0.80,
+        "famille": 0.75,
+        "touriste": 0.70,
+        "senior": 0.70
+    },
+    "GASTRO": {
+        "etudiant": 0.30,
+        "actif": 0.60,
+        "famille": 0.70,
+        "touriste": 0.85,
+        "senior": 0.80
+    }
+}

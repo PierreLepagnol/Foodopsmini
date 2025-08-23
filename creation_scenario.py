@@ -10,6 +10,7 @@ from pathlib import Path
 # import yaml  # Remplacé par configuration Python
 import json
 
+from foodops_pro.ui.console_ui import ConsoleUI
 
 
 @dataclass
@@ -91,8 +92,8 @@ class AdminSettings:
 class AdminConfigManager:
     """Gestionnaire de configuration administrateur."""
 
-    def __init__(self, ui):
-        self.ui = ui
+    def __init__(self):
+        self.ui = ConsoleUI()
         self.settings = AdminSettings()
 
     def configure_session(self) -> AdminSettings:
@@ -108,22 +109,45 @@ class AdminConfigManager:
         ]
         self.ui.print_box(welcome, "MODE PROFESSEUR", "header")
 
+        self.ui.clear_screen()
+        self._show_current_config()
         # Menu principal de configuration
         while True:
-            self.ui.clear_screen()
-            self._show_current_config()
-
             menu_options = [
-                "📋 Informations de session",
-                "🎮 Paramètres de jeu",
-                "⚙️ Automatisations & confirmations",
-                "🏪 Fonds de commerce disponibles",
-                "📊 Marché et concurrence",
-                "🎯 Événements et réalisme",
-                "📝 Évaluation et notation",
-                "🔒 Restrictions et limites",
-                "💾 Sauvegarder configuration",
-                "▶️ Lancer la partie",
+                {
+                    "title": "📋 Informations de session",
+                    "action": self._configure_session_info,
+                },
+                {
+                    "title": "🎮 Paramètres de jeu",
+                    "action": self._configure_game_params,
+                },
+                {
+                    "title": "⚙️ Automatisations & confirmations",
+                    "action": self._configure_automation,
+                },
+                {
+                    "title": "🏪 Fonds de commerce disponibles",
+                    "action": self._configure_commerce_locations,
+                },
+                {"title": "📊 Marché et concurrence", "action": self._configure_market},
+                {
+                    "title": "🎯 Événements et réalisme",
+                    "action": self._configure_events,
+                },
+                {
+                    "title": "📝 Évaluation et notation",
+                    "action": self._configure_evaluation,
+                },
+                {
+                    "title": "🔒 Restrictions et limites",
+                    "action": self._configure_restrictions,
+                },
+                {
+                    "title": "💾 Sauvegarder configuration",
+                    "action": self._save_configuration,
+                },
+                {"title": "▶️ Lancer la partie", "action": self._launch_game},
             ]
 
             choice = self.ui.show_menu(
