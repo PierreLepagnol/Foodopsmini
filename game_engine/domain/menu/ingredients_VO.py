@@ -8,7 +8,7 @@ import json
 from enum import Enum
 from typing import Dict, List
 from pydantic import BaseModel, Field, ValidationError
-from FoodOPS_V1.domain.types import RestaurantType
+from game_engine.domain.types_VO import RestaurantType
 
 
 class IngredientCategory(Enum):

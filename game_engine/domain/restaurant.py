@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 
 from game_engine.domain.commerce import CommerceLocation
 from game_engine.domain.finance.finance_advanced import FinanceManager
-from game_engine.domain.menu.ingredient import IngredientQualityManager
 from game_engine.domain.menu.menu import MenuManager
 from game_engine.domain.menu.recipe import Recipe, RecipeItem
 from game_engine.domain.staff.employee import Employee
@@ -59,10 +58,6 @@ class Restaurant(BaseModel):
     )  # 0=fermé, 1=léger, 2=normal, 3=renforcé
     active_recipes: list[str] = Field(default_factory=list)
 
-    # NOUVEAU: Système qualité et réputation
-    quality_manager: IngredientQualityManager = Field(
-        default_factory=IngredientQualityManager
-    )
     ingredient_choices: dict[str, int] = Field(
         default_factory=dict
     )  # ingredient_id -> quality_level

@@ -2,10 +2,10 @@ from typing import List, Tuple
 
 from FoodOPS_V1.core.accounting import Ledger
 from FoodOPS_V1.core.market import allocate_customers_to_restaurants, clamp_capacity
-from FoodOPS_V1.domain.local import CATALOG_LOCALS
-from FoodOPS_V1.domain.restaurant import Restaurant, make_restaurant
-from FoodOPS_V1.domain.types import RestaurantType
-from FoodOPS_V1.domain.scenario import Scenario, propose_financing
+from game_engine.domain.local_VO import CATALOG_LOCALS
+from FoodOPS_V1.domain.restaurant_VO import Restaurant, make_restaurant
+from game_engine.domain.types_VO import RestaurantType
+from FoodOPS_V1.domain.scenario_VO import Scenario, propose_financing
 from FoodOPS_V1.ui.affichage import (
     print_balance_sheet,
     print_income_statement,
@@ -14,7 +14,7 @@ from FoodOPS_V1.ui.affichage import (
     print_turn_result,
 )
 from FoodOPS_V1.ui.director_office import bureau_directeur
-from FoodOPS_V1.utils import get_input
+from game_engine.utilsV0 import get_input
 from FoodOPS_V1.core.results import TurnResult
 from FoodOPS_V1.rules.recipe_factory import build_menu_for_type
 

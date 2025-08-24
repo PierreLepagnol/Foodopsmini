@@ -5,13 +5,13 @@ import numpy as np
 from pydantic import BaseModel
 
 from FoodOPS_V1.core.accounting import Ledger, TypeOperation, post_opening
-from FoodOPS_V1.domain.ingredients import FoodGrade
-from FoodOPS_V1.domain.inventory import Inventory
-from FoodOPS_V1.domain.local import Local
-from FoodOPS_V1.domain.recipe import SimpleRecipe
-from FoodOPS_V1.domain.scenario import FinancingPlan
-from FoodOPS_V1.domain.staff import Employe
-from FoodOPS_V1.domain.types import RestaurantType
+from game_engine.domain.menu.ingredients_VO import FoodGrade
+from game_engine.domain.stock.inventory_VO import Inventory
+from game_engine.domain.local_VO import Local
+from FoodOPS_V1.domain.recipe_VO import SimpleRecipe
+from FoodOPS_V1.domain.scenario_VO import FinancingPlan
+from FoodOPS_V1.domain.staff_VO import Employe
+from game_engine.domain.types_VO import RestaurantType
 
 MARGIN_BY_RESTO = {"FAST_FOOD": 2.5, "BISTRO": 3.0, "GASTRO": 3.8}
 

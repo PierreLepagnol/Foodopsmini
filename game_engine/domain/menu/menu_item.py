@@ -6,11 +6,12 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from game_engine.domain.menu.types import MenuCategory, PricingStrategy
 from game_engine.domain.menu.recipe import Recipe
 from game_engine.domain.types import RestaurantType
 
 
-class MenuItemStatus(Enum):
+class PlatStatus(Enum):
     """
     Énumération des statuts possibles pour un article de menu.
 
@@ -32,28 +33,7 @@ class MenuItemStatus(Enum):
     COMING_SOON = "coming_soon"  # Bientôt disponible
 
 
-class MenuCategory(Enum):
-    """Catégories d'articles de menu."""
-
-    APPETIZER = "entree"
-    MAIN_COURSE = "plat"
-    DESSERT = "dessert"
-    BEVERAGE = "boisson"
-    SIDE = "accompagnement"
-    SPECIAL = "special"
-
-
-class PricingStrategy(Enum):
-    """Stratégies de tarification."""
-
-    COST_PLUS = "cost_plus"  # Coût + marge fixe
-    COMPETITIVE = "competitive"  # Aligné sur la concurrence
-    PREMIUM = "premium"  # Prix premium
-    PENETRATION = "penetration"  # Prix d'appel
-    VALUE = "value"  # Rapport qualité-prix
-
-
-class MenuItem(BaseModel):
+class Plat(BaseModel):
     """
     Article de menu vendable avec tarification et positionnement.
 
@@ -74,22 +54,34 @@ class MenuItem(BaseModel):
         dietary_info: Informations diététiques (végétarien, etc.)
     """
 
-    id: str
-    name: str
-    description: str = ""
-    recipe: Recipe
-    category: MenuCategory
-    price_ttc: Decimal = Field(gt=0, description="Le prix doit être positif")
+    id: str = Field(description="Identifiant unique de l'article")
+    name: str = Field(description="Nom commercial de l'article")
+    description: str = Field(default="", description="Description pour les clients")
+    recipe: Recipe = Field(description="Recette associée")
+    category: MenuCategory = Field(description="Catégorie de menu")
+    price_ttc: Decimal = Field(gt=0, description="Prix de vente TTC")
     vat_rate: Decimal = Field(default=Decimal("0.10"), description="Taux de TVA")
-    status: MenuItemStatus = MenuItemStatus.AVAILABLE
-    pricing_strategy: PricingStrategy = PricingStrategy.COST_PLUS
+    status: PlatStatus = Field(
+        default=PlatStatus.AVAILABLE, description="Disponibilité"
+    )
+    pricing_strategy: PricingStrategy = Field(
+        default=PricingStrategy.COST_PLUS, description="Stratégie de tarification"
+    )
     target_margin_percentage: Decimal = Field(
         default=Decimal("70"), ge=0, le=100, description="Marge cible en pourcentage"
     )
-    position_in_menu: int = Field(default=0, ge=0)
-    is_signature: bool = False
-    allergens: list[str] = Field(default_factory=list)
-    dietary_info: list[str] = Field(default_factory=list)
+    position_in_menu: int = Field(
+        default=0, ge=0, description="Position dans le menu (pour l'affichage)"
+    )
+    is_signature: bool = Field(
+        default=False, description="Article signature du restaurant"
+    )
+    allergens: list[str] = Field(
+        default_factory=list, description="Liste des allergènes"
+    )
+    dietary_info: list[str] = Field(
+        default_factory=list, description="Informations diététiques (végétarien, etc.)"
+    )
 
     @property
     def price_ht(self) -> Decimal:
@@ -102,14 +94,22 @@ class MenuItem(BaseModel):
         name = self.name
         if self.is_signature:
             name = f"⭐ {name}"
-        if self.status == MenuItemStatus.SEASONAL:
+        if self.status == PlatStatus.SEASONAL:
             name = f"{name} 🍂"
         return name
 
     @property
     def is_available(self) -> bool:
         """Vérifie si l'article est disponible à la vente."""
-        return self.status in [MenuItemStatus.AVAILABLE, MenuItemStatus.SEASONAL]
+        return self.status in [PlatStatus.AVAILABLE, PlatStatus.SEASONAL]
+
+    @property
+    def margin_ht(self) -> Decimal:
+        """
+        Marge brute hors taxes par unité vendue.
+        """
+
+        return self.price_ht - self.recipe.cost_per_portion
 
     def calculate_food_cost_percentage(
         self, recipe_cost_per_portion: Decimal
@@ -134,25 +134,6 @@ class MenuItem(BaseModel):
         if self.price_ht <= 0:
             return Decimal("100")
         return (recipe_cost_per_portion / self.price_ht) * 100
-
-    def calculate_margin_ht(self, recipe_cost_per_portion: Decimal) -> Decimal:
-        """
-        Calcule la marge brute hors taxes par unité vendue.
-
-        La marge représente le bénéfice brut avant déduction des charges
-        variables et fixes (personnel, loyer, etc.).
-
-        Args:
-            recipe_cost_per_portion: Coût des ingrédients par portion
-
-        Returns:
-            Marge en euros HT
-
-        Note:
-            Cette marge ne tient compte que du coût des ingrédients,
-            pas des coûts de main-d'œuvre ou autres charges.
-        """
-        return self.price_ht - recipe_cost_per_portion
 
     def suggest_price_for_target_margin(
         self,
@@ -233,76 +214,3 @@ class MenuItem(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.display_name} - {self.price_ttc:.2f}€ ({self.category.value})"
-
-
-class MenuItemBuilder:
-    """Constructeur d'articles de menu."""
-
-    @staticmethod
-    def from_recipe(
-        recipe: Recipe, base_price_ttc: Decimal, category: Optional[MenuCategory] = None
-    ) -> MenuItem:
-        """
-        Crée un article de menu à partir d'une recette.
-
-        Args:
-            recipe: Recette de base
-            base_price_ttc: Prix de base TTC
-            category: Catégorie (déduite si non fournie)
-
-        Returns:
-            Article de menu créé
-        """
-        # Déduction de la catégorie si non fournie
-        if category is None:
-            category_mapping = {
-                "entree": MenuCategory.APPETIZER,
-                "plat": MenuCategory.MAIN_COURSE,
-                "dessert": MenuCategory.DESSERT,
-                "boisson": MenuCategory.BEVERAGE,
-                "accompagnement": MenuCategory.SIDE,
-            }
-            category = category_mapping.get(recipe.category, MenuCategory.MAIN_COURSE)
-
-        return MenuItem(
-            id=f"menu_{recipe.id}",
-            name=recipe.name,
-            description=recipe.description,
-            recipe=recipe,
-            category=category,
-            price_ttc=base_price_ttc,
-        )
-
-    @staticmethod
-    def create_signature_item(
-        recipe: Recipe,
-        name: str,
-        description: str,
-        price_ttc: Decimal,
-        category: MenuCategory,
-    ) -> MenuItem:
-        """
-        Crée un article signature.
-
-        Args:
-            recipe: Recette de base
-            name: Nom commercial
-            description: Description marketing
-            price_ttc: Prix TTC
-            category: Catégorie
-
-        Returns:
-            Article signature
-        """
-        item = MenuItem(
-            id=f"signature_{recipe.id}",
-            name=name,
-            description=description,
-            recipe=recipe,
-            category=category,
-            price_ttc=price_ttc,
-            is_signature=True,
-            pricing_strategy=PricingStrategy.PREMIUM,
-            target_margin_percentage=Decimal("80"),
-        )
-        return item

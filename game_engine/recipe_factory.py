@@ -13,9 +13,9 @@ Les fonctions internes (préfixées par « _ ») sont conçues pour être testab
 from typing import List, Dict
 import random
 
-from FoodOPS_V1.domain.recipe import SimpleRecipe, Technique, Complexity
-from FoodOPS_V1.domain.restaurant import MARGIN_BY_RESTO, Restaurant, RestaurantType
-from FoodOPS_V1.domain.ingredients import (
+from FoodOPS_V1.domain.recipe_VO import SimpleRecipe, Technique, Complexity
+from FoodOPS_V1.domain.restaurant_VO import MARGIN_BY_RESTO, Restaurant, RestaurantType
+from game_engine.domain.menu.ingredients_VO import (
     IngredientCategory,
     FoodGrade,
     Ingredient,

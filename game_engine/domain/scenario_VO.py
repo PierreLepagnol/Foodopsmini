@@ -9,7 +9,7 @@ from typing import Dict, Mapping, Optional
 
 from pydantic import BaseModel, Field
 
-from FoodOPS_V1.domain.market import Segment
+from FoodOPS_V1.domain.market_VO import Segment
 
 
 class Scenario(BaseModel):

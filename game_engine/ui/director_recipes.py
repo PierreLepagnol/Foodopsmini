@@ -1,11 +1,11 @@
-from FoodOPS_V1.domain.ingredients import CATALOG
-from FoodOPS_V1.domain.restaurant import Restaurant
-from FoodOPS_V1.domain.recipe import Complexity, SimpleRecipe, Technique
+from game_engine.domain.menu.ingredients_VO import CATALOG
+from FoodOPS_V1.domain.restaurant_VO import Restaurant
+from FoodOPS_V1.domain.recipe_VO import Complexity, SimpleRecipe, Technique
 
 # from FoodOPS_V1.rules.costing import recipe_cost_and_price
-from FoodOPS_V1.utils import get_input
+from game_engine.utilsV0 import get_input
 
-from FoodOPS_V1.domain.recipe import recipe_prep_minutes_per_portion
+from FoodOPS_V1.domain.recipe_VO import recipe_prep_minutes_per_portion
 
 
 def format_currency_eur(x: float) -> str:

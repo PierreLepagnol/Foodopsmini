@@ -1,4 +1,4 @@
-from FoodOPS_V1.domain.restaurant import Restaurant
+from FoodOPS_V1.domain.restaurant_VO import Restaurant
 from FoodOPS_V1.core.results import TurnResult
 
 

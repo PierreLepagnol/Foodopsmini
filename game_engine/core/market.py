@@ -23,10 +23,10 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 
-from FoodOPS_V1.domain.restaurant import Restaurant
-from FoodOPS_V1.domain.types import RestaurantType
-from FoodOPS_V1.domain.market import BUDGET_PER_SEGMENT, Segment
-from FoodOPS_V1.domain.scenario import Scenario
+from FoodOPS_V1.domain.restaurant_VO import Restaurant
+from game_engine.domain.types_VO import RestaurantType
+from FoodOPS_V1.domain.market_VO import BUDGET_PER_SEGMENT, Segment
+from FoodOPS_V1.domain.scenario_VO import Scenario
 from FoodOPS_V1.rules.scoring import calculate_restaurant_attractiveness
 
 

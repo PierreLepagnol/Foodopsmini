@@ -1,7 +1,7 @@
 # foodops/ui/director_office.py
 
 
-from FoodOPS_V1.domain.restaurant import Restaurant
+from FoodOPS_V1.domain.restaurant_VO import Restaurant
 
 from FoodOPS_V1.ui.director_recipes import run_recipes_shop
 

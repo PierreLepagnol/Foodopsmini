@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, FrozenSet, Mapping, Optional
 
-from FoodOPS_V1.domain.types import RestaurantType
+from game_engine.domain.types_VO import RestaurantType
 
 # IMPORTANT : pas d'import du package domain complet ici (pour éviter les cycles)
 # Si tu dois typer Restaurant ailleurs, fais-le avec TYPE_CHECKING dans ce fichier-là.

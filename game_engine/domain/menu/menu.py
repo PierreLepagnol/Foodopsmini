@@ -5,9 +5,9 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from game_engine.domain.menu.menu_item import MenuItem, MenuCategory, MenuItemStatus
+from game_engine.domain.menu.menu_item import Plat, PlatStatus
+from game_engine.domain.menu.types import MenuCategory
 from game_engine.domain.menu.recipe import Recipe
-from game_engine.domain.types import RestaurantType
 
 
 class MenuSection(BaseModel):
@@ -26,11 +26,11 @@ class MenuSection(BaseModel):
     category: MenuCategory
     name: str
     description: str = ""
-    items: list[MenuItem] = Field(default_factory=list)
+    items: list[Plat] = Field(default_factory=list)
     display_order: int = 0
     is_active: bool = True
 
-    def add_item(self, item: MenuItem) -> None:
+    def add_item(self, item: Plat) -> None:
         """
         Ajoute un article de menu à cette section.
 
@@ -67,19 +67,19 @@ class MenuSection(BaseModel):
                 return True
         return False
 
-    def get_available_items(self) -> list[MenuItem]:
+    def get_available_items(self) -> list[Plat]:
         """
         Filtre et retourne uniquement les articles actuellement disponibles.
 
         Un article est considéré comme disponible s'il a le statut AVAILABLE
-        ou SEASONAL (selon la propriété is_available de MenuItem).
+        ou SEASONAL (selon la propriété is_available de Plat).
 
         Returns:
             Liste des articles disponibles à la vente
         """
         return [item for item in self.items if item.is_available]
 
-    def get_signature_items(self) -> list[MenuItem]:
+    def get_signature_items(self) -> list[Plat]:
         """
         Retourne les articles signature de cette section.
 
@@ -150,7 +150,7 @@ class MenuManager(BaseModel):
 
     name: str = "Menu Principal"
     description: str = ""
-    sections: dict[MenuCategory, MenuSection] = Field(default_factory=dict)
+    sections: list[MenuSection] = Field(default_factory=list)
     is_active: bool = True
 
     def model_post_init(self, __context=None) -> None:
@@ -213,7 +213,7 @@ class MenuManager(BaseModel):
         price_ttc: Decimal,
         category: Optional[MenuCategory] = None,
         **kwargs,
-    ) -> MenuItem:
+    ) -> Plat:
         """
         Ajoute une recette comme article de menu.
 
@@ -221,7 +221,7 @@ class MenuManager(BaseModel):
             recipe: Recette à ajouter
             price_ttc: Prix de vente TTC
             category: Catégorie (déduite si non fournie)
-            **kwargs: Arguments supplémentaires pour MenuItem
+            **kwargs: Arguments supplémentaires pour Plat
 
         Returns:
             Article de menu créé
@@ -238,7 +238,7 @@ class MenuManager(BaseModel):
             category = category_mapping.get(recipe.category, MenuCategory.MAIN_COURSE)
 
         # Création de l'article
-        item = MenuItem(
+        item = Plat(
             id=f"menu_{recipe.id}",
             name=recipe.name,
             description=recipe.description,
@@ -278,7 +278,7 @@ class MenuManager(BaseModel):
                 return True
         return False
 
-    def get_menu_item(self, item_id: str) -> Optional[MenuItem]:
+    def get_menu_item(self, item_id: str) -> Optional[Plat]:
         """
         Récupère un article de menu par son ID.
 
@@ -294,7 +294,7 @@ class MenuManager(BaseModel):
                     return item
         return None
 
-    def get_all_items(self) -> list[MenuItem]:
+    def get_all_items(self) -> list[Plat]:
         """
         Retourne la liste exhaustive de tous les articles du menu.
 
@@ -309,7 +309,7 @@ class MenuManager(BaseModel):
             items.extend(section.items)
         return items
 
-    def get_available_items(self) -> list[MenuItem]:
+    def get_available_items(self) -> list[Plat]:
         """
         Retourne tous les articles actuellement disponibles à la vente.
 
@@ -324,14 +324,14 @@ class MenuManager(BaseModel):
             items.extend(section.get_available_items())
         return items
 
-    def get_signature_items(self) -> list[MenuItem]:
+    def get_signature_items(self) -> list[Plat]:
         """Retourne tous les articles signature."""
         items = []
         for section in self.sections.values():
             items.extend(section.get_signature_items())
         return items
 
-    def get_items_by_category(self, category: MenuCategory) -> list[MenuItem]:
+    def get_items_by_category(self, category: MenuCategory) -> list[Plat]:
         """
         Retourne les articles d'une catégorie.
 
@@ -344,7 +344,7 @@ class MenuManager(BaseModel):
         section = self.sections.get(category)
         return section.items if section else []
 
-    def update_item_status(self, item_id: str, status: MenuItemStatus) -> bool:
+    def update_item_status(self, item_id: str, status: PlatStatus) -> bool:
         """
         Met à jour le statut d'un article.
 

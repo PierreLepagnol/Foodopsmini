@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple, Optional
 from enum import Enum
-from FoodOPS_V1.domain.ingredients import Ingredient, FoodGrade
-from FoodOPS_V1.domain.types import RestaurantType
+from game_engine.domain.menu.ingredients_VO import Ingredient, FoodGrade
+from game_engine.domain.types_VO import RestaurantType
 
 from pydantic import BaseModel, Field
 

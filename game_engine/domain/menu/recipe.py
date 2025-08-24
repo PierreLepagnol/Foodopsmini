@@ -98,39 +98,21 @@ class Recipe(BaseModel):
 
     id: str
     name: str
-    ingredients: list[RecipeItem] = Field(
-        min_length=1, description="Une recette doit avoir au moins un ingrédient"
+    ingredients: list[RecipeItem] = Field(min_length=1, description="Liste ingrédients")
+    temps_prepa_min: int = Field(ge=0, description="Le temps de prépa")
+    temps_service_min: int = Field(ge=0, description="Le temps de service")
+    portions: int = Field(default=1, gt=0, description="Le nombre de portions")
+    category: str = Field(default="plat", description="La catégorie")
+    description: str = Field(default="", description="La description")
+    difficulty: int = Field(default=1, ge=1, le=5, description="La difficulté")
+    cost_per_portion: Decimal = Field(
+        default=Decimal("0"), ge=0, description="coût par portion"
     )
-    temps_prepa_min: int = Field(
-        ge=0, description="Le temps de prépa doit être positif"
-    )
-    temps_service_min: int = Field(
-        ge=0, description="Le temps de service doit être positif"
-    )
-    portions: int = Field(
-        default=1, gt=0, description="Le nombre de portions doit être positif"
-    )
-    category: str = "plat"
-    difficulty: int = Field(
-        default=1, ge=1, le=5, description="La difficulté doit être entre 1 et 5"
-    )
-    description: str = ""
 
     @property
     def temps_total_min(self) -> int:
         """
-        Calcule le temps total d'occupation en cuisine.
-
-        Additionne le temps de préparation (mise en place, cuisson)
-        et le temps de service (dressage, finition) pour obtenir
-        la durée totale de mobilisation du personnel.
-
-        Returns:
-            Durée totale en minutes
-
-        Note:
-            Utilisé pour calculer les coûts de main-d'œuvre
-            et planifier la charge de travail en cuisine.
+        Temps total d'occupation en cuisine = temps de préparation + temps de service
         """
         return self.temps_prepa_min + self.temps_service_min
 
@@ -145,7 +127,7 @@ class Recipe(BaseModel):
         Returns:
             Liste des IDs d'ingrédients (sans doublons)
         """
-        return [item.ingredient_id for item in self.items]
+        return [item.ingredient_id for item in self.ingredients]
 
     def get_ingredient_quantity(self, ingredient_id: str) -> Decimal:
         """
@@ -167,59 +149,11 @@ class Recipe(BaseModel):
             Pour la quantité nette (après pertes), utiliser quantity_nette
             de l'objet RecipeItem correspondant.
         """
-        for item in self.items:
+        for item in self.ingredients:
             if item.ingredient_id == ingredient_id:
                 return item.quantity_brute
         raise ValueError(
             f"Ingrédient {ingredient_id} non trouvé dans la recette {self.id}"
-        )
-
-    def scale_recipe(self, factor: Decimal) -> "Recipe":
-        """
-        Génère une version mise à l'échelle de cette recette.
-
-        Crée une nouvelle recette avec toutes les quantités multipliées
-        par le facteur donné. Utile pour adapter une recette de base
-        aux besoins de production réels du service.
-
-        Args:
-            factor: Facteur multiplicateur (ex: 2.5 pour 2.5x plus de portions)
-
-        Returns:
-            Nouvelle instance de Recipe avec quantités et portions ajustées
-
-        Note:
-            - Les temps de préparation restent identiques
-            - Les rendements sont conservés
-            - L'ID et le nom sont modifiés pour éviter les conflits
-
-        Example:
-            Recette de base pour 4 portions -> factor=2.5 -> 10 portions
-        """
-        # Création des nouveaux items avec quantités ajustées
-        # Les rendements restent identiques car ils sont intrinsèques à l'ingrédient
-        scaled_items = [
-            RecipeItem(
-                ingredient_id=item.ingredient_id,
-                quantity_brute=item.quantity_brute
-                * factor,  # Seule la quantité est multipliée
-                rendement_prepa=item.rendement_prepa,  # Rendements inchangés
-                rendement_cuisson=item.rendement_cuisson,
-            )
-            for item in self.items
-        ]
-
-        # Construction de la nouvelle recette mise à l'échelle
-        return Recipe(
-            id=f"{self.id}_x{factor}",  # ID unique pour éviter les conflits
-            name=f"{self.name} (x{factor})",  # Nom explicite du facteur
-            items=scaled_items,
-            temps_prepa_min=self.temps_prepa_min,  # Temps inchangés
-            temps_service_min=self.temps_service_min,
-            portions=int(self.portions * factor),  # Portions ajustées
-            category=self.category,  # Métadonnées conservées
-            difficulty=self.difficulty,
-            description=self.description,
         )
 
     def __str__(self) -> str:
@@ -227,8 +161,58 @@ class Recipe(BaseModel):
         Représentation textuelle concise de la recette.
 
         Returns:
-            Chaîne avec nom, nombre de portions et temps total
+            Nom de la recette (X portions, Y min)
 
         Format: "Nom de la recette (X portions, Y min)"
         """
         return f"{self.name} ({self.portions} portions, {self.temps_total_min}min)"
+
+
+def scale_recipe(recipe: Recipe, factor: int) -> Recipe:
+    """
+    Génère une version mise à l'échelle de cette recette.
+
+    Crée une nouvelle recette avec toutes les quantités multipliées
+    par le facteur donné. Utile pour adapter une recette de base
+    aux besoins de production réels du service.
+
+    Args:
+        factor: Facteur multiplicateur (ex: 2.5 pour 2.5x plus de portions)
+
+    Returns:
+        Nouvelle instance de Recipe avec quantités et portions ajustées
+
+    Note:
+        - Les temps de préparation restent identiques
+        - Les rendements sont conservés
+        - L'ID et le nom sont modifiés pour éviter les conflits
+
+    Example:
+        Recette de base pour 4 portions -> factor=2.5 -> 10 portions
+    """
+    # Création des nouveaux items avec quantités ajustées
+    # Les rendements restent identiques car ils sont intrinsèques à l'ingrédient
+    scaled_items = [
+        RecipeItem(
+            ingredient_id=item.ingredient_id,
+            quantity_brute=item.quantity_brute
+            * factor,  # Seule la quantité est multipliée
+            rendement_prepa=item.rendement_prepa,  # Rendements inchangés
+            rendement_cuisson=item.rendement_cuisson,
+        )
+        for item in recipe.ingredients
+    ]
+
+    # Construction de la nouvelle recette mise à l'échelle
+    return Recipe(
+        id=f"{recipe.id}_x{factor}",  # ID unique pour éviter les conflits
+        name=f"{recipe.name} (x{factor})",  # Nom explicite du facteur
+        ingredients=scaled_items,
+        temps_prepa_min=recipe.temps_prepa_min,  # Temps inchangés
+        temps_service_min=recipe.temps_service_min,
+        portions=int(recipe.portions * factor),  # Portions ajustées
+        category=recipe.category,  # Métadonnées conservées
+        difficulty=recipe.difficulty,
+        description=recipe.description,
+        cost_per_portion=recipe.cost_per_portion,
+    )

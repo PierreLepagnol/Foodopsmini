@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
-from FoodOPS_V1.domain.ingredients import FoodGrade
+from game_engine.domain.menu.ingredients_VO import FoodGrade
 
 
 # Classement “qualité perçue” des gammes (plus haut = meilleur).

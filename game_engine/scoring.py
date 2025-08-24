@@ -4,11 +4,11 @@ from typing import Annotated, Dict, Optional
 import numpy as np
 from pydantic import BaseModel, Field
 
-from FoodOPS_V1.domain.restaurant import Restaurant
-from FoodOPS_V1.domain.market import BUDGET_PER_SEGMENT, Segment
-from FoodOPS_V1.domain.types import RestaurantType
-from FoodOPS_V1.domain.recipe import SimpleRecipe
-from FoodOPS_V1.utils import load_and_validate
+from FoodOPS_V1.domain.restaurant_VO import Restaurant
+from FoodOPS_V1.domain.market_VO import BUDGET_PER_SEGMENT, Segment
+from game_engine.domain.types_VO import RestaurantType
+from FoodOPS_V1.domain.recipe_VO import SimpleRecipe
+from game_engine.utilsV0 import load_and_validate
 
 # ==========================
 # Poids des critères (somme ~ 1)

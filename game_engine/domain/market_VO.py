@@ -10,7 +10,7 @@ from typing import Dict
 
 from pydantic import BaseModel, RootModel
 
-from FoodOPS_V1.utils import load_and_validate
+from game_engine.utilsV0 import load_and_validate
 
 
 class Segment(Enum):

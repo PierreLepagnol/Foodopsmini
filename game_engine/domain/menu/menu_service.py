@@ -5,9 +5,9 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from game_engine.domain.menu.ingredient import IngredientQualityManager
 from game_engine.domain.menu.menu import MenuManager
-from game_engine.domain.menu.menu_item import MenuItem, MenuCategory
+from game_engine.domain.menu.menu_item import Plat
+from game_engine.domain.menu.types import MenuCategory
 from game_engine.domain.menu.recipe import Recipe
 from game_engine.domain.menu.recipe_costing import RecipeCostCalculator
 from game_engine.domain.stock.stock import StockLot
@@ -17,10 +17,10 @@ from game_engine.domain.types import RestaurantType
 class MenuAnalytics(BaseModel):
     """
     Modèle d'analyse des performances et rentabilité du menu.
-    
+
     Regroupe tous les indicateurs clés de performance (KPI) nécessaires
     pour évaluer l'efficacité commerciale et financière d'un menu.
-    
+
     Attributes:
         total_revenue_potential: Potentiel de revenus total
         average_margin_percentage: Marge moyenne en pourcentage
@@ -41,10 +41,10 @@ class MenuAnalytics(BaseModel):
 class CompetitorPricing(BaseModel):
     """
     Structure des données de veille concurrentielle pour la tarification.
-    
+
     Encapsule les informations de prix collectées sur le marché
     pour une catégorie d'articles donnée.
-    
+
     Attributes:
         category: Catégorie d'articles concernée
         item_name: Nom de référence de l'article
@@ -62,13 +62,7 @@ class CompetitorPricing(BaseModel):
     @property
     def price_range(self) -> tuple[Decimal, Decimal]:
         """
-        Retourne la fourchette de prix observée sur le marché.
-        
-        Returns:
-            Tuple (prix_min, prix_max) de la concurrence
-            
-        Note:
-            Utile pour positionner ses propres prix dans le marché
+        Retourne (prix_min, prix_max) de la concurrence
         """
         return (self.competitor_price_low, self.competitor_price_high)
 
@@ -76,10 +70,10 @@ class CompetitorPricing(BaseModel):
 class MenuOptimizationSuggestion(BaseModel):
     """
     Recommandation d'optimisation pour un article de menu.
-    
+
     Structure une suggestion d'amélioration basée sur l'analyse
     des performances, de la concurrence et des objectifs de rentabilité.
-    
+
     Attributes:
         item_id: Identifiant de l'article concerné
         suggestion_type: Type d'action recommandée
@@ -91,9 +85,8 @@ class MenuOptimizationSuggestion(BaseModel):
     """
 
     item_id: str
-    suggestion_type: (
-        str  # "price_increase", "price_decrease", "remove", "promote", "reposition"
-    )
+    # "price_increase", "price_decrease", "remove", "promote", "reposition"
+    suggestion_type: str
     current_value: Decimal
     suggested_value: Decimal
     expected_impact: str
@@ -104,10 +97,10 @@ class MenuOptimizationSuggestion(BaseModel):
 class MenuService:
     """
     Service central pour la création, gestion et optimisation des menus.
-    
+
     Orchestre les différents composants (coûts, qualité, tarification)
     pour fournir une gestion intelligente et automatisée des menus.
-    
+
     Responsibilities:
         - Création de menus à partir de recettes
         - Optimisation des prix selon la concurrence
@@ -119,17 +112,14 @@ class MenuService:
     def __init__(
         self,
         cost_calculator: RecipeCostCalculator,
-        quality_manager: IngredientQualityManager,
     ):
         """
         Initialise le service avec ses dépendances.
-        
+
         Args:
             cost_calculator: Calculateur de coûts de recettes
-            quality_manager: Gestionnaire de qualité des ingrédients
         """
         self.cost_calculator = cost_calculator
-        self.quality_manager = quality_manager
 
     def create_menu_from_recipes(
         self,
@@ -139,20 +129,20 @@ class MenuService:
     ) -> MenuManager:
         """
         Génère automatiquement un menu optimisé à partir de recettes.
-        
+
         Convertit une liste de recettes en menu commercial complet
         avec tarification adaptée au type de restaurant et aux objectifs
         de marge. Calcule les coûts réels et applique les stratégies
         de prix appropriées.
-        
+
         Args:
             recipes: Collection de recettes disponibles
             restaurant_type: Concept du restaurant (influence la tarification)
             target_margin: Objectif de marge brute en % (défaut: 70%)
-            
+
         Returns:
             MenuManager prêt à l'emploi avec articles tarifiés
-            
+
         Process:
             1. Calcul du coût réel de chaque recette
             2. Application de la marge cible selon le type de restaurant
@@ -186,18 +176,18 @@ class MenuService:
     ) -> list[MenuOptimizationSuggestion]:
         """
         Analyse et propose des optimisations de tarification intelligentes.
-        
+
         Croise les données internes (coûts, marges) avec l'intelligence
         concurrentielle pour identifier les opportunités d'amélioration.
-        
+
         Args:
             menu: Menu actuel à analyser et optimiser
             competitor_data: Benchmark des prix de la concurrence par catégorie
             stock_lots: Stock disponible pour calcul de coûts réels (optionnel)
-            
+
         Returns:
             Liste de recommandations triées par niveau de confiance
-            
+
         Analysis Criteria:
             - Position concurrentielle (trop cher/pas assez cher)
             - Rentabilité (marge trop faible/excessive)
@@ -247,18 +237,18 @@ class MenuService:
     ) -> MenuAnalytics:
         """
         Génère un tableau de bord complet des performances du menu.
-        
+
         Calcule tous les KPIs essentiels pour le pilotage commercial
         et financier du restaurant, en tenant compte des coûts réels
         et de la structure actuelle du menu.
-        
+
         Args:
             menu: Menu à analyser en détail
             stock_lots: Inventaire pour coûts réels (optionnel)
-            
+
         Returns:
             Tableau de bord avec métriques consolidées
-            
+
         Calculated Metrics:
             - Potentiel de revenus global
             - Marge moyenne pondérée
@@ -321,19 +311,19 @@ class MenuService:
     ) -> dict[MenuCategory, list[Recipe]]:
         """
         Recommande la composition optimale d'un menu selon le concept.
-        
+
         Analyse le portefeuille de recettes disponibles et sélectionne
         la combinaison optimale pour chaque catégorie, en tenant compte
         du positionnement du restaurant et des contraintes opérationnelles.
-        
+
         Args:
             available_recipes: Pool de recettes à évaluer
             restaurant_type: Concept qui influence la sélection
             max_items_per_category: Limite par section (défaut: 8)
-            
+
         Returns:
             Dictionnaire {catégorie: [recettes_sélectionnées]}
-            
+
         Selection Criteria:
             - Adaptation au type de restaurant
             - Complexité vs capacité opérationnelle
@@ -381,18 +371,18 @@ class MenuService:
     ) -> Decimal:
         """
         Calcule le prix de vente optimal selon la stratégie du restaurant.
-        
+
         Applique des ajustements de marge selon le positionnement
         et les contraintes spécifiques de chaque type de restaurant.
-        
+
         Args:
             cost_per_portion: Coût unitaire des ingrédients
             target_margin: Marge cible de base
             restaurant_type: Type qui influence l'ajustement
-            
+
         Returns:
             Prix TTC optimisé avec TVA 10%
-            
+
         Margin Adjustments:
             - FAST: -10% (volume et rapidité)
             - CLASSIC: Standard (référence)
@@ -417,7 +407,7 @@ class MenuService:
 
     def _analyze_competitive_position(
         self,
-        item: MenuItem,
+        item: Plat,
         competitor_info: CompetitorPricing,
         current_cost: Decimal,
     ) -> list[MenuOptimizationSuggestion]:
@@ -460,7 +450,7 @@ class MenuService:
 
     def _analyze_margin_optimization(
         self,
-        item: MenuItem,
+        item: Plat,
         current_cost: Decimal,
         current_margin_pct: Decimal,
     ) -> list[MenuOptimizationSuggestion]:
@@ -509,17 +499,17 @@ class MenuService:
     ) -> Decimal:
         """
         Évalue l'adéquation d'une recette avec le concept de restaurant.
-        
+
         Calcule un score composite basé sur la complexité,
         le temps de préparation et l'adéquation avec le type d'établissement.
-        
+
         Args:
             recipe: Recette à évaluer
             restaurant_type: Concept de référence
-            
+
         Returns:
             Score de compatibilité (plus élevé = mieux adapté)
-            
+
         Scoring Logic:
             - FAST: Privilégie la simplicité et la rapidité
             - GASTRONOMIQUE: Valorise la complexité et l'élaboration
@@ -535,7 +525,8 @@ class MenuService:
             * 5,  # Préfère simplicité (moins c'est complexe, mieux c'est)
             RestaurantType.CLASSIC: recipe.difficulty * 3,  # Équilibré
             RestaurantType.BRASSERIE: recipe.difficulty * 4,  # Un peu plus élaboré
-            RestaurantType.GASTRONOMIQUE: recipe.difficulty * 8,  # Valorise la complexité
+            RestaurantType.GASTRONOMIQUE: recipe.difficulty
+            * 8,  # Valorise la complexité
         }
 
         base_score += Decimal(str(difficulty_bonus.get(restaurant_type, 0)))
