@@ -3,17 +3,18 @@ Moteur de marché et allocation de la demande
 """
 
 import random
-from dataclasses import dataclass
 from decimal import Decimal
 
 from game_engine.domain.market.events import CompetitionManager
 from game_engine.domain.market.seasonality import SeasonalityManager
 from game_engine.domain.restaurant import Restaurant
-from game_engine.core.scenario import MarketSegment, Scenario
+from game_engine.scenario import MarketSegment, Scenario
 
 
-@dataclass
-class AllocationResult:
+from pydantic import BaseModel
+
+
+class AllocationResult(BaseModel):
     """
     Résultat de l'allocation de marché pour un restaurant.
 

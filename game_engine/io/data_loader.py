@@ -10,10 +10,10 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field
 
-from game_engine.domain.ingredient import Ingredient
-from game_engine.domain.recipe.recipe import Recipe
-from game_engine.core.scenario import Scenario
-from game_engine.domain.recipe.supplier import Supplier
+from game_engine.domain.menu.ingredient import Ingredient
+from game_engine.domain.menu.recipe import Recipe
+from game_engine.scenario import Scenario
+from game_engine.domain.stock.supplier import Supplier
 
 
 class SupplierPriceEntry(BaseModel):

@@ -6,7 +6,7 @@ import os
 from decimal import Decimal
 from typing import Any
 
-from game_engine.core.scenario import Scenario
+from game_engine.scenario import Scenario
 
 COLORS = {
     "header": "\033[1;36m",  # Cyan bold

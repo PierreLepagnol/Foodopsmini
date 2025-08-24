@@ -8,9 +8,12 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 
 from game_engine.domain.commerce import CommerceLocation
-from game_engine.domain.recipe.ingredient_quality import IngredientQualityManager
-from game_engine.domain.recipe.recipe import Recipe, RecipeItem
+from game_engine.domain.finance.finance_advanced import FinanceManager
+from game_engine.domain.menu.ingredient import IngredientQualityManager
+from game_engine.domain.menu.menu import MenuManager
+from game_engine.domain.menu.recipe import Recipe, RecipeItem
 from game_engine.domain.staff.employee import Employee
+from game_engine.domain.stock.stock import StockManager
 from game_engine.domain.types import RestaurantType
 
 
@@ -38,9 +41,10 @@ class Restaurant(BaseModel):
     capacity_base: int = Field(gt=0)
     speed_service: Decimal = Field(gt=0)
 
-    staff_manager: StaffManager = Field(default_factory=StaffManager)
-    recipe_manager: RecipeManager = Field(default_factory=RecipeManager)
-    financial_manager: FinancialManager = Field(default_factory=FinancialManager)
+    # staff_manager: StaffManager = Field(default_factory=StaffManager)  # TODO: Create StaffManager
+    menu_manager: MenuManager = Field(default_factory=MenuManager)
+    finance_manager: FinanceManager = Field(default_factory=FinanceManager)
+    stock_manager: StockManager = Field(default_factory=StockManager)
 
     menu: dict[str, Decimal] = Field(default_factory=dict)  # recipe_id -> prix_ttc
     employees: list[Employee] = Field(default_factory=list)

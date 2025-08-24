@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 from creation_scenario import AdminSettings
-from game_engine.domain.recipe.costing import RecipeCostCalculator
+from game_engine.domain.menu.recipe_costing import RecipeCostCalculator
 from game_engine.domain.market.market import MarketEngine
 from game_engine.domain.commerce import CommerceManager
 from game_engine.domain.restaurant import Restaurant, create_restaurant_from_commerce
@@ -29,7 +29,7 @@ from game_engine.console_ui import (
     show_welcome_screen,
 )
 from game_engine.decision_menu import DecisionMenu
-from game_engine.ia import create_ai_competitors, ai_decisions
+from game_engine.ia import create_ai_competitors
 
 
 class FoodOpsProGame:
@@ -223,7 +223,7 @@ class FoodOpsProGame:
                 player.apply_decisions(decisions)
 
             # Prise de décision des concurrents IA
-            decisions_ai = ai_decisions(self)
+            # decisions_ai = ai_decisions(self)
 
             # Simulation du marché
             all_restaurants = self.players + self.ai_competitors

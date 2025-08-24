@@ -18,7 +18,7 @@ from game_engine.domain.staff.employee import (
     EmployeeContract,
 )
 from game_engine.domain.market.market import MarketEngine
-from game_engine.domain.recipe.costing import RecipeCostCalculator
+from game_engine.domain.menu.recipe_costing import RecipeCostCalculator
 
 
 class FoodOpsGame:

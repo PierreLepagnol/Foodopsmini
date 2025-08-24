@@ -1,14 +1,13 @@
-"""
-Modèle de gestion des stocks
-"""
+"""Modèle de gestion des stocks"""
 
-from dataclasses import dataclass
+from dataclasses import Field
 from datetime import date
 from decimal import Decimal
 
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
-@dataclass
-class StockLot:
+
+class StockLot(BaseModel):
     """
     Représente un lot de stock d'un ingrédient avec sa DLC.
 
@@ -24,26 +23,28 @@ class StockLot:
     """
 
     ingredient_id: str
-    quantity: Decimal
+    quantity: Decimal = Field(ge=0, description="La quantité doit être positive")
     dlc: date
-    unit_cost_ht: Decimal
-    vat_rate: Decimal
+    unit_cost_ht: Decimal = Field(
+        ge=0, description="Le coût unitaire doit être positif"
+    )
+    vat_rate: Decimal = Field(
+        ge=0, le=1, description="Le taux de TVA doit être entre 0 et 1"
+    )
     supplier_id: str
     received_date: date
     lot_number: str | None = None
 
-    def __post_init__(self) -> None:
-        """Validation des données."""
-        if self.quantity < 0:
-            raise ValueError(f"La quantité doit être positive: {self.quantity}")
-        if self.unit_cost_ht < 0:
-            raise ValueError(f"Le coût unitaire doit être positif: {self.unit_cost_ht}")
-        if not (0 <= self.vat_rate <= 1):
-            raise ValueError(f"Le taux de TVA doit être entre 0 et 1: {self.vat_rate}")
-        if self.dlc < self.received_date:
+    @field_validator("dlc")
+    @classmethod
+    def validate_dlc(cls, v: date, info: ValidationInfo) -> date:
+        """Valide que la DLC n'est pas antérieure à la date de réception."""
+        received_date = info.data.get("received_date")
+        if received_date and v < received_date:
             raise ValueError(
                 "La DLC ne peut pas être antérieure à la date de réception"
             )
+        return v
 
     @property
     def is_expired(self) -> bool:

@@ -7,7 +7,7 @@ Combine les fonctionnalités de demo.py, demo_admin.py, demo_pro.py
 from decimal import Decimal
 
 from creation_scenario import AdminSettings
-from game_engine.domain.recipe.costing import RecipeCostCalculator
+from game_engine.domain.menu.recipe_costing import RecipeCostCalculator
 from game_engine.domain.market.market import MarketEngine
 from game_engine.domain.commerce import CommerceManager
 from game_engine.domain.restaurant import Restaurant, RestaurantType

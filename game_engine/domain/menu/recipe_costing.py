@@ -1,29 +1,34 @@
-"""
-Calcul des coûts de recettes
-"""
+"""Calcul des coûts de recettes"""
 
-from dataclasses import dataclass, field
 from decimal import Decimal
 
-from game_engine.domain.ingredient import Ingredient
-from game_engine.domain.recipe.recipe import Recipe
-from game_engine.domain.restaurant import RestaurantType
-from game_engine.domain.stock import StockLot
+from pydantic import BaseModel, Field
+
+from game_engine.domain.menu.ingredient import Ingredient
+from game_engine.domain.menu.recipe import Recipe
+from game_engine.domain.stock.stock import StockLot
+from game_engine.domain.types import RestaurantType
 
 
-@dataclass
-class IngredientCost:
+class IngredientCost(BaseModel):
     """
-    Coût détaillé d'un ingrédient dans une recette.
-
+    Détail du coût d'un ingrédient spécifique dans une recette.
+    
+    Encapsule toutes les informations de coût pour un ingrédient donné,
+    incluant les quantités, prix unitaires, totaux et métadonnées.
+    Essentiel pour l'analyse détaillée des coûts et l'optimisation.
+    
     Attributes:
-        ingredient_id: ID de l'ingrédient
-        ingredient_name: Nom de l'ingrédient
-        quantity_used: Quantité utilisée
-        unit_cost_ht: Coût unitaire HT
-        total_cost_ht: Coût total HT
-        waste_percentage: Pourcentage de perte
-        supplier_id: ID du fournisseur
+        ingredient_id: Identifiant unique de l'ingrédient
+        ingredient_name: Nom commercial pour affichage
+        quantity_used: Quantité brute consommée (avant pertes)
+        unit_cost_ht: Prix unitaire hors taxes appliqué
+        total_cost_ht: Coût total de cet ingrédient dans la recette
+        waste_percentage: Taux de perte global en pourcentage
+        supplier_id: Fournisseur source (pour traçabilité)
+        
+    Note:
+        Le coût unitaire peut varier selon le stock FEFO ou les prix catalogue.
     """
 
     ingredient_id: str
@@ -35,8 +40,7 @@ class IngredientCost:
     supplier_id: str = ""
 
 
-@dataclass
-class CostBreakdown:
+class CostBreakdown(BaseModel):
     """
     Décomposition complète du coût d'une recette.
 
@@ -54,13 +58,13 @@ class CostBreakdown:
     recipe_id: str
     recipe_name: str
     portions: int
-    ingredient_costs: list[IngredientCost] = field(default_factory=list)
+    ingredient_costs: list[IngredientCost] = Field(default_factory=list)
     total_cost_ht: Decimal = Decimal("0")
     cost_per_portion: Decimal = Decimal("0")
     preparation_time_cost: Decimal = Decimal("0")
     total_cost_with_labor: Decimal = Decimal("0")
 
-    def __post_init__(self) -> None:
+    def model_post_init(self, __context) -> None:
         """Calcule les totaux après initialisation."""
         self.total_cost_ht = sum(cost.total_cost_ht for cost in self.ingredient_costs)
         if self.portions > 0:
@@ -331,7 +335,8 @@ class RecipeCostCalculator:
 
         optimization_suggestions = {}
 
-        for i, ingredient_cost in enumerate(sorted_costs[:3]):  # Top 3 des plus coûteux
+        # Analyse des 3 ingrédients les plus impactants (principe de Pareto)
+        for i, ingredient_cost in enumerate(sorted_costs[:3]):
             percentage_of_total = (
                 ingredient_cost.total_cost_ht / cost_breakdown.total_cost_ht * 100
             )
@@ -341,7 +346,7 @@ class RecipeCostCalculator:
                 "current_cost": ingredient_cost.total_cost_ht,
                 "percentage_of_total": percentage_of_total,
                 "reduction_potential": ingredient_cost.total_cost_ht
-                * Decimal("0.1"),  # 10% de réduction potentielle
+                * Decimal("0.1"),  # Estimation conservatrice : 10% de réduction
             }
 
         return optimization_suggestions

@@ -8,16 +8,15 @@ Achats & Réception (Procurement)
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
+from pydantic import BaseModel
 
-from game_engine.domain.recipe.recipe import Recipe
-from game_engine.domain.stock import StockLot, StockManager
+from game_engine.domain.menu.recipe import Recipe
+from game_engine.domain.stock.stock import StockLot, StockManager
 
 
-@dataclass
-class POLine:
+class POLine(BaseModel):
     """Ligne d'un bon de commande fournisseur (support multi-fournisseurs/ingrédient)."""
 
     ingredient_id: str
@@ -47,8 +46,7 @@ class POLine:
         )
 
 
-@dataclass(frozen=True)
-class PurchaseOrder:
+class PurchaseOrder(BaseModel):
     """Bon de commande simple."""
 
     supplier_id: str
@@ -56,8 +54,7 @@ class PurchaseOrder:
     created_on: date
 
 
-@dataclass
-class GoodsReceiptLine:
+class GoodsReceiptLine(BaseModel):
     ingredient_id: str
     qty_ordered: Decimal
     qty_delivered: Decimal
@@ -70,8 +67,7 @@ class GoodsReceiptLine:
     comment: str | None = None
 
 
-@dataclass
-class GoodsReceipt:
+class GoodsReceipt(BaseModel):
     date: date
     lines: list[GoodsReceiptLine]
     total_ht: Decimal
@@ -79,8 +75,7 @@ class GoodsReceipt:
     status: str  # OPEN / PARTIAL / CLOSED
 
 
-@dataclass(frozen=True)
-class DeliveryLine:
+class DeliveryLine(BaseModel):
     """Ligne de livraison (quantité effectivement reçue)."""
 
     ingredient_id: str
