@@ -4,7 +4,6 @@ Modèle de gestion des stocks pour FoodOps Pro.
 
 from dataclasses import dataclass
 from datetime import date
-from typing import List, Optional
 from decimal import Decimal
 
 
@@ -31,7 +30,7 @@ class StockLot:
     vat_rate: Decimal
     supplier_id: str
     received_date: date
-    lot_number: Optional[str] = None
+    lot_number: str | None = None
 
     def __post_init__(self) -> None:
         """Validation des données."""
@@ -109,7 +108,7 @@ class StockManager:
     """
 
     def __init__(self) -> None:
-        self.lots: List[StockLot] = []
+        self.lots: list[StockLot] = []
 
     def add_lot(self, lot: StockLot) -> None:
         """Ajoute un lot au stock."""
@@ -139,7 +138,7 @@ class StockManager:
 
     def consume_ingredient(
         self, ingredient_id: str, quantity: Decimal
-    ) -> List[StockLot]:
+    ) -> list[StockLot]:
         """
         Consomme une quantité d'ingrédient selon FEFO.
 
@@ -195,7 +194,7 @@ class StockManager:
 
         return used_lots
 
-    def get_expiring_lots(self, days: int = 3) -> List[StockLot]:
+    def get_expiring_lots(self, days: int = 3) -> list[StockLot]:
         """
         Retourne les lots qui expirent dans les prochains jours.
 
@@ -207,7 +206,7 @@ class StockManager:
         """
         return [lot for lot in self.lots if lot.is_near_expiry(days)]
 
-    def remove_expired_lots(self) -> List[StockLot]:
+    def remove_expired_lots(self) -> list[StockLot]:
         """
         Supprime les lots périmés du stock.
 
@@ -218,7 +217,7 @@ class StockManager:
         self.lots = [lot for lot in self.lots if not lot.is_expired]
         return expired
 
-    def get_stock_value(self, ingredient_id: Optional[str] = None) -> Decimal:
+    def get_stock_value(self, ingredient_id: str | None = None) -> Decimal:
         """
         Calcule la valeur totale du stock.
 

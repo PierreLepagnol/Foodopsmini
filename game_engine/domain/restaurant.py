@@ -2,23 +2,15 @@
 Modèles des restaurants pour FoodOps Pro.
 """
 
+import csv
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Dict, List
 from decimal import Decimal
 
+from game_engine.domain.commerce import CommerceLocation
 from game_engine.domain.employee import Employee
-from game_engine.domain.recipe import Recipe
 from game_engine.domain.ingredient_quality import IngredientQualityManager
-
-
-class RestaurantType(Enum):
-    """Types de restaurants avec leurs caractéristiques."""
-
-    FAST = "fast"
-    CLASSIC = "classic"
-    GASTRONOMIQUE = "gastronomique"
-    BRASSERIE = "brasserie"
+from game_engine.domain.recipe import Recipe
+from game_engine.domain.types import RestaurantType
 
 
 @dataclass
@@ -45,8 +37,8 @@ class Restaurant:
     type: RestaurantType
     capacity_base: int
     speed_service: Decimal
-    menu: Dict[str, Decimal] = field(default_factory=dict)  # recipe_id -> prix_ttc
-    employees: List[Employee] = field(default_factory=list)
+    menu: dict[str, Decimal] = field(default_factory=dict)  # recipe_id -> prix_ttc
+    employees: list[Employee] = field(default_factory=list)
     cash: Decimal = Decimal("0")
     equipment_value: Decimal = Decimal("0")
     rent_monthly: Decimal = Decimal("0")
@@ -54,17 +46,81 @@ class Restaurant:
 
     # État du tour courant
     staffing_level: int = 2  # 0=fermé, 1=léger, 2=normal, 3=renforcé
-    active_recipes: List[str] = field(default_factory=list)
+    active_recipes: list[str] = field(default_factory=list)
 
     # NOUVEAU: Système qualité et réputation
     quality_manager: IngredientQualityManager = field(
         default_factory=IngredientQualityManager
     )
-    ingredient_choices: Dict[str, int] = field(
+    ingredient_choices: dict[str, int] = field(
         default_factory=dict
     )  # ingredient_id -> quality_level
     reputation: Decimal = Decimal("5.0")  # Réputation sur 10
-    customer_satisfaction_history: List[Decimal] = field(default_factory=list)
+    customer_satisfaction_history: list[Decimal] = field(default_factory=list)
+
+    def load_recipes(self) -> dict[str, Recipe]:
+        """
+        Charge les recettes depuis les fichiers CSV.
+
+        Returns:
+            Dictionnaire des recettes par ID
+        """
+        # Chargement des recettes de base (métadonnées seulement)
+        recipe_metadata = {}
+        recipes_csv = self.data_path / "recipes.csv"
+
+        with open(recipes_csv, encoding="utf-8") as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                recipe_metadata[row["id"]] = {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "temps_prepa_min": int(row["temps_prepa_min"]),
+                    "temps_service_min": int(row["temps_service_min"]),
+                    "portions": int(row["portions"]),
+                    "category": row["category"],
+                    "difficulty": int(row["difficulty"]),
+                    "description": row["description"],
+                }
+
+        # Chargement des ingrédients des recettes
+        items_csv = self.data_path / "recipe_items.csv"
+        recipe_items = {}
+
+        with open(items_csv, encoding="utf-8") as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                recipe_id = row["recipe_id"]
+                if recipe_id not in recipe_items:
+                    recipe_items[recipe_id] = []
+
+                item = RecipeItem(
+                    ingredient_id=row["ingredient_id"],
+                    qty_brute=Decimal(row["qty_brute"]),
+                    rendement_prepa=Decimal(row["rendement_prepa"]),
+                    rendement_cuisson=Decimal(row["rendement_cuisson"]),
+                )
+                recipe_items[recipe_id].append(item)
+
+        # Création des recettes finales avec ingrédients
+        recipes = {}
+        for recipe_id, metadata in recipe_metadata.items():
+            items = recipe_items.get(recipe_id, [])
+            if items:  # Seulement si la recette a des ingrédients
+                recipe = Recipe(
+                    id=metadata["id"],
+                    name=metadata["name"],
+                    items=items,
+                    temps_prepa_min=metadata["temps_prepa_min"],
+                    temps_service_min=metadata["temps_service_min"],
+                    portions=metadata["portions"],
+                    category=metadata["category"],
+                    difficulty=metadata["difficulty"],
+                    description=metadata["description"],
+                )
+                recipes[recipe_id] = recipe
+
+        return recipes
 
     def __post_init__(self) -> None:
         """Validation des données."""
@@ -122,6 +178,29 @@ class Restaurant:
         """Total des charges fixes mensuelles."""
         return self.rent_monthly + self.fixed_costs_monthly
 
+    def display_team_info(self) -> None:
+        """Affiche les informations sur l'équipe."""
+        from game_engine.ui.console_ui import print_box
+
+        # Affichage de l'équipe actuelle
+        team_info_lines = [f"ÉQUIPE ACTUELLE ({len(self.employees)} employés):"]
+
+        total_cost = Decimal("0")
+        for employee in self.employees:
+            monthly_cost = employee.salary_gross_monthly * Decimal(
+                "1.42"
+            )  # Avec charges
+            total_cost += monthly_cost
+            team_info_lines.append(
+                f"• {employee.name} ({employee.position.value}) - "
+                f"{employee.contract.value} - {monthly_cost:.0f}€/mois"
+            )
+
+        team_info_lines.append("")
+        team_info_lines.append(f"Coût total équipe: {total_cost:.0f}€/mois")
+
+        print_box(team_info_lines, style="info")
+
     def add_employee(self, employee: Employee) -> None:
         """Ajoute un employé au restaurant."""
         if any(emp.id == employee.id for emp in self.employees):
@@ -166,7 +245,7 @@ class Restaurant:
         if recipe_id in self.active_recipes:
             self.active_recipes.remove(recipe_id)
 
-    def get_active_menu(self) -> Dict[str, Decimal]:
+    def get_active_menu(self) -> dict[str, Decimal]:
         """Retourne le menu actif avec les prix."""
         return {
             recipe_id: self.menu[recipe_id]
@@ -181,11 +260,11 @@ class Restaurant:
             return Decimal("0")
         return sum(active_menu.values()) / len(active_menu)
 
-    def get_staff_by_position(self, position) -> List[Employee]:
+    def get_staff_by_position(self, position) -> list[Employee]:
         """Retourne les employés d'un poste donné."""
         return [emp for emp in self.employees if emp.position == position]
 
-    def calculate_service_time_factor(self, recipes: List[Recipe]) -> Decimal:
+    def calculate_service_time_factor(self, recipes: list[Recipe]) -> Decimal:
         """
         Calcule le facteur de temps de service selon les recettes actives.
 
@@ -224,6 +303,127 @@ class Restaurant:
             description: Description de l'opération
         """
         self.cash += amount
+
+    def apply_decisions(self, decisions: dict) -> None:
+        """
+        Applique les décisions du joueur au restaurant.
+
+        Args:
+            decisions: Dictionnaire des décisions prises
+        """
+        from game_engine.domain.employee import Employee
+
+        # Changements de prix
+        if "price_changes" in decisions:
+            for recipe_id, new_price in decisions["price_changes"].items():
+                self.set_recipe_price(recipe_id, new_price)
+
+        # Recrutements
+        if "recruitments" in decisions:
+            for recruit_data in decisions["recruitments"]:
+                employee = Employee(
+                    id=f"{self.id}_new_{len(self.employees) + 1}",
+                    name=f"Nouveau {recruit_data['position'].value}",
+                    position=recruit_data["position"],
+                    contract=recruit_data["contract"],
+                    salary_gross_monthly=recruit_data["salary"],
+                    productivity=Decimal("1.0"),
+                    experience_months=0,
+                )
+                self.add_employee(employee)
+
+        # Campagnes marketing
+        if "marketing_campaigns" in decisions:
+            for campaign in decisions["marketing_campaigns"]:
+                # Déduction du coût
+                self.update_cash(-Decimal(str(campaign["cost"])))
+                # L'effet sera appliqué dans la simulation de marché
+
+    def setup_base_employees(self, hr_tables: dict = None) -> None:
+        """
+        Ajoute les employés de base selon le type de restaurant.
+
+        Args:
+            hr_tables: Tables RH (non utilisé actuellement)
+        """
+        from game_engine.domain.employee import (
+            Employee,
+            EmployeeContract,
+            EmployeePosition,
+        )
+
+        base_configs = {
+            RestaurantType.FAST: [
+                (EmployeePosition.CUISINE, 2000),
+                (EmployeePosition.CAISSE, 1700),
+            ],
+            RestaurantType.CLASSIC: [
+                (EmployeePosition.CUISINE, 2300),
+                (EmployeePosition.SALLE, 2000),
+            ],
+            RestaurantType.GASTRONOMIQUE: [
+                (EmployeePosition.CUISINE, 2800),
+                (EmployeePosition.SALLE, 2200),
+            ],
+            RestaurantType.BRASSERIE: [
+                (EmployeePosition.CUISINE, 2200),
+                (EmployeePosition.SALLE, 1900),
+            ],
+        }
+
+        employee_configs = base_configs.get(
+            self.type, base_configs[RestaurantType.CLASSIC]
+        )
+
+        for i, (position, salary) in enumerate(employee_configs):
+            employee = Employee(
+                id=f"{self.id}_emp_{i + 1}",
+                name=f"{position.value.title()} {i + 1}",
+                position=position,
+                contract=EmployeeContract.CDI,
+                salary_gross_monthly=Decimal(str(salary)),
+                productivity=Decimal("1.0"),
+                experience_months=12,
+            )
+            self.add_employee(employee)
+
+    def setup_base_menu(self, recipes: dict[str, any]) -> None:
+        """
+        Configure le menu de base selon le type de restaurant.
+
+        Args:
+            recipes: Dictionnaire des recettes disponibles
+        """
+        menu_configs = {
+            RestaurantType.FAST: [
+                ("burger_classic", 10.50),
+                ("burger_chicken", 11.00),
+                ("menu_enfant", 8.50),
+            ],
+            RestaurantType.CLASSIC: [
+                ("pasta_bolognese", 16.00),
+                ("steak_frites", 22.00),
+                ("salad_caesar", 14.00),
+            ],
+            RestaurantType.GASTRONOMIQUE: [
+                ("bowl_salmon", 28.00),
+                ("risotto_mushroom", 24.00),
+            ],
+            RestaurantType.BRASSERIE: [
+                ("croque_monsieur", 11.50),
+                ("omelet_cheese", 13.00),
+                ("soup_tomato", 8.50),
+            ],
+        }
+
+        recipes_for_type = menu_configs.get(
+            self.type, menu_configs[RestaurantType.CLASSIC]
+        )
+
+        for recipe_id, price in recipes_for_type:
+            if recipe_id in recipes:
+                self.set_recipe_price(recipe_id, Decimal(str(price)))
+                self.activate_recipe(recipe_id)
 
     # === MÉTHODES QUALITÉ ===
 
@@ -397,3 +597,40 @@ class Restaurant:
     def __str__(self) -> str:
         quality_desc = self.get_quality_description()
         return f"{self.name} ({self.type.value}, {self.capacity_current} couverts, {quality_desc})"
+
+
+def create_restaurant_from_commerce(
+    location: CommerceLocation, budget: Decimal, player_num: int
+) -> Restaurant:
+    """Crée un restaurant à partir d'un commerce acheté."""
+    # Import déféré pour éviter la dépendance circulaire
+    from game_engine.ui.console_ui import get_input
+
+    # Nom du restaurant
+    restaurant_name = get_input(
+        "Nom de votre restaurant", default=f"Restaurant {player_num}"
+    )
+
+    # Création du restaurant
+    remaining_budget = budget - location.total_initial_cost
+
+    restaurant = Restaurant(
+        id=f"player_{player_num}",
+        name=restaurant_name,
+        type=location.restaurant_type,
+        capacity_base=location.size,
+        speed_service=RestaurantType.get_service_speed(location.restaurant_type),
+        cash=remaining_budget,
+        rent_monthly=location.rent_monthly,
+        fixed_costs_monthly=location.rent_monthly * Decimal("0.3"),  # Estimation
+        equipment_value=Decimal("50000"),  # Valeur standard
+        staffing_level=2,
+    )
+
+    # Ajout d'employés de base
+    restaurant.setup_base_employees()
+
+    # Menu de base
+    # restaurant.setup_base_menu(recipes)
+
+    return restaurant

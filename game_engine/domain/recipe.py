@@ -3,7 +3,6 @@ Modèles des recettes pour FoodOps Pro.
 """
 
 from dataclasses import dataclass
-from typing import List
 from decimal import Decimal
 
 
@@ -66,7 +65,7 @@ class Recipe:
 
     id: str
     name: str
-    items: List[RecipeItem]
+    items: list[RecipeItem]
     temps_prepa_min: int
     temps_service_min: int
     portions: int = 1
@@ -98,7 +97,7 @@ class Recipe:
         """Temps total de préparation et service."""
         return self.temps_prepa_min + self.temps_service_min
 
-    def get_ingredient_ids(self) -> List[str]:
+    def get_ingredient_ids(self) -> list[str]:
         """Retourne la liste des IDs d'ingrédients utilisés."""
         return [item.ingredient_id for item in self.items]
 

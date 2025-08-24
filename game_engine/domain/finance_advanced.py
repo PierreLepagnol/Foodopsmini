@@ -3,10 +3,9 @@ Système de finance avancée pour FoodOps Pro.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from datetime import date, timedelta
 from decimal import Decimal
 from enum import Enum
-from datetime import date, timedelta
 
 
 class AccountType(Enum):
@@ -40,7 +39,7 @@ class Account:
     name: str
     type: AccountType
     balance: Decimal = Decimal("0")
-    parent_code: Optional[str] = None
+    parent_code: str | None = None
 
     def debit(self, amount: Decimal) -> None:
         """Débite le compte."""
@@ -68,7 +67,7 @@ class Transaction:
     debit_account: str
     credit_account: str
     amount: Decimal
-    reference: Optional[str] = None
+    reference: str | None = None
 
     def __post_init__(self) -> None:
         """Validation."""
@@ -83,8 +82,8 @@ class Budget:
     name: str
     period_start: date
     period_end: date
-    revenue_forecast: Dict[str, Decimal] = field(default_factory=dict)
-    expense_forecast: Dict[str, Decimal] = field(default_factory=dict)
+    revenue_forecast: dict[str, Decimal] = field(default_factory=dict)
+    expense_forecast: dict[str, Decimal] = field(default_factory=dict)
 
     @property
     def total_revenue_forecast(self) -> Decimal:
@@ -146,10 +145,10 @@ class FinanceManager:
     """Gestionnaire de finance avancée."""
 
     def __init__(self):
-        self.accounts: Dict[str, Account] = {}
-        self.transactions: List[Transaction] = []
-        self.budgets: List[Budget] = []
-        self.recipe_profitability: Dict[str, RecipeProfitability] = {}
+        self.accounts: dict[str, Account] = {}
+        self.transactions: list[Transaction] = []
+        self.budgets: list[Budget] = []
+        self.recipe_profitability: dict[str, RecipeProfitability] = {}
 
         # Initialisation du plan comptable
         self._initialize_chart_of_accounts()
@@ -296,7 +295,7 @@ class FinanceManager:
             amount=amount,
         )
 
-    def get_balance_sheet(self) -> Dict[str, Dict[str, Decimal]]:
+    def get_balance_sheet(self) -> dict[str, dict[str, Decimal]]:
         """Génère le bilan comptable."""
         assets = Decimal("0")
         liabilities = Decimal("0")
@@ -326,7 +325,7 @@ class FinanceManager:
 
     def get_income_statement(
         self, start_date: date = None, end_date: date = None
-    ) -> Dict[str, any]:
+    ) -> dict[str, any]:
         """Génère le compte de résultat."""
         if start_date is None:
             start_date = date.today().replace(day=1)  # Début du mois
@@ -426,7 +425,7 @@ class FinanceManager:
         if recipe_id in self.recipe_profitability:
             self.recipe_profitability[recipe_id].quantity_sold += quantity
 
-    def get_recipe_profitability_report(self) -> List[Dict[str, any]]:
+    def get_recipe_profitability_report(self) -> list[dict[str, any]]:
         """Génère un rapport de rentabilité par recette."""
         report = []
 
@@ -449,7 +448,7 @@ class FinanceManager:
         report.sort(key=lambda x: x["total_profit"], reverse=True)
         return report
 
-    def get_cash_flow_forecast(self, days: int = 30) -> Dict[str, any]:
+    def get_cash_flow_forecast(self, days: int = 30) -> dict[str, any]:
         """Prévision de trésorerie."""
         current_cash = self.accounts["512"].balance + self.accounts["530"].balance
 
@@ -503,7 +502,7 @@ class FinanceManager:
             "max_cash_position": max(f["cash_position"] for f in forecast),
         }
 
-    def get_financial_ratios(self) -> Dict[str, Decimal]:
+    def get_financial_ratios(self) -> dict[str, Decimal]:
         """Calcule les ratios financiers clés."""
         balance_sheet = self.get_balance_sheet()
         income_statement = self.get_income_statement()

@@ -3,7 +3,6 @@ Système de qualité des ingrédients pour FoodOps Pro.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List
 from decimal import Decimal
 from enum import Enum
 
@@ -80,7 +79,7 @@ class IngredientVariant:
     supplier_id: str
     modifiers: QualityModifiers
     description: str = ""
-    certifications: List[str] = None
+    certifications: list[str] = None
 
     def __post_init__(self):
         """Initialisation des certifications."""
@@ -162,7 +161,7 @@ class IngredientQualityManager:
     """Gestionnaire du système de qualité des ingrédients."""
 
     def __init__(self):
-        self.variants: Dict[str, IngredientVariant] = {}
+        self.variants: dict[str, IngredientVariant] = {}
         self._load_default_variants()
 
     def _load_default_variants(self):
@@ -235,7 +234,7 @@ class IngredientQualityManager:
 
     def get_variants_for_ingredient(
         self, base_ingredient_id: str
-    ) -> List[IngredientVariant]:
+    ) -> list[IngredientVariant]:
         """Retourne toutes les variantes d'un ingrédient de base."""
         return [
             v
@@ -243,18 +242,18 @@ class IngredientQualityManager:
             if v.base_ingredient_id == base_ingredient_id
         ]
 
-    def get_variants_by_supplier(self, supplier_id: str) -> List[IngredientVariant]:
+    def get_variants_by_supplier(self, supplier_id: str) -> list[IngredientVariant]:
         """Retourne toutes les variantes d'un fournisseur."""
         return [v for v in self.variants.values() if v.supplier_id == supplier_id]
 
     def get_variants_by_quality(
         self, quality_level: QualityLevel
-    ) -> List[IngredientVariant]:
+    ) -> list[IngredientVariant]:
         """Retourne toutes les variantes d'un niveau de qualité."""
         return [v for v in self.variants.values() if v.quality_level == quality_level]
 
     def calculate_recipe_quality_score(
-        self, ingredient_variants: Dict[str, IngredientVariant]
+        self, ingredient_variants: dict[str, IngredientVariant]
     ) -> Decimal:
         """
         Calcule le score de qualité d'une recette basé sur ses ingrédients.

@@ -2,15 +2,14 @@
 Moteur de marché et allocation de la demande pour FoodOps Pro.
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional
-from decimal import Decimal
 import random
+from dataclasses import dataclass
+from decimal import Decimal
 
+from game_engine.domain.market.events import CompetitionManager
+from game_engine.domain.market.seasonality import SeasonalityManager
 from game_engine.domain.restaurant import Restaurant
-from game_engine.domain.scenario import Scenario, MarketSegment
-from game_engine.domain.seasonality import SeasonalityManager
-from game_engine.domain.competition import CompetitionManager
+from game_engine.domain.scenario import MarketSegment, Scenario
 
 
 @dataclass
@@ -41,20 +40,14 @@ class AllocationResult:
     def __post_init__(self) -> None:
         """Calcule les métriques dérivées."""
         if self.capacity > 0:
-            object.__setattr__(
-                self,
-                "utilization_rate",
-                Decimal(self.served_customers) / Decimal(self.capacity),
+            self.utilization_rate = Decimal(self.served_customers) / Decimal(
+                self.capacity
             )
-        object.__setattr__(
-            self,
-            "lost_customers",
-            max(0, self.allocated_demand - self.served_customers),
-        )
+
+        self.lost_customers = max(0, self.allocated_demand - self.served_customers)
+
         if self.served_customers > 0:
-            object.__setattr__(
-                self, "average_ticket", self.revenue / Decimal(self.served_customers)
-            )
+            self.average_ticket = self.revenue / Decimal(self.served_customers)
 
 
 class MarketEngine:
@@ -62,7 +55,7 @@ class MarketEngine:
     Moteur de simulation du marché avec allocation de la demande.
     """
 
-    def __init__(self, scenario: Scenario, random_seed: Optional[int] = None) -> None:
+    def __init__(self, scenario: Scenario, random_seed: int | None = None) -> None:
         """
         Initialise le moteur de marché.
 
@@ -72,15 +65,14 @@ class MarketEngine:
         """
         self.scenario = scenario
         self.rng = random.Random(random_seed or scenario.random_seed)
-        self.turn_history: List[Dict[str, AllocationResult]] = []
-        self.seasonality_manager = SeasonalityManager()  # Gestionnaire saisonnalité
-        self.competition_manager = CompetitionManager(
-            random_seed
-        )  # NOUVEAU: Gestionnaire concurrence
+        self.turn_history: list[dict[str, AllocationResult]] = []
+        self.seasonality_manager = SeasonalityManager()
+        # Gestionnaire concurrence
+        self.competition_manager = CompetitionManager(random_seed)
 
     def allocate_demand(
-        self, restaurants: List[Restaurant], turn: int, month: int = 1
-    ) -> Dict[str, AllocationResult]:
+        self, restaurants: list[Restaurant], turn: int, month: int = 1
+    ) -> dict[str, AllocationResult]:
         """
         Alloue la demande entre les restaurants selon leurs caractéristiques.
 
@@ -93,7 +85,7 @@ class MarketEngine:
             Dict des résultats d'allocation par restaurant
         """
         # NOUVEAU: Traiter les événements de marché
-        current_season = self._get_season_name(month)
+        current_season = self.seasonality_manager.get_season_name(month)
         self.competition_manager.process_turn_events(turn, current_season)
         market_modifiers = self.competition_manager.get_market_modifiers()
 
@@ -150,9 +142,30 @@ class MarketEngine:
 
         return results
 
+    def calculate_total_demand(self, turn: int, month: int = 1) -> int:
+        """
+        Calcule la demande totale pour un tour donné.
+
+        Args:
+            turn: Numéro du tour
+            month: Mois de l'année (pour saisonnalité)
+
+        Returns:
+            Demande totale ajustée
+        """
+        # Facteur saisonnier moyen
+        seasonal_factor = Decimal("0")
+        for segment in self.scenario.segments:
+            segment_seasonal = self.scenario.get_seasonal_factor(month)
+            seasonal_factor += segment_seasonal * segment.share
+
+        # Demande ajustée
+        adjusted_demand = self.base_demand * seasonal_factor
+        return int(adjusted_demand)
+
     def _allocate_segment_demand(
-        self, restaurants: List[Restaurant], segment: MarketSegment, segment_demand: int
-    ) -> Dict[str, Dict[str, int]]:
+        self, restaurants: list[Restaurant], segment: MarketSegment, segment_demand: int
+    ) -> dict[str, dict[str, int]]:
         """
         Alloue la demande d'un segment spécifique.
 
@@ -321,17 +334,6 @@ class MarketEngine:
 
         return max(Decimal("0.5"), min(Decimal("2.0"), final_factor))
 
-    def _get_season_name(self, month: int) -> str:
-        """Retourne le nom de la saison selon le mois."""
-        if month in [12, 1, 2]:
-            return "hiver"
-        elif month in [3, 4, 5]:
-            return "printemps"
-        elif month in [6, 7, 8]:
-            return "été"
-        else:
-            return "automne"
-
     def _get_seasonal_demand_bonus(self, segment_name: str, month: int) -> Decimal:
         """
         Calcule le bonus de demande saisonnier pour un segment.
@@ -399,8 +401,8 @@ class MarketEngine:
         return Decimal("1.0")
 
     def _apply_capacity_constraints(
-        self, restaurants: List[Restaurant], results: Dict[str, AllocationResult]
-    ) -> Dict[str, AllocationResult]:
+        self, restaurants: list[Restaurant], results: dict[str, AllocationResult]
+    ) -> dict[str, AllocationResult]:
         """
         Applique les contraintes de capacité et redistribue la demande excédentaire.
 
@@ -561,7 +563,7 @@ class MarketEngine:
         ).served_customers
         return Decimal(restaurant_customers) / Decimal(total_customers)
 
-    def get_market_analysis(self, turn: int = -1) -> Dict[str, any]:
+    def get_market_analysis(self, turn: int = -1) -> dict[str, any]:
         """
         Génère une analyse du marché pour un tour donné.
 

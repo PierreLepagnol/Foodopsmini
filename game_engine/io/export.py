@@ -4,11 +4,11 @@ Export des résultats et calcul des KPIs pour FoodOps Pro.
 
 import csv
 import json
-from pathlib import Path
-from typing import Dict, List, Any
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
-from game_engine.io.persistence import GameState, DecimalEncoder
+from game_engine.io.persistence import DecimalEncoder, GameState
 
 
 class KPICalculator:
@@ -18,8 +18,8 @@ class KPICalculator:
 
     @staticmethod
     def calculate_restaurant_kpis(
-        restaurant_data: Dict, turn_history: List[Dict]
-    ) -> Dict[str, Any]:
+        restaurant_data: dict, turn_history: list[dict]
+    ) -> dict[str, Any]:
         """
         Calcule les KPIs d'un restaurant.
 
@@ -98,7 +98,7 @@ class KPICalculator:
         }
 
     @staticmethod
-    def calculate_market_kpis(turn_history: List[Dict]) -> Dict[str, Any]:
+    def calculate_market_kpis(turn_history: list[dict]) -> dict[str, Any]:
         """
         Calcule les KPIs du marché global.
 
@@ -175,7 +175,7 @@ class KPICalculator:
         }
 
     @staticmethod
-    def _calculate_std(values: List[float]) -> float:
+    def _calculate_std(values: list[float]) -> float:
         """Calcule l'écart-type d'une liste de valeurs."""
         if len(values) < 2:
             return 0
@@ -193,7 +193,7 @@ class ResultsExporter:
     def __init__(self) -> None:
         self.kpi_calculator = KPICalculator()
 
-    def export_to_csv(self, game_state: GameState, output_dir: Path) -> List[Path]:
+    def export_to_csv(self, game_state: GameState, output_dir: Path) -> list[Path]:
         """
         Exporte les résultats vers des fichiers CSV.
 
@@ -325,7 +325,7 @@ class ResultsExporter:
         with open(output_path, "w", encoding="utf-8") as file:
             json.dump(report, file, cls=DecimalEncoder, indent=2, ensure_ascii=False)
 
-    def generate_ranking(self, game_state: GameState) -> List[Dict[str, Any]]:
+    def generate_ranking(self, game_state: GameState) -> list[dict[str, Any]]:
         """
         Génère le classement final des restaurants.
 

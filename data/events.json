@@ -1,0 +1,196 @@
+{
+    "events": [
+        {
+            "id": "canicule",
+            "name": "Canicule",
+            "description": "Forte chaleur, demande accrue pour boissons fraîches et salades",
+            "type": "meteo",
+            "impact": "positif",
+            "duration_days": 5,
+            "probability": "0.15",
+            "demand_modifier": "1.2",
+            "price_sensitivity_modifier": "1.0",
+            "quality_importance_modifier": "1.0",
+            "segment_impact": {
+                "familles": "1.3",
+                "étudiants": "1.4"
+            },
+            "season_requirements": [
+                "été"
+            ],
+            "min_turn": 1,
+            "max_turn": 999
+        },
+        {
+            "id": "pluie_continue",
+            "name": "Pluie continue",
+            "description": "Mauvais temps, les gens sortent moins",
+            "type": "meteo",
+            "impact": "negatif",
+            "duration_days": 3,
+            "probability": "0.20",
+            "demand_modifier": "0.85",
+            "price_sensitivity_modifier": "1.0",
+            "quality_importance_modifier": "1.0",
+            "segment_impact": {},
+            "season_requirements": [
+                "automne",
+                "hiver"
+            ],
+            "min_turn": 1,
+            "max_turn": 999
+        },
+        {
+            "id": "crise_pouvoir_achat",
+            "name": "Crise du pouvoir d'achat",
+            "description": "Les consommateurs deviennent plus sensibles aux prix",
+            "type": "economique",
+            "impact": "negatif",
+            "duration_days": 10,
+            "probability": "0.08",
+            "demand_modifier": "1.0",
+            "price_sensitivity_modifier": "1.5",
+            "quality_importance_modifier": "1.0",
+            "segment_impact": {
+                "étudiants": "0.7",
+                "familles": "0.8"
+            },
+            "season_requirements": [],
+            "min_turn": 1,
+            "max_turn": 999
+        },
+        {
+            "id": "prime_exceptionnelle",
+            "name": "Prime exceptionnelle",
+            "description": "Les salariés reçoivent une prime, augmentation du pouvoir d'achat",
+            "type": "economique",
+            "impact": "positif",
+            "duration_days": 7,
+            "probability": "0.12",
+            "demand_modifier": "1.15",
+            "price_sensitivity_modifier": "0.9",
+            "quality_importance_modifier": "1.0",
+            "segment_impact": {},
+            "season_requirements": [],
+            "min_turn": 1,
+            "max_turn": 999
+        },
+        {
+            "id": "festival_local",
+            "name": "Festival local",
+            "description": "Événement culturel attirant du monde dans le quartier",
+            "type": "social",
+            "impact": "positif",
+            "duration_days": 3,
+            "probability": "0.25",
+            "demand_modifier": "1.4",
+            "price_sensitivity_modifier": "1.0",
+            "quality_importance_modifier": "1.0",
+            "segment_impact": {
+                "foodies": "1.6",
+                "familles": "1.3"
+            },
+            "season_requirements": [],
+            "min_turn": 1,
+            "max_turn": 999
+        },
+        {
+            "id": "greve_transports",
+            "name": "Grève des transports",
+            "description": "Difficultés de transport, moins de clients",
+            "type": "social",
+            "impact": "negatif",
+            "duration_days": 2,
+            "probability": "0.10",
+            "demand_modifier": "0.75",
+            "price_sensitivity_modifier": "1.0",
+            "quality_importance_modifier": "1.0",
+            "segment_impact": {},
+            "season_requirements": [],
+            "min_turn": 1,
+            "max_turn": 999
+        },
+        {
+            "id": "penurie_viande",
+            "name": "Pénurie de viande",
+            "description": "Problème d'approvisionnement, prix de la viande en hausse",
+            "type": "approvisionnement",
+            "impact": "negatif",
+            "duration_days": 8,
+            "probability": "0.06",
+            "demand_modifier": "1.0",
+            "price_sensitivity_modifier": "1.0",
+            "quality_importance_modifier": "1.3",
+            "segment_impact": {},
+            "season_requirements": [],
+            "min_turn": 1,
+            "max_turn": 999
+        },
+        {
+            "id": "recolte_exceptionnelle",
+            "name": "Récolte exceptionnelle",
+            "description": "Excellente récolte de légumes, prix en baisse",
+            "type": "approvisionnement",
+            "impact": "positif",
+            "duration_days": 15,
+            "probability": "0.18",
+            "demand_modifier": "1.0",
+            "price_sensitivity_modifier": "1.0",
+            "quality_importance_modifier": "1.0",
+            "segment_impact": {},
+            "season_requirements": [
+                "automne"
+            ],
+            "min_turn": 1,
+            "max_turn": 999
+        },
+        {
+            "id": "nouveau_concurrent",
+            "name": "Nouveau concurrent",
+            "description": "Ouverture d'un nouveau restaurant dans le quartier",
+            "type": "concurrence",
+            "impact": "negatif",
+            "duration_days": 30,
+            "probability": "0.05",
+            "demand_modifier": "0.9",
+            "price_sensitivity_modifier": "1.0",
+            "quality_importance_modifier": "1.0",
+            "segment_impact": {},
+            "season_requirements": [],
+            "min_turn": 5,
+            "max_turn": 999
+        },
+        {
+            "id": "fermeture_concurrent",
+            "name": "Fermeture concurrent",
+            "description": "Un concurrent ferme définitivement",
+            "type": "concurrence",
+            "impact": "positif",
+            "duration_days": 999,
+            "probability": "0.03",
+            "demand_modifier": "1.15",
+            "price_sensitivity_modifier": "1.0",
+            "quality_importance_modifier": "1.0",
+            "segment_impact": {},
+            "season_requirements": [],
+            "min_turn": 10,
+            "max_turn": 999
+        },
+        {
+            "id": "controle_hygiene",
+            "name": "Contrôle d'hygiène",
+            "description": "Inspection sanitaire, importance accrue de la qualité",
+            "type": "reglementation",
+            "impact": "neutre",
+            "duration_days": 5,
+            "probability": "0.15",
+            "demand_modifier": "1.0",
+            "price_sensitivity_modifier": "1.0",
+            "quality_importance_modifier": "1.4",
+            "segment_impact": {},
+            "season_requirements": [],
+            "min_turn": 1,
+            "max_turn": 999
+        }
+    ]
+}

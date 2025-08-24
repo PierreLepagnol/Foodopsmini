@@ -4,7 +4,6 @@ Système comptable français (PCG simplifié) pour FoodOps Pro.
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Dict, List
 from decimal import Decimal
 from enum import Enum
 
@@ -56,7 +55,7 @@ class VATCalculator:
     @staticmethod
     def calculate_vat_amounts(
         amount_ht: Decimal, vat_rate: Decimal
-    ) -> Dict[str, Decimal]:
+    ) -> dict[str, Decimal]:
         """
         Calcule les montants HT, TVA et TTC.
 
@@ -75,7 +74,7 @@ class VATCalculator:
     @staticmethod
     def extract_vat_from_ttc(
         amount_ttc: Decimal, vat_rate: Decimal
-    ) -> Dict[str, Decimal]:
+    ) -> dict[str, Decimal]:
         """
         Extrait la TVA d'un montant TTC.
 
@@ -132,8 +131,8 @@ class Ledger:
     """
 
     def __init__(self) -> None:
-        self.accounts: Dict[str, Account] = {}
-        self.entries: List[AccountingEntry] = []
+        self.accounts: dict[str, Account] = {}
+        self.entries: list[AccountingEntry] = []
         self._initialize_chart_of_accounts()
 
     def _initialize_chart_of_accounts(self) -> None:
@@ -362,7 +361,7 @@ class Ledger:
             account_number, Account("", "", AccountType.ASSET)
         ).balance
 
-    def get_trial_balance(self) -> Dict[str, Dict[str, Decimal]]:
+    def get_trial_balance(self) -> dict[str, dict[str, Decimal]]:
         """
         Génère la balance comptable.
 
@@ -379,7 +378,7 @@ class Ledger:
                 }
         return balance
 
-    def get_profit_loss(self) -> Dict[str, Decimal]:
+    def get_profit_loss(self) -> dict[str, Decimal]:
         """
         Génère le compte de résultat simplifié.
 

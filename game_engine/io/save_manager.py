@@ -3,11 +3,11 @@ Gestionnaire de sauvegarde et chargement pour FoodOps Pro.
 """
 
 import json
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Any
 from dataclasses import asdict
+from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
+from typing import Any
 
 
 class SaveManager:
@@ -17,7 +17,7 @@ class SaveManager:
         self.save_directory = Path(save_directory)
         self.save_directory.mkdir(exist_ok=True)
 
-    def save_game(self, game_data: Dict[str, Any], save_name: str) -> str:
+    def save_game(self, game_data: dict[str, Any], save_name: str) -> str:
         """
         Sauvegarde une partie en cours.
 
@@ -56,7 +56,7 @@ class SaveManager:
 
         return save_name
 
-    def load_game(self, save_name: str) -> Dict[str, Any]:
+    def load_game(self, save_name: str) -> dict[str, Any]:
         """
         Charge une partie sauvegardée.
 
@@ -71,7 +71,7 @@ class SaveManager:
         if not save_file.exists():
             raise FileNotFoundError(f"Sauvegarde '{save_name}' introuvable")
 
-        with open(save_file, "r", encoding="utf-8") as f:
+        with open(save_file, encoding="utf-8") as f:
             save_data = json.load(f)
 
         # Vérifier la version
@@ -85,7 +85,7 @@ class SaveManager:
 
         return game_data
 
-    def list_saves(self) -> List[Dict[str, Any]]:
+    def list_saves(self) -> list[dict[str, Any]]:
         """
         Liste toutes les sauvegardes disponibles.
 
@@ -95,7 +95,7 @@ class SaveManager:
         saves = []
 
         for save_file in self.save_directory.glob("*.json"):
-            with open(save_file, "r", encoding="utf-8") as f:
+            with open(save_file, encoding="utf-8") as f:
                 save_data = json.load(f)
 
             metadata = save_data.get("metadata", {})
@@ -219,7 +219,7 @@ class SaveManager:
             raise FileNotFoundError(f"Fichier d'import introuvable: {import_path}")
 
         # Valider le fichier
-        with open(import_file, "r", encoding="utf-8") as f:
+        with open(import_file, encoding="utf-8") as f:
             save_data = json.load(f)
 
         if "metadata" not in save_data or "game_data" not in save_data:
@@ -239,7 +239,7 @@ class SaveManager:
 
         return save_name
 
-    def get_save_info(self, save_name: str) -> Dict[str, Any]:
+    def get_save_info(self, save_name: str) -> dict[str, Any]:
         """
         Récupère les informations détaillées d'une sauvegarde.
 
@@ -254,7 +254,7 @@ class SaveManager:
         if not save_file.exists():
             raise FileNotFoundError(f"Sauvegarde '{save_name}' introuvable")
 
-        with open(save_file, "r", encoding="utf-8") as f:
+        with open(save_file, encoding="utf-8") as f:
             save_data = json.load(f)
 
         metadata = save_data.get("metadata", {})

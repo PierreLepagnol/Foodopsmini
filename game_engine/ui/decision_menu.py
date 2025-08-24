@@ -3,9 +3,9 @@ Menu de décisions enrichi pour FoodOps Pro.
 """
 
 from decimal import Decimal
-from typing import Dict, List
 
 from game_engine.core.costing import RecipeCostCalculator
+from game_engine.core.ledger import Ledger
 from game_engine.core.procurement import POLine, ProcurementPlanner
 from game_engine.domain.employee import EmployeeContract, EmployeePosition
 from game_engine.domain.random_events import RandomEventManager
@@ -14,19 +14,20 @@ from game_engine.domain.stock import StockManager
 
 # from game_engine.financial_reports import FinancialReports
 from game_engine.ui.console_ui import (
+    ask_float,
+    ask_int,
     clear_screen,
+    confirm,
+    get_input,
+    pause,
     print_box,
     show_error,
-    show_menu,
-    pause,
-    get_input,
-    show_success,
     show_info,
-    confirm,
-    ask_int,
-    ask_float,
+    show_menu,
+    show_success,
 )
 from game_engine.ui.financial_reports import FinancialReports
+from game_engine.utils import MenuHandler
 
 
 class DecisionMenu:
@@ -36,11 +37,11 @@ class DecisionMenu:
         self.cost_calculator = cost_calculator
         self.financial_reports = FinancialReports()
         # Catalogues et paramètres (injectés depuis le jeu/CLI)
-        self._suppliers_catalog: Dict[str, List[Dict]] = {}
-        self._available_recipes_cache: Dict[str, any] = {}
+        self._suppliers_catalog: dict[str, list[dict]] = {}
+        self._available_recipes_cache: dict[str, any] = {}
         self._admin_settings = None
 
-    def set_suppliers_catalog(self, suppliers_catalog: Dict[str, List[Dict]]):
+    def set_suppliers_catalog(self, suppliers_catalog: dict[str, list[dict]]):
         """Injection de la mercuriale (offres par ingrédient)."""
         self._suppliers_catalog = suppliers_catalog or {}
 
@@ -48,16 +49,16 @@ class DecisionMenu:
         """Injection des paramètres admin (auto_* et confirmations)."""
         self._admin_settings = settings
 
-    def cache_available_recipes(self, recipes: Dict[str, any]) -> None:
+    def cache_available_recipes(self, recipes: dict[str, any]) -> None:
         self._available_recipes_cache = recipes or {}
 
     def show_decision_menu(
         self,
         restaurant: Restaurant,
         turn: int,
-        available_recipes: Dict,
-        available_employees: List = None,
-    ) -> Dict[str, any]:
+        available_recipes: dict,
+        available_employees: list = None,
+    ) -> dict[str, any]:
         """
         Affiche le menu de décisions principal et retourne les choix du joueur.
 
@@ -70,42 +71,47 @@ class DecisionMenu:
             clear_screen()
             self._show_restaurant_status(restaurant, turn)
 
-            menu_options = [
+            menu = MenuHandler(f"DÉCISIONS - TOUR {turn} - {restaurant.name}")
+            menu.add_option(
                 "📋 Menu & Pricing",
+                lambda: self._menu_pricing_decisions(
+                    restaurant, available_recipes, decisions
+                ),
+            ).add_option(
                 "👥 Ressources Humaines",
+                lambda: self._hr_decisions(restaurant, decisions),
+            ).add_option(
                 "🛒 Achats & Stocks",
+                lambda: self._purchasing_decisions(restaurant),
+            ).add_option(
                 "📈 Marketing & Commercial",
-                "🏗️ Investissements",
-                "💰 Finance & Comptabilité",
-                "📊 Rapports & Analyses",
+                lambda: self._marketing_decisions(restaurant, decisions),
+            ).add_option(
+                "📊 Rapports & Analyses", lambda: self._show_reports(restaurant)
+            ).add_option(
                 "✅ Valider et passer au tour suivant",
-            ]
-
-            choice = show_menu(
-                f"DÉCISIONS - TOUR {turn} - {restaurant.name}",
-                menu_options,
-                allow_back=False,
+                lambda: "validate_and_exit"
+                if self._validate_decisions(restaurant, decisions)
+                else None,
             )
-
-            if choice == 1:
-                self._menu_pricing_decisions(restaurant, available_recipes, decisions)
-            elif choice == 2:
-                self._hr_decisions(restaurant, available_employees, decisions)
-            elif choice == 3:
-                self._purchasing_decisions(restaurant, decisions)
-            elif choice == 4:
-                self._marketing_decisions(restaurant, decisions)
-            elif choice == 5:
-                self._investment_decisions(restaurant, decisions)
-            elif choice == 6:
-                self._financial_decisions(restaurant, decisions)
-            elif choice == 7:
-                self._show_reports(restaurant)
-            elif choice == 8:
-                if self._validate_decisions(restaurant, decisions):
-                    break
+            # .add_option(
+            #     "🏗️ Investissements",
+            #     lambda: self._investment_decisions(restaurant, decisions),
+            # )
+            # .add_option(
+            #     "💰 Finance & Comptabilité",
+            #     lambda: self._financial_decisions(restaurant, decisions),
+            # )
+            result = menu.show()
+            if result == "validate_and_exit":
+                break
 
         return decisions
+
+    def _can_validate_decisions(self, restaurant: Restaurant, decisions: dict) -> bool:
+        """Check if decisions can be validated (add any validation logic here)."""
+        # For now, always allow validation, but this can be extended with business rules
+        return True
 
     def _show_restaurant_status(self, restaurant: Restaurant, turn: int) -> None:
         """Affiche le statut actuel du restaurant."""
@@ -128,40 +134,35 @@ class DecisionMenu:
 
         print_box(status, f"STATUT - TOUR {turn}", style)
 
+    # Usage:
     def _menu_pricing_decisions(
-        self, restaurant: Restaurant, available_recipes: Dict, decisions: Dict
+        self, restaurant: Restaurant, available_recipes: dict, decisions: dict
     ) -> None:
         """Gestion du menu et des prix."""
-        while True:
-            clear_screen()
 
-            submenu_options = [
-                "💰 Modifier les prix",
-                "➕ Ajouter des plats au menu",
-                "➖ Retirer des plats du menu",
-                "📊 Analyser la rentabilité par plat",
-                "🍽️ Créer un menu du jour",
-                "📈 Voir l'historique des ventes",
-            ]
+        menu = MenuHandler("MENU & PRICING")
+        menu.add_option(
+            "💰 Modifier les prix", lambda: self._modify_prices(restaurant, decisions)
+        ).add_option(
+            "➕ Ajouter des plats au menu",
+            lambda: self._add_recipes(restaurant, available_recipes, decisions),
+        ).add_option(
+            "➖ Retirer des plats du menu",
+            lambda: self._remove_recipes(restaurant, decisions),
+        ).add_option(
+            "📊 Analyser la rentabilité par plat",
+            lambda: self._analyze_recipe_profitability(restaurant, available_recipes),
+        ).add_option(
+            "🍽️ Créer un menu du jour",
+            lambda: self._create_daily_menu(restaurant, decisions),
+        ).add_option(
+            "📈 Voir l'historique des ventes",
+            lambda: self._show_sales_history(restaurant),
+        )
 
-            choice = show_menu("MENU & PRICING", submenu_options)
+        menu.show()
 
-            if choice == 0:
-                break
-            elif choice == 1:
-                self._modify_prices(restaurant, decisions)
-            elif choice == 2:
-                self._add_recipes(restaurant, available_recipes, decisions)
-            elif choice == 3:
-                self._remove_recipes(restaurant, decisions)
-            elif choice == 4:
-                self._analyze_recipe_profitability(restaurant, available_recipes)
-            elif choice == 5:
-                self._create_daily_menu(restaurant, decisions)
-            elif choice == 6:
-                self._show_sales_history(restaurant)
-
-    def _modify_prices(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _modify_prices(self, restaurant: Restaurant, decisions: dict) -> None:
         """Modification des prix de vente."""
         active_menu = restaurant.get_active_menu()
 
@@ -233,59 +234,45 @@ class DecisionMenu:
             show_success(impact_msg)
             pause()
 
-    def _hr_decisions(
-        self, restaurant: Restaurant, available_employees: List, decisions: Dict
-    ) -> None:
+    def _hr_decisions(self, restaurant: Restaurant, decisions: dict) -> None:
         """Gestion des ressources humaines."""
         while True:
             clear_screen()
 
-            # Affichage de l'équipe actuelle
-            team_info = [f"ÉQUIPE ACTUELLE ({len(restaurant.employees)} employés):"]
+            restaurant.display_team_info()
 
-            total_cost = Decimal("0")
-            for emp in restaurant.employees:
-                monthly_cost = emp.salary_gross_monthly * Decimal(
-                    "1.42"
-                )  # Avec charges
-                total_cost += monthly_cost
-                team_info.append(
-                    f"• {emp.name} ({emp.position.value}) - "
-                    f"{emp.contract.value} - {monthly_cost:.0f}€/mois"
+            menu = (
+                MenuHandler("RESSOURCES HUMAINES")
+                .add_option(
+                    "👤 Recruter un employé",
+                    lambda: self._recruit_employee(restaurant, decisions),
                 )
+                .add_option(
+                    "❌ Licencier un employé",
+                    lambda: self._fire_employee(restaurant, decisions),
+                )
+                .add_option(
+                    "📚 Former le personnel",
+                    lambda: self._train_employees(restaurant, decisions),
+                )
+                .add_option(
+                    "⏰ Ajuster les horaires",
+                    lambda: self._adjust_schedules(restaurant, decisions),
+                )
+                .add_option(
+                    "💰 Négocier les salaires",
+                    lambda: self._negotiate_salaries(restaurant, decisions),
+                )
+                .add_option(
+                    "📊 Analyser la productivité",
+                    lambda: self._analyze_productivity(restaurant),
+                )
+            )
 
-            team_info.append("")
-            team_info.append(f"Coût total équipe: {total_cost:.0f}€/mois")
+            menu.show()
+            break
 
-            print_box(team_info, style="info")
-
-            submenu_options = [
-                "👤 Recruter un employé",
-                "❌ Licencier un employé",
-                "📚 Former le personnel",
-                "⏰ Ajuster les horaires",
-                "💰 Négocier les salaires",
-                "📊 Analyser la productivité",
-            ]
-
-            choice = show_menu("RESSOURCES HUMAINES", submenu_options)
-
-            if choice == 0:
-                break
-            elif choice == 1:
-                self._recruit_employee(restaurant, decisions)
-            elif choice == 2:
-                self._fire_employee(restaurant, decisions)
-            elif choice == 3:
-                self._train_employees(restaurant, decisions)
-            elif choice == 4:
-                self._adjust_schedules(restaurant, decisions)
-            elif choice == 5:
-                self._negotiate_salaries(restaurant, decisions)
-            elif choice == 6:
-                self._analyze_productivity(restaurant)
-
-    def _recruit_employee(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _recruit_employee(self, restaurant: Restaurant, decisions: dict) -> None:
         """Recrutement d'un nouvel employé."""
         if len(restaurant.employees) >= 10:  # Limite arbitraire
             show_error("Équipe complète (maximum 10 employés).")
@@ -359,42 +346,27 @@ class DecisionMenu:
             )
             pause()
 
-    def _purchasing_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _purchasing_decisions(self, restaurant: Restaurant) -> None:
         """Gestion des achats et stocks avancée."""
         # État minimal requis pour le module Achats & Stocks
-        if not hasattr(restaurant, "stock_manager"):
-            restaurant.stock_manager = StockManager()
-        if not hasattr(restaurant, "sales_forecast"):
-            restaurant.sales_forecast = {}
-        if not hasattr(restaurant, "pending_po_lines"):
-            restaurant.pending_po_lines = []
+        menu = MenuHandler("ACHATS & STOCKS")
+        menu.add_option(
+            "📋 Prévision & Besoins",
+            lambda: self._forecast_and_requirements(restaurant),
+        ).add_option(
+            "🛒 Composer ma commande (manuel)",
+            lambda: self._compose_manual_order(restaurant),
+        ).add_option(
+            "🤖 Proposer une commande (auto, revue ligne)",
+            lambda: self._review_auto_order(restaurant),
+        ).add_option(
+            "📥 Réception de commandes", lambda: self._receiving_interface(restaurant)
+        ).add_option(
+            "📦 État des stocks & alertes",
+            lambda: self._stock_management_interface(restaurant),
+        ).add_option("🔙 Retour", lambda: "exit")
 
-        while True:
-            clear_screen()
-
-            submenu_options = [
-                "📋 Prévision & Besoins",
-                "🛒 Composer ma commande (manuel)",
-                "🤖 Proposer une commande (auto, revue ligne)",
-                "📥 Réception de commandes",
-                "📦 État des stocks & alertes",
-                "🔙 Retour",
-            ]
-
-            choice = show_menu("ACHATS & STOCKS", submenu_options)
-
-            if choice == 1:
-                self._forecast_and_requirements(restaurant)
-            elif choice == 2:
-                self._compose_manual_order(restaurant)
-            elif choice == 3:
-                self._review_auto_order(restaurant)
-            elif choice == 4:
-                self._receiving_interface(restaurant)
-            elif choice == 5:
-                self._stock_management_interface(restaurant)
-            elif choice == 6:
-                break
+        menu.show()
 
         # --- Achats & Stocks: Prévision, besoins, PO, réception ---
         # Pour simplifier, on stocke ces éléments sur l'objet restaurant s'ils n'existent pas
@@ -473,7 +445,7 @@ class DecisionMenu:
             pause()
             return
 
-        pending: List[POLine] = []
+        pending: list[POLine] = []
         for ing_id, need in requirements.items():
             print_box(
                 [f"Ingrédient: {ing_id}", f"Besoin net estimé: {need}"],
@@ -617,7 +589,7 @@ class DecisionMenu:
 
         # Appliquer requirement de confirmation par ligne
         if getattr(self._admin_settings, "require_line_confirmation", True):
-            reviewed: List[POLine] = []
+            reviewed: list[POLine] = []
             for i, l in enumerate(pending, 1):
                 print_box(
                     [
@@ -667,7 +639,7 @@ class DecisionMenu:
             pause()
             return
 
-        reviewed: List[POLine] = []
+        reviewed: list[POLine] = []
         for i, l in enumerate(auto_lines, 1):
             need = requirements.get(l.ingredient_id, Decimal("0"))
             order_value = l.quantity * l.unit_price_ht
@@ -739,11 +711,11 @@ class DecisionMenu:
             pause()
             return
 
-    def cache_available_recipes(self, recipes: Dict[str, any]) -> None:
+    def cache_available_recipes(self, recipes: dict[str, any]) -> None:
         """Optionnel: l'appelant peut fournir un cache des recettes pour achats."""
         self._available_recipes_cache = recipes
 
-    def _propose_purchase_order(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _propose_purchase_order(self, restaurant: Restaurant, decisions: dict) -> None:
         """Propose un PO en fonction des besoins et permet édition simple."""
         clear_screen()
         if not hasattr(self, "_available_recipes_cache"):
@@ -1043,7 +1015,7 @@ class DecisionMenu:
 
         pause()
 
-    def _place_order_interface(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _place_order_interface(self, restaurant: Restaurant, decisions: dict) -> None:
         """Interface de commande avec choix de qualité."""
         clear_screen()
         show_info("🛒 CHOIX QUALITÉ DES INGRÉDIENTS")
@@ -1273,7 +1245,7 @@ class DecisionMenu:
         print_box(alerts_data, "ALERTES")
         pause()
 
-    def _marketing_interface(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _marketing_interface(self, restaurant: Restaurant, decisions: dict) -> None:
         """Interface marketing et communication."""
         clear_screen()
         show_info("📈 MARKETING & COMMUNICATION")
@@ -1356,7 +1328,7 @@ class DecisionMenu:
 
         pause()
 
-    def _finance_interface(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _finance_interface(self, restaurant: Restaurant, decisions: dict) -> None:
         """Interface finance avancée."""
         clear_screen()
         show_info("💰 FINANCE AVANCÉE")
@@ -1517,35 +1489,32 @@ class DecisionMenu:
 
         pause()
 
-    def _marketing_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _marketing_decisions(self, restaurant: Restaurant, decisions: dict) -> None:
         """Décisions marketing et commerciales."""
-        while True:
-            clear_screen()
+        menu = MenuHandler("MARKETING & COMMERCIAL")
+        menu.add_option(
+            "📢 Lancer une campagne publicitaire",
+            lambda: self._advertising_campaign(restaurant, decisions),
+        ).add_option(
+            "🎁 Programme de fidélité",
+            lambda: self._loyalty_program(restaurant, decisions),
+        ).add_option(
+            "🎉 Organiser un événement spécial",
+            lambda: self._special_event(restaurant, decisions),
+        ).add_option(
+            "🤝 Partenariats locaux",
+            lambda: (show_info("Option - En développement"), pause()),
+        ).add_option(
+            "📱 Présence digitale",
+            lambda: (show_info("Option - En développement"), pause()),
+        ).add_option(
+            "💳 Moyens de paiement",
+            lambda: (show_info("Option - En développement"), pause()),
+        ).add_option("🔙 Retour", lambda: "exit")
 
-            submenu_options = [
-                "📢 Lancer une campagne publicitaire",
-                "🎁 Programme de fidélité",
-                "🎉 Organiser un événement spécial",
-                "🤝 Partenariats locaux",
-                "📱 Présence digitale",
-                "💳 Moyens de paiement",
-            ]
+        menu.show()
 
-            choice = show_menu("MARKETING & COMMERCIAL", submenu_options)
-
-            if choice == 0:
-                break
-            elif choice == 1:
-                self._advertising_campaign(restaurant, decisions)
-            elif choice == 2:
-                self._loyalty_program(restaurant, decisions)
-            elif choice == 3:
-                self._special_event(restaurant, decisions)
-            else:
-                show_info(f"Option {choice} - En développement")
-                pause()
-
-    def _advertising_campaign(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _advertising_campaign(self, restaurant: Restaurant, decisions: dict) -> None:
         """Campagne publicitaire."""
         campaign_types = [
             (
@@ -1608,68 +1577,84 @@ class DecisionMenu:
             show_success(f"Campagne {name} programmée !")
             pause()
 
-    def _financial_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
-        """Décisions financières."""
-        while True:
-            clear_screen()
+    # def _financial_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
+    #     """Décisions financières."""
+    #     menu = MenuHandler("FINANCE")
+    #     menu.add_option(
+    #         "💳 Demander un prêt bancaire",
+    #         lambda: self._request_loan(restaurant, decisions),
+    #     ).add_option(
+    #         "💰 Rembourser un emprunt",
+    #         lambda: self._repay_loan(restaurant, decisions),
+    #     ).add_option(
+    #         "📈 Placer des excédents",
+    #         lambda: self._invest_surplus(restaurant, decisions),
+    #     ).add_option(
+    #         "📊 Analyser la rentabilité",
+    #         lambda: self._analyze_profitability(restaurant),
+    #     ).add_option(
+    #         "💸 Gérer la trésorerie",
+    #         lambda: self._manage_cash_flow(restaurant, decisions),
+    #     )
 
-            submenu_options = [
-                "💳 Demander un prêt bancaire",
-                "💰 Rembourser un emprunt",
-                "📈 Placer des excédents",
-                "📊 Analyser la rentabilité",
-                "💸 Gérer la trésorerie",
-            ]
-
-            choice = show_menu("FINANCE", submenu_options)
-
-            if choice == 0:
-                break
-            else:
-                show_info(f"Option financière {choice} - En développement")
-                pause()
+    #     menu.show()
 
     def _show_reports(self, restaurant: Restaurant) -> None:
         """Affichage des rapports financiers."""
-        while True:
-            clear_screen()
+        menu = MenuHandler("RAPPORTS & ANALYSES")
+        menu.add_option(
+            "📊 Compte de résultat",
+            lambda: self._show_profit_loss_statement(restaurant),
+        ).add_option(
+            "💰 Tableau de flux de trésorerie",
+            lambda: self._show_cash_flow_statement(restaurant),
+        ).add_option(
+            "📋 Bilan comptable",
+            lambda: self._show_balance_sheet(restaurant),
+        ).add_option(
+            "📈 Analyse des KPIs",
+            lambda: self._show_kpi_analysis(restaurant),
+        ).add_option(
+            "📉 Évolution des performances",
+            lambda: self._show_performance_evolution(restaurant),
+        )
 
-            report_options = [
-                "📊 Compte de résultat",
-                "💰 Tableau de flux de trésorerie",
-                "📋 Bilan comptable",
-                "📈 Analyse des KPIs",
-                "📉 Évolution des performances",
-            ]
+        menu.show()
 
-            choice = show_menu("RAPPORTS & ANALYSES", report_options)
+    def _show_profit_loss_statement(self, restaurant: Restaurant) -> None:
+        """Affiche le compte de résultat."""
 
-            if choice == 0:
-                break
-            elif choice == 1:
-                # Pour la démo, on crée un ledger vide
-                from game_engine.core.ledger import Ledger
+        ledger = Ledger()
+        self.financial_reports.show_profit_loss_statement(restaurant, ledger)
+        pause()
 
-                ledger = Ledger()
-                self.financial_reports.show_profit_loss_statement(restaurant, ledger)
-                pause()
-            elif choice == 2:
-                from game_engine.core.ledger import Ledger
+    def _show_cash_flow_statement(self, restaurant: Restaurant) -> None:
+        """Affiche le tableau de flux de trésorerie."""
+        from game_engine.core.ledger import Ledger
 
-                ledger = Ledger()
-                self.financial_reports.show_cash_flow_statement(restaurant, ledger)
-                pause()
-            elif choice == 3:
-                from game_engine.core.ledger import Ledger
+        ledger = Ledger()
+        self.financial_reports.show_cash_flow_statement(restaurant, ledger)
+        pause()
 
-                ledger = Ledger()
-                self.financial_reports.show_balance_sheet(restaurant, ledger)
-                pause()
-            else:
-                show_info(f"Rapport {choice} - En développement")
-                pause()
+    def _show_balance_sheet(self, restaurant: Restaurant) -> None:
+        """Affiche le bilan comptable."""
+        from game_engine.core.ledger import Ledger
 
-    def _validate_decisions(self, restaurant: Restaurant, decisions: Dict) -> bool:
+        ledger = Ledger()
+        self.financial_reports.show_balance_sheet(restaurant, ledger)
+        pause()
+
+    def _show_kpi_analysis(self, restaurant: Restaurant) -> None:
+        """Affiche l'analyse des KPIs."""
+        show_info("Analyse des KPIs - En développement")
+        pause()
+
+    def _show_performance_evolution(self, restaurant: Restaurant) -> None:
+        """Affiche l'évolution des performances."""
+        show_info("Évolution des performances - En développement")
+        pause()
+
+    def _validate_decisions(self, restaurant: Restaurant, decisions: dict) -> bool:
         """Validation finale des décisions."""
         if not decisions:
             return confirm("Aucune décision prise. Passer au tour suivant ?")
@@ -1700,7 +1685,7 @@ class DecisionMenu:
 
     # Méthodes utilitaires (implémentation complète)
     def _add_recipes(
-        self, restaurant: Restaurant, available_recipes: Dict, decisions: Dict
+        self, restaurant: Restaurant, available_recipes: dict, decisions: dict
     ) -> None:
         """Ajoute des recettes disponibles au menu actif avec prix TTC."""
         clear_screen()
@@ -1769,7 +1754,7 @@ class DecisionMenu:
             if not inactive or not confirm("Ajouter un autre plat ?"):
                 break
 
-    def _remove_recipes(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _remove_recipes(self, restaurant: Restaurant, decisions: dict) -> None:
         """Retire des recettes du menu actif."""
         active = restaurant.get_active_menu()
         if not active:
@@ -1789,7 +1774,7 @@ class DecisionMenu:
         pause()
 
     def _analyze_recipe_profitability(
-        self, restaurant: Restaurant, available_recipes: Dict
+        self, restaurant: Restaurant, available_recipes: dict
     ) -> None:
         """Analyse marge et recommandations par recette active."""
         active = restaurant.get_active_menu()
@@ -1828,7 +1813,7 @@ class DecisionMenu:
         print_box(lines, "ANALYSE RENTABILITÉ", "info")
         pause()
 
-    def _create_daily_menu(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _create_daily_menu(self, restaurant: Restaurant, decisions: dict) -> None:
         """Crée un menu du jour (sous-ensemble des recettes actives) avec prix spéciaux."""
         active = restaurant.get_active_menu()
         if not active:
@@ -1837,7 +1822,7 @@ class DecisionMenu:
             return
 
         options = [f"{rid} - {price:.2f}€" for rid, price in active.items()]
-        selection: List[str] = []
+        selection: list[str] = []
 
         while True:
             choice = show_menu("Ajouter au menu du jour", options)
@@ -1888,19 +1873,19 @@ class DecisionMenu:
         print_box(lines, "VENTES", "info")
         pause()
 
-    def _fire_employee(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _fire_employee(self, restaurant: Restaurant, decisions: dict) -> None:
         show_info("Licenciement - En développement")
         pause()
 
-    def _train_employees(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _train_employees(self, restaurant: Restaurant, decisions: dict) -> None:
         show_info("Formation - En développement")
         pause()
 
-    def _adjust_schedules(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _adjust_schedules(self, restaurant: Restaurant, decisions: dict) -> None:
         show_info("Horaires - En développement")
         pause()
 
-    def _negotiate_salaries(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _negotiate_salaries(self, restaurant: Restaurant, decisions: dict) -> None:
         show_info("Négociation salaires - En développement")
         pause()
 
@@ -1908,17 +1893,17 @@ class DecisionMenu:
         show_info("Analyse productivité - En développement")
         pause()
 
-    def _loyalty_program(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _loyalty_program(self, restaurant: Restaurant, decisions: dict) -> None:
         show_info("Programme fidélité - En développement")
         pause()
 
-    def _special_event(self, restaurant: Restaurant, decisions: Dict) -> None:
+    def _special_event(self, restaurant: Restaurant, decisions: dict) -> None:
         show_info("Événement spécial - En développement")
         pause()
 
-    def _investment_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
-        show_info("Investissements - En développement")
-        pause()
+    # def _investment_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
+    #     show_info("Investissements - En développement")
+    #     pause()
 
     def show_random_events(self, event_manager: RandomEventManager) -> None:
         """Affiche les événements aléatoires actifs."""

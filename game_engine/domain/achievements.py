@@ -2,10 +2,11 @@
 Système d'achievements/succès pour FoodOps Pro.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Callable, Any
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from typing import Any
 
 
 class AchievementCategory(Enum):
@@ -41,11 +42,11 @@ class Achievement:
     icon: str
 
     # Conditions d'obtention
-    condition_func: Callable[[Dict[str, Any]], bool] = None
+    condition_func: Callable[[dict[str, Any]], bool] = None
     hidden: bool = False  # Achievement secret
 
     # Métadonnées
-    unlock_date: Optional[datetime] = None
+    unlock_date: datetime | None = None
     progress: float = 0.0  # 0.0 à 1.0 pour les achievements progressifs
 
     def is_unlocked(self) -> bool:
@@ -63,8 +64,8 @@ class AchievementManager:
     """Gestionnaire des achievements."""
 
     def __init__(self):
-        self.achievements: Dict[str, Achievement] = {}
-        self.unlocked_achievements: List[str] = []
+        self.achievements: dict[str, Achievement] = {}
+        self.unlocked_achievements: list[str] = []
         self.total_points = 0
 
         # Charger les achievements
@@ -265,7 +266,7 @@ class AchievementManager:
 
             self.achievements[achievement.id] = achievement
 
-    def check_achievements(self, game_data: Dict[str, Any]) -> List[Achievement]:
+    def check_achievements(self, game_data: dict[str, Any]) -> list[Achievement]:
         """
         Vérifie et débloque les achievements basés sur les données de jeu.
 
@@ -289,7 +290,7 @@ class AchievementManager:
 
         return newly_unlocked
 
-    def get_achievement_progress(self) -> Dict[str, Any]:
+    def get_achievement_progress(self) -> dict[str, Any]:
         """Retourne les statistiques de progression des achievements."""
         total_achievements = len(self.achievements)
         unlocked_count = len(self.unlocked_achievements)
@@ -332,13 +333,13 @@ class AchievementManager:
             "rarity_stats": rarity_stats,
         }
 
-    def get_unlocked_achievements(self) -> List[Achievement]:
+    def get_unlocked_achievements(self) -> list[Achievement]:
         """Retourne la liste des achievements débloqués."""
         return [self.achievements[ach_id] for ach_id in self.unlocked_achievements]
 
     def get_available_achievements(
         self, include_hidden: bool = False
-    ) -> List[Achievement]:
+    ) -> list[Achievement]:
         """Retourne la liste des achievements disponibles (non débloqués)."""
         available = []
 
@@ -353,7 +354,7 @@ class AchievementManager:
 
         return available
 
-    def get_achievement_by_id(self, achievement_id: str) -> Optional[Achievement]:
+    def get_achievement_by_id(self, achievement_id: str) -> Achievement | None:
         """Retourne un achievement par son ID."""
         return self.achievements.get(achievement_id)
 
@@ -377,7 +378,7 @@ class AchievementManager:
 
         return notification
 
-    def get_leaderboard_data(self) -> Dict[str, Any]:
+    def get_leaderboard_data(self) -> dict[str, Any]:
         """Retourne les données pour un classement."""
         return {
             "total_points": self.total_points,

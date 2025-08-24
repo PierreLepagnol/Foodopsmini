@@ -2,15 +2,15 @@
 Modèles de scénarios pour FoodOps Pro.
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from dataclasses import field
 from decimal import Decimal
 
-from game_engine.domain.restaurant import RestaurantType
+from pydantic import BaseModel, Field, field_validator
+
+from game_engine.domain.types import RestaurantType
 
 
-@dataclass(frozen=True)
-class MarketSegment:
+class MarketSegment(BaseModel):
     """
     Représente un segment de clientèle avec ses caractéristiques.
 
@@ -25,39 +25,42 @@ class MarketSegment:
     """
 
     name: str
-    share: Decimal
-    budget: Decimal
-    type_affinity: Dict[RestaurantType, Decimal]
-    price_sensitivity: Decimal = Decimal("1.0")
-    quality_sensitivity: Decimal = Decimal("1.0")
-    seasonality: Dict[int, Decimal] = field(default_factory=dict)
+    share: Decimal = Field(ge=0, le=1, description="Part de marché entre 0 et 1")
+    budget: Decimal = Field(
+        gt=0, description="Budget moyen par repas, doit être positif"
+    )
+    type_affinity: dict[RestaurantType, Decimal] = Field(
+        description="Affinité par type de restaurant"
+    )
+    price_sensitivity: Decimal = Field(
+        Decimal("1.0"), ge=0, le=2, description="Sensibilité au prix entre 0 et 2"
+    )
+    quality_sensitivity: Decimal = Field(
+        Decimal("1.0"), ge=0, le=2, description="Sensibilité à la qualité entre 0 et 2"
+    )
+    seasonality: dict[int, Decimal] = field(default_factory=dict)
 
-    def __post_init__(self) -> None:
-        """Validation des données."""
-        if not (0 <= self.share <= 1):
-            raise ValueError(f"La part de marché doit être entre 0 et 1: {self.share}")
-        if self.budget <= 0:
-            raise ValueError(f"Le budget doit être positif: {self.budget}")
-        if not (0 <= self.price_sensitivity <= 2):
-            raise ValueError(
-                f"La sensibilité prix doit être entre 0 et 2: {self.price_sensitivity}"
-            )
-        if not (0 <= self.quality_sensitivity <= 2):
-            raise ValueError(
-                f"La sensibilité qualité doit être entre 0 et 2: {self.quality_sensitivity}"
-            )
-
-        # Validation des affinités
-        for restaurant_type, affinity in self.type_affinity.items():
+    @field_validator("type_affinity")
+    @classmethod
+    def validate_type_affinity(
+        cls, v: dict[RestaurantType, Decimal]
+    ) -> dict[RestaurantType, Decimal]:
+        """Valide que toutes les affinités sont positives."""
+        for _, affinity in v.items():
             if affinity < 0:
                 raise ValueError(f"L'affinité doit être positive: {affinity}")
+        return v
 
-        # Validation de la saisonnalité
-        for month, factor in self.seasonality.items():
+    @field_validator("seasonality")
+    @classmethod
+    def validate_seasonality(cls, v: dict[int, Decimal]) -> dict[int, Decimal]:
+        """Valide les données de saisonnalité."""
+        for month, factor in v.items():
             if not (1 <= month <= 12):
                 raise ValueError(f"Le mois doit être entre 1 et 12: {month}")
             if factor < 0:
                 raise ValueError(f"Le facteur saisonnier doit être positif: {factor}")
+        return v
 
     def get_seasonal_factor(self, month: int) -> Decimal:
         """
@@ -84,8 +87,7 @@ class MarketSegment:
         return self.type_affinity.get(restaurant_type, Decimal("1.0"))
 
 
-@dataclass
-class Scenario:
+class Scenario(BaseModel):
     """
     Représente un scénario de jeu complet avec tous ses paramètres.
 
@@ -103,55 +105,56 @@ class Scenario:
         random_seed: Graine aléatoire pour reproductibilité
     """
 
-    name: str
-    description: str
-    turns: int
-    base_demand: int
-    demand_noise: Decimal
-    segments: List[MarketSegment]
-    vat_rates: Dict[str, Decimal] = field(default_factory=dict)
-    social_charges: Dict[str, Decimal] = field(default_factory=dict)
-    interest_rate: Decimal = Decimal("0.05")
-    ai_competitors: int = 2
-    random_seed: Optional[int] = None
+    name: str = Field(description="Nom du scénario")
+    description: str = Field(description="Description du scénario")
+    turns: int = Field(gt=0, description="Nombre de tours")
+    base_demand: int = Field(gt=0, description="Demande de base par tour")
+    demand_noise: Decimal = Field(
+        ge=Decimal("0"),
+        le=Decimal("1"),
+        description="Variabilité de la demande (0.0-1.0)",
+    )
+    segments: list[MarketSegment] = Field(
+        min_length=1, description="Segments de marché"
+    )
+    vat_rates: dict[str, Decimal] = Field(default_factory=dict)
+    social_charges: dict[str, Decimal] = Field(default_factory=dict)
+    interest_rate: Decimal = Field(default=Decimal("0.05"))
+    ai_competitors: int = Field(ge=0, default=2)
+    random_seed: int | None = Field(
+        default=None, description="Graine aléatoire pour reproductibilité"
+    )
 
-    def __post_init__(self) -> None:
-        """Validation des données."""
-        if self.turns <= 0:
-            raise ValueError(f"Le nombre de tours doit être positif: {self.turns}")
-        if self.base_demand <= 0:
-            raise ValueError(
-                f"La demande de base doit être positive: {self.base_demand}"
-            )
-        if not (0 <= self.demand_noise <= 1):
-            raise ValueError(
-                f"Le bruit de demande doit être entre 0 et 1: {self.demand_noise}"
-            )
-        if not self.segments:
-            raise ValueError("Le scénario doit avoir au moins un segment")
-        if self.ai_competitors < 0:
-            raise ValueError(
-                f"Le nombre de concurrents IA doit être positif: {self.ai_competitors}"
-            )
-
-        # Validation que les parts de marché totalisent ~1.0
-        total_share = sum(segment.share for segment in self.segments)
-        if not (0.95 <= total_share <= 1.05):
+    @field_validator("segments")
+    @classmethod
+    def validate_segments_shares(cls, v: list[MarketSegment]) -> list[MarketSegment]:
+        """Valide que les parts de marché totalisent ~1.0."""
+        total_share = sum(segment.share for segment in v)
+        if not (Decimal("0.95") <= total_share <= Decimal("1.05")):
             raise ValueError(
                 f"Les parts de marché doivent totaliser ~1.0: {total_share}"
             )
+        return v
 
-        # Validation des taux de TVA
-        for category, rate in self.vat_rates.items():
-            if not (0 <= rate <= 1):
+    @field_validator("vat_rates")
+    @classmethod
+    def validate_vat_rates(cls, v: dict[str, Decimal]) -> dict[str, Decimal]:
+        """Valide que les taux de TVA sont entre 0 et 1."""
+        for category, rate in v.items():
+            if not (Decimal("0") <= rate <= Decimal("1")):
                 raise ValueError(f"Le taux de TVA doit être entre 0 et 1: {rate}")
+        return v
 
-        # Validation des charges sociales
-        for contract_type, rate in self.social_charges.items():
-            if not (0 <= rate <= 1):
+    @field_validator("social_charges")
+    @classmethod
+    def validate_social_charges(cls, v: dict[str, Decimal]) -> dict[str, Decimal]:
+        """Valide que les charges sociales sont entre 0 et 1."""
+        for contract_type, rate in v.items():
+            if not (Decimal("0") <= rate <= Decimal("1")):
                 raise ValueError(
                     f"Les charges sociales doivent être entre 0 et 1: {rate}"
                 )
+        return v
 
     def get_vat_rate(self, category: str) -> Decimal:
         """
@@ -177,7 +180,7 @@ class Scenario:
         """
         return self.social_charges.get(contract_type, Decimal("0.42"))  # 42% par défaut
 
-    def get_segment_by_name(self, name: str) -> Optional[MarketSegment]:
+    def get_segment_by_name(self, name: str) -> MarketSegment | None:
         """
         Retourne un segment par son nom.
 
@@ -191,27 +194,6 @@ class Scenario:
             if segment.name == name:
                 return segment
         return None
-
-    def calculate_total_demand(self, turn: int, month: int = 1) -> int:
-        """
-        Calcule la demande totale pour un tour donné.
-
-        Args:
-            turn: Numéro du tour
-            month: Mois de l'année (pour saisonnalité)
-
-        Returns:
-            Demande totale ajustée
-        """
-        # Facteur saisonnier moyen
-        seasonal_factor = Decimal("0")
-        for segment in self.segments:
-            segment_seasonal = segment.get_seasonal_factor(month)
-            seasonal_factor += segment_seasonal * segment.share
-
-        # Demande ajustée
-        adjusted_demand = self.base_demand * seasonal_factor
-        return int(adjusted_demand)
 
     def __str__(self) -> str:
         return f"{self.name} ({self.turns} tours, {len(self.segments)} segments)"

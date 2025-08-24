@@ -3,10 +3,9 @@ Système de saisonnalité pour FoodOps Pro.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from datetime import date
 from decimal import Decimal
 from enum import Enum
-from datetime import date
 
 
 class Season(Enum):
@@ -81,9 +80,23 @@ class SeasonalityManager:
     """Gestionnaire de la saisonnalité des ingrédients."""
 
     def __init__(self):
-        self.seasonal_modifiers: List[SeasonalModifier] = []
-        self.event_modifiers: List[EventModifier] = []
+        self.seasonal_modifiers: list[SeasonalModifier] = []
+        self.event_modifiers: list[EventModifier] = []
         self._load_default_seasonality()
+
+    @staticmethod
+    def get_season_name(month: int) -> str:
+        """Retourne le nom de la saison selon le mois."""
+        seasons = {
+            (12, 1, 2): "hiver",
+            (3, 4, 5): "printemps",
+            (6, 7, 8): "été",
+            (9, 10, 11): "automne",
+        }
+
+        for months, season in seasons.items():
+            if month in months:
+                return season
 
     def _load_default_seasonality(self):
         """Charge la saisonnalité par défaut."""
@@ -229,7 +242,7 @@ class SeasonalityManager:
             )
         )
 
-    def get_current_season(self, current_date: Optional[date] = None) -> Season:
+    def get_current_season(self, current_date: date | None = None) -> Season:
         """Détermine la saison actuelle."""
         if current_date is None:
             current_date = date.today()
@@ -246,8 +259,8 @@ class SeasonalityManager:
             return Season.WINTER
 
     def get_seasonal_modifier(
-        self, ingredient_id: str, current_date: Optional[date] = None
-    ) -> Optional[SeasonalModifier]:
+        self, ingredient_id: str, current_date: date | None = None
+    ) -> SeasonalModifier | None:
         """Retourne le modificateur saisonnier pour un ingrédient."""
         current_season = self.get_current_season(current_date)
 
@@ -261,8 +274,8 @@ class SeasonalityManager:
         return None
 
     def get_active_event_modifiers(
-        self, ingredient_id: str, current_date: Optional[date] = None
-    ) -> List[EventModifier]:
+        self, ingredient_id: str, current_date: date | None = None
+    ) -> list[EventModifier]:
         """Retourne les modificateurs d'événements actifs pour un ingrédient."""
         if current_date is None:
             current_date = date.today()
@@ -282,7 +295,7 @@ class SeasonalityManager:
         self,
         ingredient_id: str,
         base_price: Decimal,
-        current_date: Optional[date] = None,
+        current_date: date | None = None,
     ) -> Decimal:
         """
         Calcule le prix final d'un ingrédient avec saisonnalité et événements.
@@ -310,21 +323,21 @@ class SeasonalityManager:
         return final_price
 
     def get_quality_bonus(
-        self, ingredient_id: str, current_date: Optional[date] = None
+        self, ingredient_id: str, current_date: date | None = None
     ) -> int:
         """Retourne le bonus de qualité saisonnier."""
         seasonal_mod = self.get_seasonal_modifier(ingredient_id, current_date)
         return seasonal_mod.quality_bonus if seasonal_mod else 0
 
     def get_availability_multiplier(
-        self, ingredient_id: str, current_date: Optional[date] = None
+        self, ingredient_id: str, current_date: date | None = None
     ) -> Decimal:
         """Retourne le multiplicateur de disponibilité."""
         seasonal_mod = self.get_seasonal_modifier(ingredient_id, current_date)
         return seasonal_mod.availability_multiplier if seasonal_mod else Decimal("1.0")
 
     def get_demand_impact(
-        self, ingredient_id: str, current_date: Optional[date] = None
+        self, ingredient_id: str, current_date: date | None = None
     ) -> Decimal:
         """Calcule l'impact total sur la demande (saisonnier + événements)."""
         demand_multiplier = Decimal("1.0")
@@ -341,7 +354,7 @@ class SeasonalityManager:
 
         return demand_multiplier
 
-    def get_seasonal_summary(self, current_date: Optional[date] = None) -> Dict:
+    def get_seasonal_summary(self, current_date: date | None = None) -> dict:
         """Retourne un résumé de la situation saisonnière actuelle."""
         if current_date is None:
             current_date = date.today()

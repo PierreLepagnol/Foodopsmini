@@ -2,7 +2,7 @@
 Tutoriel interactif pour FoodOps Pro.
 """
 
-from typing import Dict, List
+
 from game_engine.console_ui import ConsoleUI
 
 
@@ -14,7 +14,7 @@ class InteractiveTutorial:
         self.current_step = 0
         self.tutorial_data = self._load_tutorial_steps()
 
-    def _load_tutorial_steps(self) -> List[Dict]:
+    def _load_tutorial_steps(self) -> list[dict]:
         """Charge les étapes du tutoriel."""
         return [
             {
@@ -192,7 +192,7 @@ class InteractiveTutorial:
 
         return True
 
-    def _show_step(self, step: Dict, step_number: int) -> bool:
+    def _show_step(self, step: dict, step_number: int) -> bool:
         """
         Affiche une étape du tutoriel.
 
@@ -220,7 +220,7 @@ class InteractiveTutorial:
             input(f"   {step['action']}")
             return True
 
-    def _handle_interactive_step(self, step: Dict) -> bool:
+    def _handle_interactive_step(self, step: dict) -> bool:
         """Gère une étape interactive."""
         while True:
             response = input(f"   {step['action']}: ").strip()

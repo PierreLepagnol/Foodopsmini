@@ -3,9 +3,8 @@ Système de gestion des stocks avancé pour FoodOps Pro avec FEFO.
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Tuple
-from decimal import Decimal
 from datetime import date
+from decimal import Decimal
 from enum import Enum
 
 
@@ -50,8 +49,8 @@ class AdvancedStockLot:
     purchase_date: date
     expiry_date: date
     supplier_id: str
-    variant_id: Optional[str] = None
-    lot_number: Optional[str] = None
+    variant_id: str | None = None
+    lot_number: str | None = None
     quality_degradation_rate: Decimal = Decimal("0.01")  # 1% par jour par défaut
 
     def __post_init__(self) -> None:
@@ -168,7 +167,7 @@ class WasteRecord:
     unit_cost_ht: Decimal
     waste_date: date
     reason: WasteReason
-    lot_number: Optional[str] = None
+    lot_number: str | None = None
 
     @property
     def total_loss_value(self) -> Decimal:
@@ -180,10 +179,10 @@ class AdvancedStockManager:
     """Gestionnaire avancé des stocks avec FEFO."""
 
     def __init__(self):
-        self.lots: List[AdvancedStockLot] = []
-        self.waste_records: List[WasteRecord] = []
-        self.reorder_points: Dict[str, Decimal] = {}  # Seuils de réapprovisionnement
-        self.max_stock_levels: Dict[str, Decimal] = {}  # Niveaux max de stock
+        self.lots: list[AdvancedStockLot] = []
+        self.waste_records: list[WasteRecord] = []
+        self.reorder_points: dict[str, Decimal] = {}  # Seuils de réapprovisionnement
+        self.max_stock_levels: dict[str, Decimal] = {}  # Niveaux max de stock
 
     def add_lot(self, lot: AdvancedStockLot) -> None:
         """Ajoute un lot au stock."""
@@ -207,7 +206,7 @@ class AdvancedStockManager:
 
     def consume_ingredient(
         self, ingredient_id: str, quantity_needed: Decimal
-    ) -> Tuple[Decimal, List[AdvancedStockLot]]:
+    ) -> tuple[Decimal, list[AdvancedStockLot]]:
         """
         Consomme un ingrédient selon la méthode FEFO.
 
@@ -245,7 +244,7 @@ class AdvancedStockManager:
 
         return quantity_obtained, lots_used
 
-    def process_daily_operations(self) -> Dict[str, any]:
+    def process_daily_operations(self) -> dict[str, any]:
         """
         Traite les opérations quotidiennes (dégradation, expirations).
 
@@ -299,15 +298,15 @@ class AdvancedStockManager:
             "promotion_candidates": self.get_promotion_candidates(),
         }
 
-    def get_lots_near_expiry(self, warning_days: int = 2) -> List[AdvancedStockLot]:
+    def get_lots_near_expiry(self, warning_days: int = 2) -> list[AdvancedStockLot]:
         """Retourne les lots proches de l'expiration."""
         return [lot for lot in self.lots if lot.is_near_expiry(warning_days)]
 
-    def get_promotion_candidates(self) -> List[AdvancedStockLot]:
+    def get_promotion_candidates(self) -> list[AdvancedStockLot]:
         """Retourne les lots candidats à une promotion."""
         return [lot for lot in self.lots if lot.is_promotion_candidate()]
 
-    def get_reorder_alerts(self) -> List[str]:
+    def get_reorder_alerts(self) -> list[str]:
         """Retourne les ingrédients nécessitant un réapprovisionnement."""
         alerts = []
 
@@ -322,7 +321,7 @@ class AdvancedStockManager:
         """Définit le seuil de réapprovisionnement."""
         self.reorder_points[ingredient_id] = quantity
 
-    def get_stock_rotation_analysis(self, ingredient_id: str) -> Dict[str, any]:
+    def get_stock_rotation_analysis(self, ingredient_id: str) -> dict[str, any]:
         """Analyse la rotation des stocks pour un ingrédient."""
         ingredient_lots = [
             lot for lot in self.lots if lot.ingredient_id == ingredient_id

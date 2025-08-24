@@ -2,11 +2,10 @@
 Système d'événements aléatoires pour FoodOps Pro.
 """
 
+import random
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 from decimal import Decimal
 from enum import Enum
-import random
 
 
 class EventCategory(Enum):
@@ -35,12 +34,12 @@ class RandomEvent:
     demand_multiplier: Decimal = Decimal("1.0")
     price_sensitivity: Decimal = Decimal("1.0")
     quality_importance: Decimal = Decimal("1.0")
-    segment_effects: Dict[str, Decimal] = None
+    segment_effects: dict[str, Decimal] = None
 
     # Conditions d'activation
     min_turn: int = 1
     max_turn: int = 999
-    season_required: Optional[str] = None
+    season_required: str | None = None
 
     def __post_init__(self):
         if self.segment_effects is None:
@@ -50,13 +49,13 @@ class RandomEvent:
 class RandomEventManager:
     """Gestionnaire des événements aléatoires."""
 
-    def __init__(self, random_seed: Optional[int] = None):
+    def __init__(self, random_seed: int | None = None):
         self.rng = random.Random(random_seed)
-        self.active_events: List[RandomEvent] = []
-        self.event_history: List[RandomEvent] = []
+        self.active_events: list[RandomEvent] = []
+        self.event_history: list[RandomEvent] = []
         self.events_pool = self._create_events_pool()
 
-    def _create_events_pool(self) -> List[RandomEvent]:
+    def _create_events_pool(self) -> list[RandomEvent]:
         """Crée la liste des événements possibles."""
         return [
             # Événements météorologiques
@@ -231,7 +230,7 @@ class RandomEventManager:
             ),
         ]
 
-    def process_turn(self, turn: int, season: str) -> List[RandomEvent]:
+    def process_turn(self, turn: int, season: str) -> list[RandomEvent]:
         """
         Traite les événements pour un tour donné.
 
@@ -305,7 +304,7 @@ class RandomEventManager:
         for event in expired_events:
             self.active_events.remove(event)
 
-    def get_current_effects(self) -> Dict[str, any]:
+    def get_current_effects(self) -> dict[str, any]:
         """Retourne les effets cumulés des événements actifs."""
         effects = {
             "demand_multiplier": Decimal("1.0"),
@@ -327,7 +326,7 @@ class RandomEventManager:
 
         return effects
 
-    def get_events_summary(self) -> Dict[str, any]:
+    def get_events_summary(self) -> dict[str, any]:
         """Retourne un résumé des événements."""
         return {
             "active_events": [

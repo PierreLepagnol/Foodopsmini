@@ -10,12 +10,11 @@ authors = [
     {name = "FoodOps Team", email = "contact@foodops.pro"}
 ]
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Education",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -46,7 +45,7 @@ Repository = "https://github.com/foodops/foodops-pro"
 Documentation = "https://foodops-pro.readthedocs.io"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
 
 [tool.setuptools.package-data]
 foodops_pro = ["data/*.csv", "data/*.json"]

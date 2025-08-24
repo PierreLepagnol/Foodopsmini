@@ -3,7 +3,6 @@ Modèle des ingrédients pour FoodOps Pro.
 """
 
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -30,7 +29,7 @@ class Ingredient(BaseModel):
     vat_rate: Decimal
     shelf_life_days: int
     category: str
-    density: Optional[Decimal] = None
+    density: Decimal | None = None
 
     @property
     def cost_ttc(self) -> Decimal:

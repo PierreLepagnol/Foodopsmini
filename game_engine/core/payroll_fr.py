@@ -3,7 +3,6 @@ Calcul de la paie française pour FoodOps Pro.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List
 from decimal import Decimal
 
 from game_engine.domain.employee import Employee, EmployeeContract
@@ -53,7 +52,7 @@ class PayrollCalculator:
     Calculateur de paie selon la réglementation française.
     """
 
-    def __init__(self, social_charges_config: Dict[str, Dict[str, Decimal]]) -> None:
+    def __init__(self, social_charges_config: dict[str, dict[str, Decimal]]) -> None:
         """
         Initialise le calculateur avec la configuration des charges.
 
@@ -244,11 +243,11 @@ class PayrollCalculator:
 
     def calculate_team_payroll(
         self,
-        employees: List[Employee],
-        hours_per_employee: Dict[str, Decimal] = None,
-        sunday_hours_per_employee: Dict[str, Decimal] = None,
+        employees: list[Employee],
+        hours_per_employee: dict[str, Decimal] = None,
+        sunday_hours_per_employee: dict[str, Decimal] = None,
         period: str = "",
-    ) -> List[PayrollResult]:
+    ) -> list[PayrollResult]:
         """
         Calcule la paie pour une équipe d'employés.
 
@@ -281,8 +280,8 @@ class PayrollCalculator:
         return results
 
     def get_payroll_summary(
-        self, payroll_results: List[PayrollResult]
-    ) -> Dict[str, Decimal]:
+        self, payroll_results: list[PayrollResult]
+    ) -> dict[str, Decimal]:
         """
         Génère un résumé de la masse salariale.
 

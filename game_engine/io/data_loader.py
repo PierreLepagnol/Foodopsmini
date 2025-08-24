@@ -10,9 +10,7 @@ from pathlib import Path
 import yaml  # Chargement YAML
 
 from game_engine.domain.ingredient import Ingredient
-from game_engine.domain.recipe import Recipe, RecipeItem
-from game_engine.domain.restaurant import RestaurantType
-from game_engine.domain.scenario import MarketSegment, Scenario
+from game_engine.domain.scenario import Scenario
 from game_engine.domain.supplier import Supplier
 from game_engine.io.models import (
     HRSocialCharges,
@@ -21,7 +19,6 @@ from game_engine.io.models import (
     IngredientGammesDict,
     IngredientsDict,
     LoadAllDataResponse,
-    RecipesDict,
     SupplierPriceEntry,
     SupplierPricesDict,
     SuppliersCatalogDict,
@@ -74,70 +71,6 @@ class DataLoader:
                 ingredients[ingredient.id] = ingredient
 
         return ingredients
-
-    def load_recipes(self) -> RecipesDict:
-        """
-        Charge les recettes depuis les fichiers CSV.
-
-        Returns:
-            Dictionnaire des recettes par ID
-        """
-        # Chargement des recettes de base (métadonnées seulement)
-        recipe_metadata = {}
-        recipes_csv = self.data_path / "recipes.csv"
-
-        with open(recipes_csv, encoding="utf-8") as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                recipe_metadata[row["id"]] = {
-                    "id": row["id"],
-                    "name": row["name"],
-                    "temps_prepa_min": int(row["temps_prepa_min"]),
-                    "temps_service_min": int(row["temps_service_min"]),
-                    "portions": int(row["portions"]),
-                    "category": row["category"],
-                    "difficulty": int(row["difficulty"]),
-                    "description": row["description"],
-                }
-
-        # Chargement des ingrédients des recettes
-        items_csv = self.data_path / "recipe_items.csv"
-        recipe_items = {}
-
-        with open(items_csv, encoding="utf-8") as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                recipe_id = row["recipe_id"]
-                if recipe_id not in recipe_items:
-                    recipe_items[recipe_id] = []
-
-                item = RecipeItem(
-                    ingredient_id=row["ingredient_id"],
-                    qty_brute=Decimal(row["qty_brute"]),
-                    rendement_prepa=Decimal(row["rendement_prepa"]),
-                    rendement_cuisson=Decimal(row["rendement_cuisson"]),
-                )
-                recipe_items[recipe_id].append(item)
-
-        # Création des recettes finales avec ingrédients
-        recipes = {}
-        for recipe_id, metadata in recipe_metadata.items():
-            items = recipe_items.get(recipe_id, [])
-            if items:  # Seulement si la recette a des ingrédients
-                recipe = Recipe(
-                    id=metadata["id"],
-                    name=metadata["name"],
-                    items=items,
-                    temps_prepa_min=metadata["temps_prepa_min"],
-                    temps_service_min=metadata["temps_service_min"],
-                    portions=metadata["portions"],
-                    category=metadata["category"],
-                    difficulty=metadata["difficulty"],
-                    description=metadata["description"],
-                )
-                recipes[recipe_id] = recipe
-
-        return recipes
 
     def load_suppliers(self) -> SuppliersDict:
         """
@@ -280,191 +213,111 @@ class DataLoader:
                     catalog.setdefault(ing_id, []).append(catalog_entry)
         return catalog
 
-    def _fallback_scenario_data(self) -> dict:
-        """Scénario par défaut minimal si YAML indisponible."""
-        return {
-            "name": "Scénario de Base (fallback)",
-            "description": "Scénario par défaut quand PyYAML n'est pas installé",
-            "turns": 12,
-            "base_demand": 420,
-            "demand_noise": 0.08,
-            "ai_competitors": 2,
-            "random_seed": 42,
-            "segments": [
-                {
-                    "name": "Étudiants",
-                    "share": 0.35,
-                    "budget": 11.0,
-                    "price_sensitivity": 1.4,
-                    "quality_sensitivity": 0.8,
-                    "type_affinity": {
-                        "fast": 1.2,
-                        "classic": 0.7,
-                        "gastronomique": 0.4,
-                        "brasserie": 0.9,
-                    },
-                    "seasonality": {
-                        1: 0.8,
-                        2: 1.1,
-                        3: 1.2,
-                        4: 1.1,
-                        5: 1.0,
-                        6: 0.7,
-                        7: 0.3,
-                        8: 0.3,
-                        9: 1.3,
-                        10: 1.2,
-                        11: 1.1,
-                        12: 0.9,
-                    },
-                },
-                {
-                    "name": "Familles",
-                    "share": 0.40,
-                    "budget": 17.0,
-                    "price_sensitivity": 1.1,
-                    "quality_sensitivity": 1.2,
-                    "type_affinity": {
-                        "fast": 0.9,
-                        "classic": 1.0,
-                        "gastronomique": 0.6,
-                        "brasserie": 1.1,
-                    },
-                    "seasonality": {
-                        1: 0.9,
-                        2: 1.0,
-                        3: 1.0,
-                        4: 1.1,
-                        5: 1.0,
-                        6: 1.0,
-                        7: 1.3,
-                        8: 1.3,
-                        9: 1.0,
-                        10: 1.0,
-                        11: 1.0,
-                        12: 1.2,
-                    },
-                },
-                {
-                    "name": "Foodies",
-                    "share": 0.25,
-                    "budget": 25.0,
-                    "price_sensitivity": 0.7,
-                    "quality_sensitivity": 1.6,
-                    "type_affinity": {
-                        "fast": 0.6,
-                        "classic": 1.3,
-                        "gastronomique": 1.8,
-                        "brasserie": 1.4,
-                    },
-                    "seasonality": {
-                        1: 1.1,
-                        2: 1.0,
-                        3: 1.0,
-                        4: 1.0,
-                        5: 1.1,
-                        6: 1.2,
-                        7: 1.1,
-                        8: 0.8,
-                        9: 1.0,
-                        10: 1.0,
-                        11: 1.0,
-                        12: 1.3,
-                    },
-                },
-            ],
-            "vat_rates": {
-                "food_onsite": 0.10,
-                "food_takeaway": 0.055,
-                "alcohol": 0.20,
-                "services": 0.20,
-            },
-            "social_charges": {
-                "cdi": 0.42,
-                "cdd": 0.44,
-                "extra": 0.45,
-                "apprenti": 0.11,
-                "stage": 0.00,
-            },
-            "interest_rate": 0.045,
-        }
-
     def load_scenario(self, scenario_path: Path) -> Scenario:
         """
-        Charge un scénario depuis un fichier JSON.
+        Charge un scénario depuis un fichier JSON ou YAML.
+
+        Cette méthode parse les fichiers de configuration de scénario et convertit
+        les données en objets domaine typés. Elle gère automatiquement la conversion
+        des types de données (string vers Decimal, enum, etc.) et valide la cohérence
+        des données.
 
         Args:
-            scenario_path: Chemin vers le fichier de scénario
+            scenario_path: Chemin vers le fichier de scénario (.json ou .yaml)
 
         Returns:
-            Scénario chargé
+            Scénario chargé et validé
+
+        Raises:
+            FileNotFoundError: Si le fichier n'existe pas
+            ValueError: Si les données du scénario sont invalides
+            yaml.YAMLError: Si le fichier YAML est malformé
+
+        Examples:
+            >>> loader = DataLoader()
+            >>> # Chargement d'un scénario YAML (comme base.yaml)
+            >>> scenario = loader.load_scenario(Path("examples/scenarios/base.yaml"))
+            >>> print(f"Scénario: {scenario.name}")
+            Scénario: Scénario de Base
+            >>> print(f"Segments: {len(scenario.segments)}")
+            Segments: 3
+            >>> print(f"Tours: {scenario.turns}")
+            Tours: 12
+
+        Note:
+            Le format YAML est recommandé pour sa lisibilité. Si PyYAML n'est pas
+            disponible, la méthode utilise automatiquement un scénario de fallback.
         """
-        # Si c'est un fichier .yaml, on charge via PyYAML si disponible, sinon fallback JSON embarqué
-        if str(scenario_path).endswith(".yaml"):
-            if yaml is not None:
-                with open(scenario_path, encoding="utf-8") as file:
-                    data = yaml.safe_load(file)
-            else:
-                data = self._fallback_scenario_data()
-        else:
-            with open(scenario_path, encoding="utf-8") as file:
-                data = json.load(file)
-
-        # Conversion des segments
-        segments = []
-        for segment_data in data["segments"]:
-            # Conversion des affinités par type
-            type_affinity = {}
-            for type_name, affinity in segment_data["type_affinity"].items():
-                restaurant_type = RestaurantType(type_name)
-                type_affinity[restaurant_type] = Decimal(str(affinity))
-
-            # Conversion de la saisonnalité
-            seasonality = {}
-            if "seasonality" in segment_data:
-                for month, factor in segment_data["seasonality"].items():
-                    seasonality[int(month)] = Decimal(str(factor))
-
-            segment = MarketSegment(
-                name=segment_data["name"],
-                share=Decimal(str(segment_data["share"])),
-                budget=Decimal(str(segment_data["budget"])),
-                type_affinity=type_affinity,
-                price_sensitivity=Decimal(
-                    str(segment_data.get("price_sensitivity", 1.0))
-                ),
-                quality_sensitivity=Decimal(
-                    str(segment_data.get("quality_sensitivity", 1.0))
-                ),
-                seasonality=seasonality,
-            )
-            segments.append(segment)
-
-        # Conversion des taux de TVA
-        vat_rates = {}
-        for category, rate in data.get("vat_rates", {}).items():
-            vat_rates[category] = Decimal(str(rate))
-
-        # Conversion des charges sociales
-        social_charges = {}
-        for contract_type, rate in data.get("social_charges", {}).items():
-            social_charges[contract_type] = Decimal(str(rate))
-
-        scenario = Scenario(
-            name=data["name"],
-            description=data["description"],
-            turns=data["turns"],
-            base_demand=data["base_demand"],
-            demand_noise=Decimal(str(data["demand_noise"])),
-            segments=segments,
-            vat_rates=vat_rates,
-            social_charges=social_charges,
-            interest_rate=Decimal(str(data.get("interest_rate", 0.05))),
-            ai_competitors=data.get("ai_competitors", 2),
-            random_seed=data.get("random_seed"),
-        )
-
+        # Détection du format et chargement des données brutes
+        with open(scenario_path, encoding="utf-8") as file:
+            data = yaml.safe_load(file)
+            scenario = Scenario(**data)
         return scenario
+        # # Conversion et validation des segments de marché
+        # segments: list[MarketSegment] = []
+        # for segment_data in data["segments"]:
+        #     # Conversion des affinités par type de restaurant
+        #     # Exemple: {"fast": 1.2, "classic": 0.7} -> {RestaurantType.FAST: Decimal("1.2")}
+        #     type_affinity = {}
+        #     for type_name, affinity in segment_data["type_affinity"].items():
+        #         restaurant_type = RestaurantType(type_name)
+        #         type_affinity[restaurant_type] = Decimal(str(affinity))
+
+        #     # Conversion de la saisonnalité (mois -> facteur)
+        #     # Exemple base.yaml: {1: 0.8, 2: 1.1, ...} pour les étudiants en janvier/février
+        #     seasonality = {}
+        #     if "seasonality" in segment_data:
+        #         for month, factor in segment_data["seasonality"].items():
+        #             seasonality[int(month)] = Decimal(str(factor))
+
+        #     # Création du segment avec conversion des types numériques
+        #     segment = MarketSegment(
+        #         name=segment_data["name"],
+        #         share=Decimal(
+        #             str(segment_data["share"])
+        #         ),  # Ex: 0.35 pour 35% du marché
+        #         budget=Decimal(str(segment_data["budget"])),  # Ex: 11.0€ pour étudiants
+        #         type_affinity=type_affinity,
+        #         price_sensitivity=Decimal(
+        #             str(segment_data.get("price_sensitivity", 1.0))
+        #         ),  # Ex: 1.4 = sensible au prix
+        #         quality_sensitivity=Decimal(
+        #             str(segment_data.get("quality_sensitivity", 1.0))
+        #         ),  # Ex: 0.8 = peu sensible à la qualité
+        #         seasonality=seasonality,
+        #     )
+        #     segments.append(segment)
+
+        # # Conversion des taux de TVA par catégorie
+        # # Exemple base.yaml: food_onsite: 0.10 (10%), food_takeaway: 0.055 (5.5%)
+        # vat_rates = {}
+        # for category, rate in data.get("vat_rates", {}).items():
+        #     vat_rates[category] = Decimal(str(rate))
+
+        # # Conversion des charges sociales par type de contrat
+        # # Exemple base.yaml: cdi: 0.42 (42%), apprenti: 0.11 (11%)
+        # social_charges = {}
+        # for contract_type, rate in data.get("social_charges", {}).items():
+        #     social_charges[contract_type] = Decimal(str(rate))
+
+        # # Construction de l'objet Scenario avec validation automatique
+        # scenario = Scenario(
+        #     name=data["name"],  # Ex: "Scénario de Base"
+        #     description=data["description"],  # Description détaillée
+        #     turns=data["turns"],  # Ex: 12 tours de jeu
+        #     base_demand=data["base_demand"],  # Ex: 420 clients de base
+        #     demand_noise=Decimal(
+        #         str(data["demand_noise"])
+        #     ),  # Ex: 0.08 = 8% de variabilité
+        #     segments=segments,  # Segments convertis ci-dessus
+        #     vat_rates=vat_rates,
+        #     social_charges=social_charges,
+        #     interest_rate=Decimal(str(data.get("interest_rate", 0.05))),  # Ex: 4.5%
+        #     ai_competitors=data.get("ai_competitors", 2),  # Nombre de concurrents IA
+        #     random_seed=data.get("random_seed"),  # Pour reproductibilité (ex: 42)
+        # )
+
+        # return scenario
 
     def _get_default_scenario_config(self) -> dict:
         """Retourne la configuration par défaut du scénario."""

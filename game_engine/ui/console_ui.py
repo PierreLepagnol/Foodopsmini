@@ -4,7 +4,7 @@ Interface console professionnelle pour FoodOps Pro.
 
 import os
 from decimal import Decimal
-from typing import Any, List, Optional
+from typing import Any
 
 from game_engine.domain.scenario import Scenario
 
@@ -22,7 +22,7 @@ COLORS = {
 WIDTH = 80
 
 
-def print_box(content: List[str], title: str = "", style: str = "normal"):
+def print_box(content: list[str], title: str = "", style: str = "normal"):
     """Affiche un contenu dans une boîte."""
     color = COLORS.get(style, "")
     reset = COLORS["reset"]
@@ -148,7 +148,7 @@ def show_welcome_screen(self, scenario: Scenario):
     self.print_box(segments_info, style="warning")
 
 
-def _wrap_text(self, text: str, width: int) -> List[str]:
+def _wrap_text(self, text: str, width: int) -> list[str]:
     """Découpe un texte en lignes de largeur donnée."""
     words = text.split()
     lines = []
@@ -168,7 +168,7 @@ def _wrap_text(self, text: str, width: int) -> List[str]:
     return lines
 
 
-def show_menu(self, title: str, options: List[str], allow_back: bool = True) -> int:
+def show_menu(self, title: str, options: list[str], allow_back: bool = True) -> int:
     """Affiche un menu et retourne le choix."""
     self.print_separator()
     print(f"\n{self.colors['bold']}{title}{self.colors['reset']}\n")
@@ -249,7 +249,7 @@ def ask_int(
     prompt: str,
     min_val: int = 0,
     max_val: int = 10**9,
-    default: Optional[int] = None,
+    default: int | None = None,
 ) -> int:
     """Demande un entier avec bornes et défaut."""
     while True:
@@ -275,7 +275,7 @@ def ask_float(
     prompt: str,
     min_val: float = 0.0,
     max_val: float = 1e9,
-    default: Optional[float] = None,
+    default: float | None = None,
 ) -> float:
     """Demande un flottant avec bornes et défaut."""
     while True:
@@ -296,7 +296,7 @@ def ask_float(
         return value
 
 
-def show_progress_bar(self, current: int, total: int, description: str = ""):
+def show_progress_bar(current: int, total: int, description: str = ""):
     """Affiche une barre de progression."""
     percentage = (current / total) * 100
     filled = int(percentage / 2)  # Barre sur 50 caractères
@@ -312,7 +312,7 @@ def show_progress_bar(self, current: int, total: int, description: str = ""):
         print()
 
 
-def confirm(self, message: str, default: bool = False) -> bool:
+def confirm(message: str, default: bool = False) -> bool:
     """Demande une confirmation oui/non."""
     suffix = " (O/n)" if default else " (o/N)"
 
@@ -328,6 +328,4 @@ def confirm(self, message: str, default: bool = False) -> bool:
         elif response in ["n", "non", "no"]:
             return False
         else:
-            print(
-                f"{self.colors['error']}Répondez par 'oui' ou 'non'.{self.colors['reset']}"
-            )
+            print(f"{COLORS['error']}Répondez par 'oui' ou 'non'.{COLORS['reset']}")

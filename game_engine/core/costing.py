@@ -3,13 +3,12 @@ Calcul des coûts de recettes pour FoodOps Pro.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 from decimal import Decimal
 
 from game_engine.domain.ingredient import Ingredient
 from game_engine.domain.recipe import Recipe
-from game_engine.domain.stock import StockLot
 from game_engine.domain.restaurant import RestaurantType
+from game_engine.domain.stock import StockLot
 
 
 @dataclass
@@ -55,7 +54,7 @@ class CostBreakdown:
     recipe_id: str
     recipe_name: str
     portions: int
-    ingredient_costs: List[IngredientCost] = field(default_factory=list)
+    ingredient_costs: list[IngredientCost] = field(default_factory=list)
     total_cost_ht: Decimal = Decimal("0")
     cost_per_portion: Decimal = Decimal("0")
     preparation_time_cost: Decimal = Decimal("0")
@@ -76,7 +75,7 @@ class RecipeCostCalculator:
 
     def __init__(
         self,
-        ingredients: Dict[str, Ingredient],
+        ingredients: dict[str, Ingredient],
         hourly_labor_cost: Decimal = Decimal("12.0"),
     ) -> None:
         """
@@ -90,7 +89,7 @@ class RecipeCostCalculator:
         self.base_hourly_labor_cost = hourly_labor_cost
 
     def get_hourly_labor_cost(
-        self, restaurant_type: Optional[RestaurantType] = None
+        self, restaurant_type: RestaurantType | None = None
     ) -> Decimal:
         """
         Calcule le coût horaire de main d'œuvre selon le type de restaurant.
@@ -116,7 +115,7 @@ class RecipeCostCalculator:
         return self.base_hourly_labor_cost * factor
 
     def calculate_recipe_cost(
-        self, recipe: Recipe, stock_lots: Optional[List[StockLot]] = None
+        self, recipe: Recipe, stock_lots: list[StockLot] | None = None
     ) -> CostBreakdown:
         """
         Calcule le coût complet d'une recette.
@@ -175,7 +174,7 @@ class RecipeCostCalculator:
     def _get_ingredient_cost(
         self,
         ingredient: Ingredient,
-        stock_lots: Optional[List[StockLot]],
+        stock_lots: list[StockLot] | None,
         quantity_needed: Decimal,
     ) -> Decimal:
         """
@@ -224,7 +223,7 @@ class RecipeCostCalculator:
         return total_cost / quantity_needed
 
     def _get_best_supplier(
-        self, ingredient: Ingredient, stock_lots: Optional[List[StockLot]]
+        self, ingredient: Ingredient, stock_lots: list[StockLot] | None
     ) -> str:
         """
         Détermine le meilleur fournisseur pour un ingrédient.
@@ -270,8 +269,8 @@ class RecipeCostCalculator:
         recipe: Recipe,
         selling_price_ttc: Decimal,
         vat_rate: Decimal = Decimal("0.10"),
-        stock_lots: Optional[List[StockLot]] = None,
-    ) -> Dict[str, Decimal]:
+        stock_lots: list[StockLot] | None = None,
+    ) -> dict[str, Decimal]:
         """
         Analyse de marge pour une recette.
 
@@ -312,7 +311,7 @@ class RecipeCostCalculator:
 
     def optimize_recipe_cost(
         self, recipe: Recipe, target_food_cost_percentage: Decimal = Decimal("30")
-    ) -> Dict[str, Decimal]:
+    ) -> dict[str, Decimal]:
         """
         Optimise le coût d'une recette pour atteindre un objectif de food cost.
 

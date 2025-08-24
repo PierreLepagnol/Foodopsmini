@@ -3,7 +3,6 @@ Modèle des fournisseurs pour FoodOps Pro.
 """
 
 from dataclasses import dataclass
-from typing import Optional
 from decimal import Decimal
 
 
@@ -31,8 +30,8 @@ class Supplier:
     min_order_value: Decimal
     shipping_cost: Decimal
     payment_terms_days: int = 30
-    discount_threshold: Optional[Decimal] = None
-    discount_rate: Optional[Decimal] = None
+    discount_threshold: Decimal | None = None
+    discount_rate: Decimal | None = None
 
     def __post_init__(self) -> None:
         """Validation des données."""

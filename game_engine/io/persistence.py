@@ -3,11 +3,11 @@ Gestion de la persistance des parties pour FoodOps Pro.
 """
 
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Any
 from decimal import Decimal
+from pathlib import Path
+from typing import Any
 
 from game_engine.domain.restaurant import Restaurant
 from game_engine.domain.scenario import Scenario
@@ -43,18 +43,18 @@ class GameState:
     scenario_name: str
     current_turn: int
     max_turns: int
-    players: List[Dict]  # Restaurants sérialisés
-    ai_competitors: List[Dict]  # Concurrents IA sérialisés
-    turn_history: List[Dict]  # Historique des résultats
+    players: list[dict]  # Restaurants sérialisés
+    ai_competitors: list[dict]  # Concurrents IA sérialisés
+    turn_history: list[dict]  # Historique des résultats
     created_at: str
     last_saved: str
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convertit l'état en dictionnaire."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "GameState":
+    def from_dict(cls, data: dict) -> "GameState":
         """Crée un état depuis un dictionnaire."""
         return cls(**data)
 
@@ -64,7 +64,7 @@ class GameStatePersistence:
     Gestionnaire de persistance des parties.
     """
 
-    def __init__(self, save_directory: Optional[Path] = None) -> None:
+    def __init__(self, save_directory: Path | None = None) -> None:
         """
         Initialise le gestionnaire de persistance.
 
@@ -108,7 +108,7 @@ class GameStatePersistence:
 
         return filepath
 
-    def load_game(self, game_id: str) -> Optional[GameState]:
+    def load_game(self, game_id: str) -> GameState | None:
         """
         Charge une partie sauvegardée.
 
@@ -124,11 +124,11 @@ class GameStatePersistence:
         if not filepath.exists():
             return None
 
-        with open(filepath, "r", encoding="utf-8") as file:
+        with open(filepath, encoding="utf-8") as file:
             data = json.load(file)
         return GameState.from_dict(data)
 
-    def list_saved_games(self) -> List[Dict[str, str]]:
+    def list_saved_games(self) -> list[dict[str, str]]:
         """
         Liste les parties sauvegardées.
 
@@ -138,7 +138,7 @@ class GameStatePersistence:
         games = []
 
         for filepath in self.save_directory.glob("game_*.json"):
-            with open(filepath, "r", encoding="utf-8") as file:
+            with open(filepath, encoding="utf-8") as file:
                 data = json.load(file)
 
             games.append(
@@ -179,8 +179,8 @@ class GameStatePersistence:
     def create_game_state(
         self,
         scenario: Scenario,
-        players: List[Restaurant],
-        ai_competitors: List[Restaurant] = None,
+        players: list[Restaurant],
+        ai_competitors: list[Restaurant] = None,
     ) -> GameState:
         """
         Crée un nouvel état de partie.
@@ -212,7 +212,7 @@ class GameStatePersistence:
             last_saved=now,
         )
 
-    def _serialize_restaurant(self, restaurant: Restaurant) -> Dict:
+    def _serialize_restaurant(self, restaurant: Restaurant) -> dict:
         """
         Sérialise un restaurant en dictionnaire.
 
@@ -256,7 +256,7 @@ class GameStatePersistence:
             "active_recipes": restaurant.active_recipes.copy(),
         }
 
-    def update_turn_history(self, game_state: GameState, turn_results: Dict) -> None:
+    def update_turn_history(self, game_state: GameState, turn_results: dict) -> None:
         """
         Met à jour l'historique des tours.
 

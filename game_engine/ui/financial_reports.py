@@ -2,9 +2,8 @@
 Rapports financiers professionnels pour FoodOps Pro.
 """
 
-from typing import Dict
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 
 from game_engine.core.ledger import Ledger
 from game_engine.domain.restaurant import Restaurant
@@ -108,8 +107,8 @@ class FinancialReports:
         self._show_financial_analysis(metrics)
 
     def _calculate_detailed_metrics(
-        self, restaurant: Restaurant, pnl_data: Dict, balance_data: Dict
-    ) -> Dict[str, Decimal]:
+        self, restaurant: Restaurant, pnl_data: dict, balance_data: dict
+    ) -> dict[str, Decimal]:
         """Calcule les métriques détaillées du compte de résultat."""
         metrics = {}
 
@@ -175,7 +174,7 @@ class FinancialReports:
         return metrics
 
     def _show_business_kpis(
-        self, restaurant: Restaurant, metrics: Dict[str, Decimal]
+        self, restaurant: Restaurant, metrics: dict[str, Decimal]
     ) -> None:
         """Affiche les KPIs métier."""
         ca_ht = metrics["ca_ht"]
@@ -230,7 +229,7 @@ class FinancialReports:
 
         print_box(kpis, style=style)
 
-    def _show_financial_analysis(self, metrics: Dict[str, Decimal]) -> None:
+    def _show_financial_analysis(self, metrics: dict[str, Decimal]) -> None:
         """Affiche l'analyse financière et les recommandations."""
         analysis = ["ANALYSE FINANCIÈRE:"]
         recommendations = []

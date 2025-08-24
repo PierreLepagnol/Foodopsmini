@@ -13,7 +13,7 @@ from game_engine.io.persistence import GameStatePersistence
 from game_engine.io.export import ResultsExporter
 from game_engine.domain.restaurant import Restaurant, RestaurantType
 from game_engine.domain.employee import Employee, EmployeePosition, EmployeeContract
-from game_engine.core.market import MarketEngine
+from game_engine.domain.market.market import MarketEngine
 from game_engine.core.costing import RecipeCostCalculator
 
 

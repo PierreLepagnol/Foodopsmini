@@ -11,10 +11,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Optional
 
 from game_engine.domain.recipe import Recipe
-from game_engine.domain.stock import StockManager, StockLot
+from game_engine.domain.stock import StockLot, StockManager
 
 
 @dataclass
@@ -28,12 +27,12 @@ class POLine:
     supplier_id: str  # fournisseur choisi
     pack_size: Decimal  # taille du conditionnement
     # Métadonnées mercuriale / calculs
-    pack_unit: Optional[str] = None
-    quality_level: Optional[int] = None
-    eta_days: Optional[int] = None
-    qty_rounded_pack: Optional[Decimal] = None
-    moq_ok: Optional[bool] = None
-    amount_ttc_estimated: Optional[Decimal] = None
+    pack_unit: str | None = None
+    quality_level: int | None = None
+    eta_days: int | None = None
+    qty_rounded_pack: Decimal | None = None
+    moq_ok: bool | None = None
+    amount_ttc_estimated: Decimal | None = None
     # Réception / statut
     received_qty: Decimal = Decimal("0")
     accepted_qty: Decimal = Decimal("0")

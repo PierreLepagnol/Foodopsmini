@@ -3,10 +3,9 @@ Système de marketing et communication pour FoodOps Pro.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from datetime import date, timedelta
 from decimal import Decimal
 from enum import Enum
-from datetime import date, timedelta
 
 
 class CampaignType(Enum):
@@ -52,8 +51,8 @@ class MarketingCampaign:
     type: CampaignType
     budget: Decimal
     duration_days: int
-    target_segments: List[str] = field(default_factory=list)
-    start_date: Optional[date] = None
+    target_segments: list[str] = field(default_factory=list)
+    start_date: date | None = None
     status: CampaignStatus = CampaignStatus.PLANNED
     expected_reach: int = 0
     expected_conversion: Decimal = Decimal("0.02")  # 2% par défaut
@@ -94,7 +93,7 @@ class MarketingCampaign:
         end_date = self.start_date + timedelta(days=self.duration_days)
         return self.start_date <= current_date <= end_date
 
-    def get_daily_impact(self, current_date: date) -> Dict[str, Decimal]:
+    def get_daily_impact(self, current_date: date) -> dict[str, Decimal]:
         """Calcule l'impact quotidien de la campagne."""
         if not self.is_active(current_date):
             return {
@@ -153,16 +152,16 @@ class MarketingManager:
     """Gestionnaire du marketing et de la communication."""
 
     def __init__(self):
-        self.campaigns: List[MarketingCampaign] = []
-        self.reviews: List[CustomerReview] = []
-        self.loyalty_members: Dict[str, Dict] = {}  # customer_id -> data
+        self.campaigns: list[MarketingCampaign] = []
+        self.reviews: list[CustomerReview] = []
+        self.loyalty_members: dict[str, dict] = {}  # customer_id -> data
         self.reputation_score: Decimal = Decimal("3.0")  # Score moyen des avis
         self.total_marketing_spend: Decimal = Decimal("0")
 
         # Paramètres par type de campagne
         self.campaign_templates = self._load_campaign_templates()
 
-    def _load_campaign_templates(self) -> Dict[CampaignType, Dict]:
+    def _load_campaign_templates(self) -> dict[CampaignType, dict]:
         """Charge les templates de campagnes avec leurs caractéristiques."""
         return {
             CampaignType.SOCIAL_MEDIA: {
@@ -221,7 +220,7 @@ class MarketingManager:
         campaign_type: CampaignType,
         budget: Decimal,
         duration_days: int,
-        target_segments: List[str] = None,
+        target_segments: list[str] = None,
     ) -> MarketingCampaign:
         """
         Crée une nouvelle campagne marketing.
@@ -288,18 +287,18 @@ class MarketingManager:
         campaign.status = CampaignStatus.ACTIVE
         return True
 
-    def get_campaign(self, campaign_id: str) -> Optional[MarketingCampaign]:
+    def get_campaign(self, campaign_id: str) -> MarketingCampaign | None:
         """Retourne une campagne par son ID."""
         for campaign in self.campaigns:
             if campaign.id == campaign_id:
                 return campaign
         return None
 
-    def get_active_campaigns(self, current_date: date) -> List[MarketingCampaign]:
+    def get_active_campaigns(self, current_date: date) -> list[MarketingCampaign]:
         """Retourne les campagnes actives à une date donnée."""
         return [c for c in self.campaigns if c.is_active(current_date)]
 
-    def calculate_daily_marketing_impact(self, current_date: date) -> Dict[str, any]:
+    def calculate_daily_marketing_impact(self, current_date: date) -> dict[str, any]:
         """
         Calcule l'impact marketing quotidien.
 
@@ -386,7 +385,7 @@ class MarketingManager:
         if total_weight > 0:
             self.reputation_score = total_weighted_score / total_weight
 
-    def get_reputation_summary(self) -> Dict[str, any]:
+    def get_reputation_summary(self) -> dict[str, any]:
         """Retourne un résumé de la réputation."""
         if not self.reviews:
             return {
@@ -397,7 +396,7 @@ class MarketingManager:
             }
 
         # Distribution des notes
-        rating_distribution = {i: 0 for i in range(1, 6)}
+        rating_distribution = dict.fromkeys(range(1, 6), 0)
         for review in self.reviews:
             rating_distribution[int(review.rating)] += 1
 
@@ -433,7 +432,7 @@ class MarketingManager:
             "recent_reviews_count": len(recent_reviews),
         }
 
-    def get_marketing_roi(self, period_days: int = 30) -> Dict[str, any]:
+    def get_marketing_roi(self, period_days: int = 30) -> dict[str, any]:
         """Calcule le ROI marketing sur une période."""
         # Calcul simplifié - à améliorer avec données de ventes réelles
         total_spend = sum(

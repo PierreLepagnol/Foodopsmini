@@ -1,0 +1,223 @@
+[
+    {
+        "id": "bistrot_centre_premium",
+        "name": "Le Bistrot du Centre",
+        "location_type": "centre_ville",
+        "restaurant_type": "brasserie",
+        "price": 95000,
+        "size": 70,
+        "condition": "bon",
+        "equipment_included": [
+            "Cuisine professionnelle complète",
+            "Salle climatisée",
+            "Terrasse 20 places",
+            "Cave à vin",
+            "Système de caisse moderne"
+        ],
+        "rent_monthly": 5200,
+        "lease_years": 9,
+        "foot_traffic": "very_high",
+        "competition_nearby": 3,
+        "description": "Emplacement exceptionnel en plein cœur de ville avec terrasse. Clientèle d'affaires et touristes.",
+        "advantages": [
+            "Visibilité maximale",
+            "Clientèle aisée",
+            "Terrasse très prisée",
+            "Parking public proche"
+        ],
+        "disadvantages": [
+            "Loyer élevé",
+            "Concurrence forte",
+            "Bruit de circulation",
+            "Livraisons compliquées"
+        ],
+        "renovation_cost": 0,
+        "special_features": [
+            "Licence IV",
+            "Terrasse chauffée"
+        ]
+    },
+    {
+        "id": "fast_food_campus",
+        "name": "Quick Campus",
+        "location_type": "quartier_etudiant",
+        "restaurant_type": "fast",
+        "price": 42000,
+        "size": 45,
+        "condition": "correct",
+        "equipment_included": [
+            "Cuisine fast-food équipée",
+            "Comptoir de service",
+            "Mobilier moderne",
+            "Système de commande digitale"
+        ],
+        "rent_monthly": 2800,
+        "lease_years": 6,
+        "foot_traffic": "high",
+        "competition_nearby": 2,
+        "description": "Local moderne près du campus universitaire. Flux constant d'étudiants.",
+        "advantages": [
+            "Clientèle captive étudiante",
+            "Horaires étendus possibles",
+            "Loyer raisonnable",
+            "Croissance démographique"
+        ],
+        "disadvantages": [
+            "Budget limité des clients",
+            "Saisonnalité forte",
+            "Concurrence sandwich/kebab",
+            "Vacances scolaires creuses"
+        ],
+        "renovation_cost": 8000,
+        "special_features": [
+            "Wifi gratuit",
+            "Prises électriques"
+        ]
+    },
+    {
+        "id": "restaurant_familial_banlieue",
+        "name": "La Table Familiale",
+        "location_type": "banlieue",
+        "restaurant_type": "classic",
+        "price": 58000,
+        "size": 55,
+        "condition": "bon",
+        "equipment_included": [
+            "Cuisine traditionnelle",
+            "Salle familiale",
+            "Parking privé 15 places",
+            "Jeux pour enfants"
+        ],
+        "rent_monthly": 3200,
+        "lease_years": 12,
+        "foot_traffic": "medium",
+        "competition_nearby": 1,
+        "description": "Restaurant familial dans quartier résidentiel calme. Clientèle locale fidèle.",
+        "advantages": [
+            "Clientèle fidèle",
+            "Parking gratuit",
+            "Bail long",
+            "Peu de concurrence"
+        ],
+        "disadvantages": [
+            "Passage limité",
+            "Dépendance aux habitants",
+            "Difficile à faire connaître",
+            "Croissance limitée"
+        ],
+        "renovation_cost": 0,
+        "special_features": [
+            "Aire de jeux",
+            "Parking privé"
+        ]
+    },
+    {
+        "id": "gastro_historique",
+        "name": "L'Auberge du Vieux Port",
+        "location_type": "centre_ville",
+        "restaurant_type": "gastronomique",
+        "price": 125000,
+        "size": 35,
+        "condition": "excellent",
+        "equipment_included": [
+            "Cuisine gastronomique haut de gamme",
+            "Cave voûtée 200 bouteilles",
+            "Salle de caractère",
+            "Mobilier d'époque",
+            "Système son/éclairage"
+        ],
+        "rent_monthly": 4800,
+        "lease_years": 15,
+        "foot_traffic": "medium",
+        "competition_nearby": 2,
+        "description": "Restaurant de caractère dans bâtiment historique. Réputation établie.",
+        "advantages": [
+            "Cachet exceptionnel",
+            "Réputation établie",
+            "Clientèle haut de gamme",
+            "Bail très long"
+        ],
+        "disadvantages": [
+            "Investissement important",
+            "Contraintes patrimoniales",
+            "Clientèle exigeante",
+            "Charges élevées"
+        ],
+        "renovation_cost": 0,
+        "special_features": [
+            "Monument historique",
+            "Cave d'exception"
+        ]
+    },
+    {
+        "id": "brasserie_zone_commerciale",
+        "name": "Brasserie du Centre Commercial",
+        "location_type": "zone_commerciale",
+        "restaurant_type": "brasserie",
+        "price": 35000,
+        "size": 80,
+        "condition": "renovation_legere",
+        "equipment_included": [
+            "Cuisine standard",
+            "Grande salle",
+            "Terrasse couverte"
+        ],
+        "rent_monthly": 3800,
+        "lease_years": 8,
+        "foot_traffic": "high",
+        "competition_nearby": 4,
+        "description": "Grande brasserie dans centre commercial. Flux important mais concurrence forte.",
+        "advantages": [
+            "Gros volume possible",
+            "Parking gratuit",
+            "Flux de chalandise",
+            "Horaires étendus"
+        ],
+        "disadvantages": [
+            "Concurrence très forte",
+            "Ambiance commerciale",
+            "Charges communes",
+            "Dépendance au centre"
+        ],
+        "renovation_cost": 15000,
+        "special_features": [
+            "Accès PMR",
+            "Livraison facile"
+        ]
+    },
+    {
+        "id": "opportunite_renovation",
+        "name": "Local à Rénover - Centre",
+        "location_type": "centre_ville",
+        "restaurant_type": "classic",
+        "price": 28000,
+        "size": 40,
+        "condition": "renovation_lourde",
+        "equipment_included": [
+            "Structure de base",
+            "Compteur électrique renforcé"
+        ],
+        "rent_monthly": 2400,
+        "lease_years": 10,
+        "foot_traffic": "high",
+        "competition_nearby": 1,
+        "description": "Ancien restaurant à rénover entièrement. Potentiel énorme pour investisseur motivé.",
+        "advantages": [
+            "Prix d'achat très bas",
+            "Liberté totale d'aménagement",
+            "Bon emplacement",
+            "Loyer modéré"
+        ],
+        "disadvantages": [
+            "Gros travaux nécessaires",
+            "Investissement total élevé",
+            "Délai avant ouverture",
+            "Risques de dépassement"
+        ],
+        "renovation_cost": 45000,
+        "special_features": [
+            "Potentiel cave",
+            "Possibilité terrasse"
+        ]
+    }
+]

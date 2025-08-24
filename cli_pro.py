@@ -4,33 +4,32 @@ Interface CLI professionnelle pour FoodOps Pro.
 
 from decimal import Decimal
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import yaml
 
 from creation_scenario import AdminSettings
 from game_engine.core.costing import RecipeCostCalculator
-from game_engine.core.market import MarketEngine
-from game_engine.domain.commerce import CommerceLocation, CommerceManager
-from game_engine.domain.employee import Employee, EmployeeContract, EmployeePosition
-from game_engine.domain.restaurant import Restaurant, RestaurantType
+from game_engine.domain.market.market import MarketEngine
+from game_engine.domain.commerce import CommerceManager
+from game_engine.domain.restaurant import Restaurant, create_restaurant_from_commerce
 from game_engine.io.data_loader import DataLoader
 from game_engine.io.export import ResultsExporter
 from game_engine.io.persistence import GameStatePersistence
 from game_engine.ui.console_ui import (
     clear_screen,
-    print_box,
-    show_error,
-    show_progress_bar,
-    show_welcome_screen,
-    show_success,
-    show_info,
-    show_menu,
-    pause,
     confirm,
     get_input,
+    pause,
+    print_box,
+    show_error,
+    show_info,
+    show_menu,
+    show_progress_bar,
+    show_success,
+    show_welcome_screen,
 )
 from game_engine.ui.decision_menu import DecisionMenu
+from game_engine.ia import create_ai_competitors, ai_decisions
 
 
 class FoodOpsProGame:
@@ -38,13 +37,12 @@ class FoodOpsProGame:
     Jeu FoodOps Pro avec interface professionnelle.
     """
 
-    def __init__(self, scenario_path: Optional[Path] = None, admin_mode: bool = False):
+    def __init__(self, scenario_path: Path | None = None):
         """
         Initialise le jeu.
 
         Args:
             scenario_path: Chemin vers le scénario
-            admin_mode: Mode administrateur activé
         """
         self.admin_settings = self.load_settings(
             "/home/lepagnol/Documents/Perso/Games/Foodopsmini/admin_configs/preset_demo.yaml"
@@ -83,8 +81,8 @@ class FoodOpsProGame:
         show_progress_bar(4, 5, "Finalisation")
 
         # État du jeu
-        self.players: List[Restaurant] = []
-        self.ai_competitors: List[Restaurant] = []
+        self.players: list[Restaurant] = []
+        self.ai_competitors: list[Restaurant] = []
         self.current_turn = 1
 
         show_progress_bar(5, 5, "Prêt !")
@@ -92,7 +90,7 @@ class FoodOpsProGame:
 
     def load_settings(self, config_path: str) -> AdminSettings:
         """Charge les paramètres administrateur depuis un fichier JSON."""
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             settings_data = yaml.safe_load(f)
         return AdminSettings(**settings_data)
 
@@ -108,7 +106,7 @@ class FoodOpsProGame:
         self._setup_players()
 
         # Création des concurrents IA
-        self._create_ai_competitors()
+        self.ai_competitors = create_ai_competitors(self.admin_settings.ai_count)
 
         # Boucle de jeu principale
         self._game_loop()
@@ -122,10 +120,8 @@ class FoodOpsProGame:
 
         intro = [
             "🏪 PHASE D'ACQUISITION",
-            "",
             "Avant de commencer votre aventure entrepreneuriale,",
             "vous devez choisir et acheter un fonds de commerce.",
-            "",
             "Chaque emplacement a ses avantages et inconvénients.",
             "Analysez bien votre budget et votre stratégie !",
         ]
@@ -192,7 +188,7 @@ class FoodOpsProGame:
         selected_location.display_confirm_commerce_purchase(budget)
         if confirm("Confirmer l'achat de ce fonds de commerce ?"):
             # Création du restaurant
-            restaurant = self._create_restaurant_from_commerce(
+            restaurant = create_restaurant_from_commerce(
                 selected_location, budget, player_num
             )
             self.players.append(restaurant)
@@ -202,123 +198,6 @@ class FoodOpsProGame:
                 f"Vous êtes maintenant propriétaire de '{selected_location.name}'"
             )
             pause()
-
-    def _create_restaurant_from_commerce(
-        self, location: CommerceLocation, budget: Decimal, player_num: int
-    ) -> Restaurant:
-        """Crée un restaurant à partir d'un commerce acheté."""
-        # Nom du restaurant
-        restaurant_name = get_input(
-            "Nom de votre restaurant", default=f"Restaurant {player_num}"
-        )
-
-        # Création du restaurant
-        remaining_budget = budget - location.total_initial_cost
-
-        restaurant = Restaurant(
-            id=f"player_{player_num}",
-            name=restaurant_name,
-            type=location.restaurant_type,
-            capacity_base=location.size,
-            speed_service=self._get_speed_for_type(location.restaurant_type),
-            cash=remaining_budget,
-            rent_monthly=location.rent_monthly,
-            fixed_costs_monthly=location.rent_monthly * Decimal("0.3"),  # Estimation
-            equipment_value=Decimal("50000"),  # Valeur standard
-            staffing_level=2,
-        )
-
-        # Ajout d'employés de base
-        self._add_base_employees(restaurant, location.restaurant_type)
-
-        # Menu de base
-        self._setup_base_menu(restaurant, location.restaurant_type)
-
-        return restaurant
-
-    def _get_speed_for_type(self, restaurant_type: RestaurantType) -> Decimal:
-        """Retourne la vitesse de service selon le type."""
-        speeds = {
-            RestaurantType.FAST: Decimal("1.4"),
-            RestaurantType.CLASSIC: Decimal("1.0"),
-            RestaurantType.GASTRONOMIQUE: Decimal("0.7"),
-            RestaurantType.BRASSERIE: Decimal("1.1"),
-        }
-        return speeds.get(restaurant_type, Decimal("1.0"))
-
-    def _add_base_employees(
-        self, restaurant: Restaurant, restaurant_type: RestaurantType
-    ) -> None:
-        """Ajoute les employés de base selon le type de restaurant."""
-        base_configs = {
-            RestaurantType.FAST: [
-                (EmployeePosition.CUISINE, 2000),
-                (EmployeePosition.CAISSE, 1700),
-            ],
-            RestaurantType.CLASSIC: [
-                (EmployeePosition.CUISINE, 2300),
-                (EmployeePosition.SALLE, 2000),
-            ],
-            RestaurantType.GASTRONOMIQUE: [
-                (EmployeePosition.CUISINE, 2800),
-                (EmployeePosition.SALLE, 2200),
-            ],
-            RestaurantType.BRASSERIE: [
-                (EmployeePosition.CUISINE, 2200),
-                (EmployeePosition.SALLE, 1900),
-            ],
-        }
-
-        employee_configs = base_configs.get(
-            restaurant_type, base_configs[RestaurantType.CLASSIC]
-        )
-
-        for i, (position, salary) in enumerate(employee_configs):
-            employee = Employee(
-                id=f"{restaurant.id}_emp_{i + 1}",
-                name=f"{position.value.title()} {i + 1}",
-                position=position,
-                contract=EmployeeContract.CDI,
-                salary_gross_monthly=Decimal(str(salary)),
-                productivity=Decimal("1.0"),
-                experience_months=12,
-            )
-            restaurant.add_employee(employee)
-
-    def _setup_base_menu(
-        self, restaurant: Restaurant, restaurant_type: RestaurantType
-    ) -> None:
-        """Configure le menu de base selon le type de restaurant."""
-        menu_configs = {
-            RestaurantType.FAST: [
-                ("burger_classic", 10.50),
-                ("burger_chicken", 11.00),
-                ("menu_enfant", 8.50),
-            ],
-            RestaurantType.CLASSIC: [
-                ("pasta_bolognese", 16.00),
-                ("steak_frites", 22.00),
-                ("salad_caesar", 14.00),
-            ],
-            RestaurantType.GASTRONOMIQUE: [
-                ("bowl_salmon", 28.00),
-                ("risotto_mushroom", 24.00),
-            ],
-            RestaurantType.BRASSERIE: [
-                ("croque_monsieur", 11.50),
-                ("omelet_cheese", 13.00),
-                ("soup_tomato", 8.50),
-            ],
-        }
-
-        recipes_for_type = menu_configs.get(
-            restaurant_type, menu_configs[RestaurantType.CLASSIC]
-        )
-
-        for recipe_id, price in recipes_for_type:
-            if recipe_id in self.recipes:
-                restaurant.set_recipe_price(recipe_id, Decimal(str(price)))
-                restaurant.activate_recipe(recipe_id)
 
     def _setup_players(self) -> None:
         """Configuration finale des joueurs (si nécessaire)."""
@@ -330,35 +209,6 @@ class FoodOpsProGame:
         show_success(f"{len(self.players)} restaurant(s) prêt(s) à ouvrir !")
         pause()
 
-    def _create_ai_competitors(self) -> None:
-        """Crée les concurrents IA."""
-        for i in range(self.admin_settings.ai_count):
-            ai_configs = [
-                ("Chez Mario", RestaurantType.CLASSIC),
-                ("Quick Burger", RestaurantType.FAST),
-                ("Le Gourmet", RestaurantType.GASTRONOMIQUE),
-                ("Brasserie du Port", RestaurantType.BRASSERIE),
-            ]
-
-            if i < len(ai_configs):
-                name, rest_type = ai_configs[i]
-            else:
-                name, _rest_type = f"Concurrent {i + 1}", RestaurantType.CLASSIC
-
-            # Sélection d'un commerce pour l'IA
-            available_locations = self.commerce_manager.get_available_locations(
-                Decimal("50000")  # Budget standard pour l'IA
-            )
-
-            if available_locations:
-                location = available_locations[0]  # Premier disponible
-                ai_restaurant = self._create_restaurant_from_commerce(
-                    location, Decimal("50000"), f"ai_{i + 1}"
-                )
-                ai_restaurant.name = name
-                ai_restaurant.id = f"ai_{i + 1}"
-                self.ai_competitors.append(ai_restaurant)
-
     def _game_loop(self) -> None:
         """Boucle principale du jeu avec menu de décisions enrichi."""
         total_turns = self.admin_settings.total_turns
@@ -366,15 +216,15 @@ class FoodOpsProGame:
         for turn in range(1, total_turns + 1):
             self.current_turn = turn
 
-            # Décisions des joueurs avec menu enrichi
+            # Prise de décision des joueurs
             for player in self.players:
                 decisions = self.decision_menu.show_decision_menu(
                     player, turn, self.recipes
                 )
-                self._apply_player_decisions(player, decisions)
+                player.apply_decisions(decisions)
 
-            # Décisions de l'IA (simplifiées)
-            self._ai_decisions()
+            # Prise de décision des concurrents IA
+            decisions_ai = ai_decisions(self)
 
             # Simulation du marché
             all_restaurants = self.players + self.ai_competitors
@@ -390,50 +240,7 @@ class FoodOpsProGame:
             if turn < total_turns:
                 pause("Appuyez sur Entrée pour continuer au tour suivant...")
 
-    def _apply_player_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
-        """Applique les décisions du joueur au restaurant."""
-        # Changements de prix
-        if "price_changes" in decisions:
-            for recipe_id, new_price in decisions["price_changes"].items():
-                restaurant.set_recipe_price(recipe_id, new_price)
-
-        # Recrutements
-        if "recruitments" in decisions:
-            for recruit_data in decisions["recruitments"]:
-                employee = Employee(
-                    id=f"{restaurant.id}_new_{len(restaurant.employees) + 1}",
-                    name=f"Nouveau {recruit_data['position'].value}",
-                    position=recruit_data["position"],
-                    contract=recruit_data["contract"],
-                    salary_gross_monthly=recruit_data["salary"],
-                    productivity=Decimal("1.0"),
-                    experience_months=0,
-                )
-                restaurant.add_employee(employee)
-
-        # Campagnes marketing
-        if "marketing_campaigns" in decisions:
-            for campaign in decisions["marketing_campaigns"]:
-                # Déduction du coût
-                restaurant.update_cash(-Decimal(str(campaign["cost"])))
-                # L'effet sera appliqué dans la simulation de marché
-
-    def _ai_decisions(self) -> None:
-        """Décisions simplifiées de l'IA."""
-        for ai in self.ai_competitors:
-            # Stratégie simple selon la difficulté
-            if self.admin_settings.ai_difficulty == "easy":
-                ai.staffing_level = 2  # Niveau fixe
-            elif self.admin_settings.ai_difficulty == "medium":
-                # Ajustement selon la performance
-                if hasattr(ai, "_last_utilization"):
-                    if ai._last_utilization > 0.8:
-                        ai.staffing_level = min(3, ai.staffing_level + 1)
-                    elif ai._last_utilization < 0.5:
-                        ai.staffing_level = max(1, ai.staffing_level - 1)
-            # Mode "hard" : IA plus agressive (à implémenter)
-
-    def _display_turn_results(self, results: Dict, turn: int) -> None:
+    def _display_turn_results(self, results: dict, turn: int) -> None:
         """Affiche les résultats du tour."""
         clear_screen()
 
@@ -482,7 +289,7 @@ class FoodOpsProGame:
 
         print_box(analysis_lines, style="warning")
 
-    def _update_restaurants(self, results: Dict) -> None:
+    def _update_restaurants(self, results: dict) -> None:
         """Met à jour l'état des restaurants après le tour."""
         for restaurant in self.players + self.ai_competitors:
             if restaurant.id in results:
