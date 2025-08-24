@@ -1,5 +1,5 @@
 """
-Système de finance avancée pour FoodOps Pro.
+Système de finance avancée
 """
 
 from dataclasses import dataclass, field

@@ -1,5 +1,5 @@
 """
-Export des résultats et calcul des KPIs pour FoodOps Pro.
+Export des résultats et calcul des KPIs
 """
 
 import csv

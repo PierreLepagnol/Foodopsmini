@@ -1,7 +1,6 @@
 """
-Tutoriel interactif pour FoodOps Pro.
+Tutoriel interactif
 """
-
 
 from game_engine.console_ui import ConsoleUI
 

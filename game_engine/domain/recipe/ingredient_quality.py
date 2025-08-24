@@ -1,5 +1,5 @@
 """
-Système de qualité des ingrédients pour FoodOps Pro.
+Système de qualité des ingrédients
 """
 
 from dataclasses import dataclass

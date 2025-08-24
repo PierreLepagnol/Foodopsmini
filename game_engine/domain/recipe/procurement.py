@@ -1,5 +1,5 @@
 """
-Achats & Réception (Procurement) pour FoodOps Pro.
+Achats & Réception (Procurement)
 
 - Planification des besoins à partir des recettes actives et des prévisions de ventes
 - Proposition de commandes fournisseurs (arrondis aux packs, MOQ)

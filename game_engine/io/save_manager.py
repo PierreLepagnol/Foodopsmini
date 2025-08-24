@@ -1,5 +1,5 @@
 """
-Gestionnaire de sauvegarde et chargement pour FoodOps Pro.
+Gestionnaire de sauvegarde et chargement
 """
 
 import json

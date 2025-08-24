@@ -1,5 +1,5 @@
 """
-Interface console professionnelle pour FoodOps Pro.
+Interface console professionnelle
 """
 
 import os

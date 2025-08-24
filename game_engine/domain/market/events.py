@@ -1,5 +1,5 @@
 """
-Système de concurrence dynamique pour FoodOps Pro.
+Système de concurrence dynamique
 """
 
 import json

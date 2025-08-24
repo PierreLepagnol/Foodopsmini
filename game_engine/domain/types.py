@@ -1,5 +1,5 @@
 """
-Types communs pour FoodOps Pro.
+Types communs
 """
 
 from decimal import Decimal

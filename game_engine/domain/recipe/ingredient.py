@@ -1,5 +1,5 @@
 """
-Modèle des ingrédients pour FoodOps Pro.
+Modèle des ingrédients
 """
 
 from decimal import Decimal

@@ -1,5 +1,5 @@
 """
-Gestion de la persistance des parties pour FoodOps Pro.
+Gestion de la persistance des parties
 """
 
 import json
@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from game_engine.domain.restaurant import Restaurant
-from game_engine.domain.scenario import Scenario
+from game_engine.core.scenario import Scenario
 
 
 class DecimalEncoder(json.JSONEncoder):

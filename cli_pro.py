@@ -1,5 +1,5 @@
 """
-Interface CLI professionnelle pour FoodOps Pro.
+Interface CLI professionnelle
 """
 
 from decimal import Decimal

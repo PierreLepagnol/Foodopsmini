@@ -1,5 +1,5 @@
 """
-Modèles de scénarios pour FoodOps Pro.
+Modèles de scénarios
 """
 
 from dataclasses import field

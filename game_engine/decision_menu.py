@@ -1,5 +1,5 @@
 """
-Menu de décisions enrichi pour FoodOps Pro.
+Menu de décisions enrichi
 """
 
 from decimal import Decimal

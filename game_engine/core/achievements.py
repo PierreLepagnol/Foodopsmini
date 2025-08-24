@@ -1,5 +1,5 @@
 """
-Système d'achievements/succès pour FoodOps Pro.
+Système d'achievements/succès
 """
 
 import json

@@ -1,5 +1,5 @@
 """
-Moteur de marché et allocation de la demande pour FoodOps Pro.
+Moteur de marché et allocation de la demande
 """
 
 import random
@@ -9,7 +9,7 @@ from decimal import Decimal
 from game_engine.domain.market.events import CompetitionManager
 from game_engine.domain.market.seasonality import SeasonalityManager
 from game_engine.domain.restaurant import Restaurant
-from game_engine.domain.scenario import MarketSegment, Scenario
+from game_engine.core.scenario import MarketSegment, Scenario
 
 
 @dataclass

@@ -1,5 +1,5 @@
 """
-Modèle de gestion des stocks pour FoodOps Pro.
+Modèle de gestion des stocks
 """
 
 from dataclasses import dataclass

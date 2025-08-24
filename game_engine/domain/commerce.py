@@ -1,5 +1,5 @@
 """
-Système de fonds de commerce pour FoodOps Pro.
+Système de fonds de commerce
 """
 
 import json

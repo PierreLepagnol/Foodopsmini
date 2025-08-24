@@ -1,5 +1,5 @@
 """
-Modèles des restaurants pour FoodOps Pro.
+Modèles des restaurants
 """
 
 import csv

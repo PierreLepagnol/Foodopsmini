@@ -1,5 +1,5 @@
 """
-Modèle des fournisseurs pour FoodOps Pro.
+Modèle des fournisseurs
 """
 
 from dataclasses import dataclass

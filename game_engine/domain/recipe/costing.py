@@ -1,5 +1,5 @@
 """
-Calcul des coûts de recettes pour FoodOps Pro.
+Calcul des coûts de recettes
 """
 
 from dataclasses import dataclass, field

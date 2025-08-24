@@ -1,5 +1,5 @@
 """
-Chargeur de données pour FoodOps Pro.
+Chargeur de données
 """
 
 import csv

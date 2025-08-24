@@ -1,5 +1,5 @@
 """
-Rapports financiers professionnels pour FoodOps Pro.
+Rapports financiers professionnels
 """
 
 from datetime import datetime

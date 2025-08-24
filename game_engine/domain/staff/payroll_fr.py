@@ -1,5 +1,5 @@
 """
-Calcul de la paie française pour FoodOps Pro.
+Calcul de la paie française
 """
 
 from dataclasses import dataclass

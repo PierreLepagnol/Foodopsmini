@@ -1,5 +1,5 @@
 """
-Système de marketing et communication pour FoodOps Pro.
+Système de marketing et communication
 """
 
 from dataclasses import dataclass, field

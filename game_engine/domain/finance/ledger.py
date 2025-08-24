@@ -1,5 +1,5 @@
 """
-Système comptable français (PCG simplifié) pour FoodOps Pro.
+Système comptable français (PCG simplifié)
 """
 
 from dataclasses import dataclass
@@ -125,7 +125,7 @@ class Account:
 
 class Ledger:
     """
-    Grand livre comptable simplifié pour FoodOps Pro.
+    Grand livre comptable simplifié
 
     Implémente les comptes principaux selon le PCG français.
     """

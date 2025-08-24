@@ -1,5 +1,5 @@
 """
-Système d'événements aléatoires pour FoodOps Pro.
+Système d'événements aléatoires
 """
 
 import random

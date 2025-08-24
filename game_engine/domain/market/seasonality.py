@@ -1,5 +1,5 @@
 """
-Système de saisonnalité pour FoodOps Pro.
+Système de saisonnalité
 """
 
 from dataclasses import dataclass

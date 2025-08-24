@@ -1,5 +1,5 @@
 """
-Modèles des recettes pour FoodOps Pro.
+Modèles des recettes
 """
 
 from dataclasses import dataclass

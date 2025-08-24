@@ -1,5 +1,5 @@
 """
-Interface en ligne de commande pour FoodOps Pro.
+Interface en ligne de commande
 """
 
 import argparse
