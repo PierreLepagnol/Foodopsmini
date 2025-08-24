@@ -1,0 +1,148 @@
+[
+    {
+        "id": "first_profit",
+        "name": "Premier Profit",
+        "description": "Réalisez votre premier profit positif",
+        "category": "financier",
+        "rarity": "commun",
+        "points": 10,
+        "icon": "💰"
+    },
+    {
+        "id": "big_profit",
+        "name": "Gros Bénéfices",
+        "description": "Réalisez plus de 1000€ de profit en un tour",
+        "category": "financier",
+        "rarity": "peu_commun",
+        "points": 25,
+        "icon": "💎"
+    },
+    {
+        "id": "millionaire",
+        "name": "Millionnaire",
+        "description": "Accumulez 1 million d'euros de chiffre d'affaires total",
+        "category": "financier",
+        "rarity": "épique",
+        "points": 100,
+        "icon": "🏆"
+    },
+    {
+        "id": "full_house",
+        "name": "Complet !",
+        "description": "Atteignez 100% de taux d'occupation",
+        "category": "operationnel",
+        "rarity": "commun",
+        "points": 15,
+        "icon": "🏠"
+    },
+    {
+        "id": "quality_master",
+        "name": "Maître Qualité",
+        "description": "Maintenez la qualité 5⭐ pendant 5 tours consécutifs",
+        "category": "operationnel",
+        "rarity": "rare",
+        "points": 50,
+        "icon": "⭐"
+    },
+    {
+        "id": "efficiency_expert",
+        "name": "Expert en Efficacité",
+        "description": "Servez 200+ clients avec seulement 2 employés",
+        "category": "operationnel",
+        "rarity": "rare",
+        "points": 40,
+        "icon": "⚡"
+    },
+    {
+        "id": "market_leader",
+        "name": "Leader du Marché",
+        "description": "Obtenez 50% de part de marché",
+        "category": "strategique",
+        "rarity": "rare",
+        "points": 60,
+        "icon": "👑"
+    },
+    {
+        "id": "price_warrior",
+        "name": "Guerrier des Prix",
+        "description": "Gagnez avec le prix le plus bas du marché",
+        "category": "strategique",
+        "rarity": "peu_commun",
+        "points": 30,
+        "icon": "⚔️"
+    },
+    {
+        "id": "premium_strategy",
+        "name": "Stratégie Premium",
+        "description": "Gagnez avec le prix le plus élevé du marché",
+        "category": "strategique",
+        "rarity": "peu_commun",
+        "points": 35,
+        "icon": "💎"
+    },
+    {
+        "id": "customer_favorite",
+        "name": "Chouchou des Clients",
+        "description": "Atteignez 4.5/5 de satisfaction client",
+        "category": "social",
+        "rarity": "peu_commun",
+        "points": 25,
+        "icon": "😍"
+    },
+    {
+        "id": "reputation_master",
+        "name": "Maître de la Réputation",
+        "description": "Atteignez 9/10 de réputation",
+        "category": "social",
+        "rarity": "rare",
+        "points": 50,
+        "icon": "🌟"
+    },
+    {
+        "id": "social_media_star",
+        "name": "Star des Réseaux",
+        "description": "Obtenez 100 avis positifs",
+        "category": "social",
+        "rarity": "rare",
+        "points": 45,
+        "icon": "📱"
+    },
+    {
+        "id": "survivor",
+        "name": "Survivant",
+        "description": "Survivez à 3 événements négatifs consécutifs",
+        "category": "special",
+        "rarity": "rare",
+        "points": 55,
+        "icon": "🛡️"
+    },
+    {
+        "id": "comeback_king",
+        "name": "Roi du Comeback",
+        "description": "Passez de négatif à +1000€ de profit en un tour",
+        "category": "special",
+        "rarity": "épique",
+        "points": 75,
+        "icon": "🔥"
+    },
+    {
+        "id": "perfectionist",
+        "name": "Perfectionniste",
+        "description": "Terminez une partie sans jamais perdre d'argent",
+        "category": "special",
+        "rarity": "légendaire",
+        "points": 150,
+        "icon": "🏅",
+        "hidden": true
+    },
+    {
+        "id": "speed_runner",
+        "name": "Speed Runner",
+        "description": "Atteignez 1M€ de CA en moins de 10 tours",
+        "category": "special",
+        "rarity": "légendaire",
+        "points": 200,
+        "icon": "🚀",
+        "hidden": true
+    }
+]

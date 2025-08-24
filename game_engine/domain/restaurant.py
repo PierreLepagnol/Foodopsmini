@@ -3,18 +3,18 @@ Modèles des restaurants pour FoodOps Pro.
 """
 
 import csv
-from dataclasses import dataclass, field
 from decimal import Decimal
 
+from pydantic import BaseModel, Field
+
 from game_engine.domain.commerce import CommerceLocation
-from game_engine.domain.employee import Employee
+from game_engine.domain.staff.employee import Employee
 from game_engine.domain.ingredient_quality import IngredientQualityManager
-from game_engine.domain.recipe import Recipe
+from game_engine.domain.recipe.recipe import Recipe
 from game_engine.domain.types import RestaurantType
 
 
-@dataclass
-class Restaurant:
+class Restaurant(BaseModel):
     """
     Représente un restaurant avec ses caractéristiques opérationnelles.
 
@@ -35,28 +35,71 @@ class Restaurant:
     id: str
     name: str
     type: RestaurantType
-    capacity_base: int
-    speed_service: Decimal
-    menu: dict[str, Decimal] = field(default_factory=dict)  # recipe_id -> prix_ttc
-    employees: list[Employee] = field(default_factory=list)
+    capacity_base: int = Field(gt=0)
+    speed_service: Decimal = Field(gt=0)
+    menu: dict[str, Decimal] = Field(default_factory=dict)  # recipe_id -> prix_ttc
+    employees: list[Employee] = Field(default_factory=list)
     cash: Decimal = Decimal("0")
     equipment_value: Decimal = Decimal("0")
     rent_monthly: Decimal = Decimal("0")
     fixed_costs_monthly: Decimal = Decimal("0")
 
     # État du tour courant
-    staffing_level: int = 2  # 0=fermé, 1=léger, 2=normal, 3=renforcé
-    active_recipes: list[str] = field(default_factory=list)
+    staffing_level: int = Field(
+        default=2, ge=0, le=3
+    )  # 0=fermé, 1=léger, 2=normal, 3=renforcé
+    active_recipes: list[str] = Field(default_factory=list)
 
     # NOUVEAU: Système qualité et réputation
-    quality_manager: IngredientQualityManager = field(
+    quality_manager: IngredientQualityManager = Field(
         default_factory=IngredientQualityManager
     )
-    ingredient_choices: dict[str, int] = field(
+    ingredient_choices: dict[str, int] = Field(
         default_factory=dict
     )  # ingredient_id -> quality_level
     reputation: Decimal = Decimal("5.0")  # Réputation sur 10
-    customer_satisfaction_history: list[Decimal] = field(default_factory=list)
+    customer_satisfaction_history: list[Decimal] = Field(default_factory=list)
+
+    @property
+    def capacity_current(self) -> int:
+        """Capacité actuelle selon le staffing et les employés."""
+        if self.staffing_level == 0:
+            return 0
+
+        # Facteurs de capacité selon le niveau de staffing
+        staffing_factors = {
+            1: Decimal("0.7"),  # Léger
+            2: Decimal("1.0"),  # Normal
+            3: Decimal("1.3"),  # Renforcé
+        }
+
+        base_capacity = self.capacity_base * self.speed_service
+        staffing_factor = staffing_factors.get(self.staffing_level, Decimal("1.0"))
+
+        # Contribution des employés
+        employee_contribution = sum(
+            emp.calculate_capacity_contribution(self.capacity_base)
+            for emp in self.employees
+        )
+
+        # Capacité finale
+        total_capacity = base_capacity * staffing_factor + employee_contribution
+        return int(total_capacity)
+
+    @property
+    def monthly_staff_cost(self) -> Decimal:
+        """Coût mensuel du personnel (salaires + charges)."""
+        total_cost = Decimal("0")
+        for employee in self.employees:
+            gross_salary = employee.effective_salary_monthly
+            charges_rate = employee.get_contract_charges_rate()
+            total_cost += gross_salary * (1 + charges_rate)
+        return total_cost
+
+    @property
+    def monthly_fixed_costs(self) -> Decimal:
+        """Total des charges fixes mensuelles."""
+        return self.rent_monthly + self.fixed_costs_monthly
 
     def load_recipes(self) -> dict[str, Recipe]:
         """
@@ -122,65 +165,9 @@ class Restaurant:
 
         return recipes
 
-    def __post_init__(self) -> None:
-        """Validation des données."""
-        if self.capacity_base <= 0:
-            raise ValueError(
-                f"La capacité de base doit être positive: {self.capacity_base}"
-            )
-        if self.speed_service <= 0:
-            raise ValueError(
-                f"La vitesse de service doit être positive: {self.speed_service}"
-            )
-        if not (0 <= self.staffing_level <= 3):
-            raise ValueError(
-                f"Le niveau de staffing doit être entre 0 et 3: {self.staffing_level}"
-            )
-
-    @property
-    def capacity_current(self) -> int:
-        """Capacité actuelle selon le staffing et les employés."""
-        if self.staffing_level == 0:
-            return 0
-
-        # Facteurs de capacité selon le niveau de staffing
-        staffing_factors = {
-            1: Decimal("0.7"),  # Léger
-            2: Decimal("1.0"),  # Normal
-            3: Decimal("1.3"),  # Renforcé
-        }
-
-        base_capacity = self.capacity_base * self.speed_service
-        staffing_factor = staffing_factors.get(self.staffing_level, Decimal("1.0"))
-
-        # Contribution des employés
-        employee_contribution = sum(
-            emp.calculate_capacity_contribution(self.capacity_base)
-            for emp in self.employees
-        )
-
-        # Capacité finale
-        total_capacity = base_capacity * staffing_factor + employee_contribution
-        return int(total_capacity)
-
-    @property
-    def monthly_staff_cost(self) -> Decimal:
-        """Coût mensuel du personnel (salaires + charges)."""
-        total_cost = Decimal("0")
-        for employee in self.employees:
-            gross_salary = employee.effective_salary_monthly
-            charges_rate = employee.get_contract_charges_rate()
-            total_cost += gross_salary * (1 + charges_rate)
-        return total_cost
-
-    @property
-    def monthly_fixed_costs(self) -> Decimal:
-        """Total des charges fixes mensuelles."""
-        return self.rent_monthly + self.fixed_costs_monthly
-
     def display_team_info(self) -> None:
         """Affiche les informations sur l'équipe."""
-        from game_engine.ui.console_ui import print_box
+        from game_engine.console_ui import print_box
 
         # Affichage de l'équipe actuelle
         team_info_lines = [f"ÉQUIPE ACTUELLE ({len(self.employees)} employés):"]
@@ -311,7 +298,7 @@ class Restaurant:
         Args:
             decisions: Dictionnaire des décisions prises
         """
-        from game_engine.domain.employee import Employee
+        from game_engine.domain.staff.employee import Employee
 
         # Changements de prix
         if "price_changes" in decisions:
@@ -346,7 +333,7 @@ class Restaurant:
         Args:
             hr_tables: Tables RH (non utilisé actuellement)
         """
-        from game_engine.domain.employee import (
+        from game_engine.domain.staff.employee import (
             Employee,
             EmployeeContract,
             EmployeePosition,
@@ -604,7 +591,7 @@ def create_restaurant_from_commerce(
 ) -> Restaurant:
     """Crée un restaurant à partir d'un commerce acheté."""
     # Import déféré pour éviter la dépendance circulaire
-    from game_engine.ui.console_ui import get_input
+    from game_engine.console_ui import get_input
 
     # Nom du restaurant
     restaurant_name = get_input(

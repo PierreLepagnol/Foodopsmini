@@ -5,7 +5,7 @@ Calcul de la paie française pour FoodOps Pro.
 from dataclasses import dataclass
 from decimal import Decimal
 
-from game_engine.domain.employee import Employee, EmployeeContract
+from game_engine.domain.staff.employee import Employee, EmployeeContract
 
 
 @dataclass

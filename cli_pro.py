@@ -8,14 +8,14 @@ from pathlib import Path
 import yaml
 
 from creation_scenario import AdminSettings
-from game_engine.core.costing import RecipeCostCalculator
+from game_engine.domain.recipe.costing import RecipeCostCalculator
 from game_engine.domain.market.market import MarketEngine
 from game_engine.domain.commerce import CommerceManager
 from game_engine.domain.restaurant import Restaurant, create_restaurant_from_commerce
 from game_engine.io.data_loader import DataLoader
 from game_engine.io.export import ResultsExporter
 from game_engine.io.persistence import GameStatePersistence
-from game_engine.ui.console_ui import (
+from game_engine.console_ui import (
     clear_screen,
     confirm,
     get_input,
@@ -28,7 +28,7 @@ from game_engine.ui.console_ui import (
     show_success,
     show_welcome_screen,
 )
-from game_engine.ui.decision_menu import DecisionMenu
+from game_engine.decision_menu import DecisionMenu
 from game_engine.ia import create_ai_competitors, ai_decisions
 
 
@@ -101,7 +101,6 @@ class FoodOpsProGame:
         pause()
         # Sélection et achat des fonds de commerce
         self._commerce_selection_phase()
-
         # Configuration des restaurants
         self._setup_players()
 
@@ -211,7 +210,7 @@ class FoodOpsProGame:
 
     def _game_loop(self) -> None:
         """Boucle principale du jeu avec menu de décisions enrichi."""
-        total_turns = self.admin_settings.total_turns
+        total_turns = self.scenario.turns
 
         for turn in range(1, total_turns + 1):
             self.current_turn = turn

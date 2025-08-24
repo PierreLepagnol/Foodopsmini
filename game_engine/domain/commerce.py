@@ -9,7 +9,7 @@ from enum import Enum
 from pathlib import Path
 
 from game_engine.domain.types import RestaurantType
-from game_engine.ui.console_ui import print_box
+from game_engine.console_ui import print_box
 
 directory = Path("/home/lepagnol/Documents/Perso/Games/Foodopsmini/data/")
 PATH_FONDS_DE_COMMERCE = directory / "fond_de_commerces.json"

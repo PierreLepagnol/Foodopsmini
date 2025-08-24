@@ -12,9 +12,13 @@ from game_engine.io.data_loader import DataLoader
 from game_engine.io.persistence import GameStatePersistence
 from game_engine.io.export import ResultsExporter
 from game_engine.domain.restaurant import Restaurant, RestaurantType
-from game_engine.domain.employee import Employee, EmployeePosition, EmployeeContract
+from game_engine.domain.staff.employee import (
+    Employee,
+    EmployeePosition,
+    EmployeeContract,
+)
 from game_engine.domain.market.market import MarketEngine
-from game_engine.core.costing import RecipeCostCalculator
+from game_engine.domain.recipe.costing import RecipeCostCalculator
 
 
 class FoodOpsGame:

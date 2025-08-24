@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from game_engine.ui.console_ui import clear_screen, show_menu
+from game_engine.console_ui import clear_screen, show_menu
 
 
 class MenuHandler:

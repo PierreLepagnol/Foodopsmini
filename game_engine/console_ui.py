@@ -6,7 +6,7 @@ import os
 from decimal import Decimal
 from typing import Any
 
-from game_engine.domain.scenario import Scenario
+from game_engine.core.scenario import Scenario
 
 COLORS = {
     "header": "\033[1;36m",  # Cyan bold
@@ -146,26 +146,6 @@ def show_welcome_screen(self, scenario: Scenario):
         )
 
     self.print_box(segments_info, style="warning")
-
-
-def _wrap_text(self, text: str, width: int) -> list[str]:
-    """Découpe un texte en lignes de largeur donnée."""
-    words = text.split()
-    lines = []
-    current_line = ""
-
-    for word in words:
-        if len(current_line + " " + word) <= width:
-            current_line += (" " + word) if current_line else word
-        else:
-            if current_line:
-                lines.append(current_line)
-            current_line = word
-
-    if current_line:
-        lines.append(current_line)
-
-    return lines
 
 
 def show_menu(self, title: str, options: list[str], allow_back: bool = True) -> int:

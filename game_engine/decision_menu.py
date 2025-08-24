@@ -4,16 +4,16 @@ Menu de décisions enrichi pour FoodOps Pro.
 
 from decimal import Decimal
 
-from game_engine.core.costing import RecipeCostCalculator
-from game_engine.core.ledger import Ledger
-from game_engine.core.procurement import POLine, ProcurementPlanner
-from game_engine.domain.employee import EmployeeContract, EmployeePosition
-from game_engine.domain.random_events import RandomEventManager
+from game_engine.domain.recipe.costing import RecipeCostCalculator
+from game_engine.domain.finance.ledger import Ledger
+from game_engine.domain.recipe.procurement import POLine, ProcurementPlanner
+from game_engine.domain.staff.employee import EmployeeContract, EmployeePosition
+from game_engine.domain.market.random_events import RandomEventManager
 from game_engine.domain.restaurant import Restaurant
 from game_engine.domain.stock import StockManager
 
 # from game_engine.financial_reports import FinancialReports
-from game_engine.ui.console_ui import (
+from game_engine.console_ui import (
     ask_float,
     ask_int,
     clear_screen,
@@ -26,7 +26,7 @@ from game_engine.ui.console_ui import (
     show_menu,
     show_success,
 )
-from game_engine.ui.financial_reports import FinancialReports
+from game_engine.financial_reports import FinancialReports
 from game_engine.utils import MenuHandler
 
 
@@ -818,7 +818,7 @@ class DecisionMenu:
         # Saisie réception par ligne: accepter/refuser et split lots
         from datetime import date
 
-        from game_engine.core.procurement import (
+        from game_engine.domain.recipe.procurement import (
             DeliveryLine,
             GoodsReceipt,
             GoodsReceiptLine,
@@ -1630,7 +1630,7 @@ class DecisionMenu:
 
     def _show_cash_flow_statement(self, restaurant: Restaurant) -> None:
         """Affiche le tableau de flux de trésorerie."""
-        from game_engine.core.ledger import Ledger
+        from game_engine.domain.finance.ledger import Ledger
 
         ledger = Ledger()
         self.financial_reports.show_cash_flow_statement(restaurant, ledger)
@@ -1638,7 +1638,7 @@ class DecisionMenu:
 
     def _show_balance_sheet(self, restaurant: Restaurant) -> None:
         """Affiche le bilan comptable."""
-        from game_engine.core.ledger import Ledger
+        from game_engine.domain.finance.ledger import Ledger
 
         ledger = Ledger()
         self.financial_reports.show_balance_sheet(restaurant, ledger)

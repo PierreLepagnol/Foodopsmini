@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 
 from game_engine.domain.ingredient import Ingredient
-from game_engine.domain.recipe import Recipe
+from game_engine.domain.recipe.recipe import Recipe
 from game_engine.domain.restaurant import RestaurantType
 from game_engine.domain.stock import StockLot
 

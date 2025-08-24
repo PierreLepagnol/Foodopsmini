@@ -5,7 +5,7 @@ from typing import Dict, List
 
 from pydantic import BaseModel
 
-from game_engine.ui.console_ui import (
+from game_engine.console_ui import (
     clear_screen,
     print_box,
     show_error,

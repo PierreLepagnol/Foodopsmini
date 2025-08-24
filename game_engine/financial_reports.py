@@ -5,9 +5,9 @@ Rapports financiers professionnels pour FoodOps Pro.
 from datetime import datetime
 from decimal import Decimal
 
-from game_engine.core.ledger import Ledger
+from game_engine.domain.finance.ledger import Ledger
 from game_engine.domain.restaurant import Restaurant
-from game_engine.ui.console_ui import clear_screen, print_box
+from game_engine.console_ui import clear_screen, print_box
 
 
 class FinancialReports:

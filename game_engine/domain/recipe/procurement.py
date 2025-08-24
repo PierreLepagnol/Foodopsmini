@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 
-from game_engine.domain.recipe import Recipe
+from game_engine.domain.recipe.recipe import Recipe
 from game_engine.domain.stock import StockLot, StockManager
 
 
