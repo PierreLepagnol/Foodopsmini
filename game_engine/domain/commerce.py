@@ -3,10 +3,11 @@ Système de fonds de commerce
 """
 
 import json
-from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
+
+from pydantic import BaseModel, Field
 
 from game_engine.domain.types import RestaurantType
 from game_engine.console_ui import print_box
@@ -35,8 +36,7 @@ class CommerceCondition(Enum):
     RENOVATION_LOURDE = "renovation_lourde"
 
 
-@dataclass
-class CommerceLocation:
+class CommerceLocation(BaseModel):
     """
     Fonds de commerce disponible à l'achat.
 
@@ -64,23 +64,21 @@ class CommerceLocation:
     name: str
     location_type: LocationType
     restaurant_type: RestaurantType
-    price: Decimal
-    size: int  # couverts
+    price: Decimal = Field(gt=0, description="Prix d'achat du fonds")
+    size: int = Field(gt=0, description="Nombre de couverts")
     condition: CommerceCondition
-    equipment_included: list[str]
-    rent_monthly: Decimal
-    lease_years: int
-    foot_traffic: str  # "low", "medium", "high", "very_high"
-    competition_nearby: int
+    equipment_included: list[str] = Field(default_factory=list)
+    rent_monthly: Decimal = Field(ge=0, description="Loyer mensuel")
+    lease_years: int = Field(gt=0, description="Durée du bail restante")
+    foot_traffic: str = Field(
+        description="Niveau de passage: low, medium, high, very_high"
+    )
+    competition_nearby: int = Field(ge=0, description="Nombre de concurrents proches")
     description: str
-    advantages: list[str]
-    disadvantages: list[str]
-    renovation_cost: Decimal = Decimal("0")
-    special_features: list[str] = None
-
-    def __post_init__(self):
-        if self.special_features is None:
-            self.special_features = []
+    advantages: list[str] = Field(default_factory=list)
+    disadvantages: list[str] = Field(default_factory=list)
+    renovation_cost: Decimal = Field(default=Decimal("0"), ge=0)
+    special_features: list[str] = Field(default_factory=list)
 
     @property
     def total_initial_cost(self) -> Decimal:

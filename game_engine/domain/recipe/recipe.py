@@ -5,9 +5,10 @@ Modèles des recettes
 from dataclasses import dataclass
 from decimal import Decimal
 
+from pydantic import BaseModel, Field
 
-@dataclass(frozen=True)
-class RecipeItem:
+
+class RecipeItem(BaseModel):
     """
     Représente un ingrédient dans une recette avec ses quantités et rendements.
 
@@ -19,22 +20,21 @@ class RecipeItem:
     """
 
     ingredient_id: str
-    qty_brute: Decimal
-    rendement_prepa: Decimal = Decimal("1.0")
-    rendement_cuisson: Decimal = Decimal("1.0")
-
-    def __post_init__(self) -> None:
-        """Validation des données."""
-        if self.qty_brute < 0:
-            raise ValueError(f"La quantité brute doit être positive: {self.qty_brute}")
-        if not (0 < self.rendement_prepa <= 1):
-            raise ValueError(
-                f"Le rendement prépa doit être entre 0 et 1: {self.rendement_prepa}"
-            )
-        if not (0 < self.rendement_cuisson <= 1):
-            raise ValueError(
-                f"Le rendement cuisson doit être entre 0 et 1: {self.rendement_cuisson}"
-            )
+    qty_brute: Decimal = Field(
+        ge=0, description="Quantité brute nécessaire (doit être positive)"
+    )
+    rendement_prepa: Decimal = Field(
+        default=Decimal("1.0"),
+        gt=0,
+        le=1,
+        description="Rendement après préparation (entre 0 et 1)",
+    )
+    rendement_cuisson: Decimal = Field(
+        default=Decimal("1.0"),
+        gt=0,
+        le=1,
+        description="Rendement après cuisson (entre 0 et 1)",
+    )
 
     @property
     def qty_nette(self) -> Decimal:
@@ -47,50 +47,30 @@ class RecipeItem:
         return Decimal("1.0") - (self.rendement_prepa * self.rendement_cuisson)
 
 
-@dataclass(frozen=True)
-class Recipe:
+class Recipe(BaseModel):
     """
     Représente une recette complète avec ses ingrédients et temps.
-
-    Attributes:
-        id: Identifiant unique de la recette
-        name: Nom de la recette
-        items: Liste des ingrédients avec quantités
-        temps_prepa_min: Temps de préparation en minutes
-        temps_service_min: Temps de service en minutes
-        portions: Nombre de portions produites
-        category: Catégorie (entrée, plat, dessert, etc.)
-        difficulty: Niveau de difficulté (1-5)
     """
 
     id: str
     name: str
-    items: list[RecipeItem]
-    temps_prepa_min: int
-    temps_service_min: int
-    portions: int = 1
+    items: list[RecipeItem] = Field(
+        min_length=1, description="Une recette doit avoir au moins un ingrédient"
+    )
+    temps_prepa_min: int = Field(
+        ge=0, description="Le temps de prépa doit être positif"
+    )
+    temps_service_min: int = Field(
+        ge=0, description="Le temps de service doit être positif"
+    )
+    portions: int = Field(
+        default=1, gt=0, description="Le nombre de portions doit être positif"
+    )
     category: str = "plat"
-    difficulty: int = 1
+    difficulty: int = Field(
+        default=1, ge=1, le=5, description="La difficulté doit être entre 1 et 5"
+    )
     description: str = ""
-
-    def __post_init__(self) -> None:
-        """Validation des données."""
-        if self.temps_prepa_min < 0:
-            raise ValueError(
-                f"Le temps de prépa doit être positif: {self.temps_prepa_min}"
-            )
-        if self.temps_service_min < 0:
-            raise ValueError(
-                f"Le temps de service doit être positif: {self.temps_service_min}"
-            )
-        if self.portions <= 0:
-            raise ValueError(
-                f"Le nombre de portions doit être positif: {self.portions}"
-            )
-        if not (1 <= self.difficulty <= 5):
-            raise ValueError(f"La difficulté doit être entre 1 et 5: {self.difficulty}")
-        if not self.items:
-            raise ValueError("Une recette doit avoir au moins un ingrédient")
 
     @property
     def temps_total_min(self) -> int:

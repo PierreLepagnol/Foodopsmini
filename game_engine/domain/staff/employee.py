@@ -2,9 +2,9 @@
 Modèles des employés pour FoodOps Pro (droit du travail français).
 """
 
-from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
+from pydantic import BaseModel, Field, field_validator
 
 
 class EmployeePosition(Enum):
@@ -27,8 +27,7 @@ class EmployeeContract(Enum):
     STAGE = "stage"
 
 
-@dataclass
-class Employee:
+class Employee(BaseModel):
     """
     Représente un employé avec ses caractéristiques RH françaises.
 
@@ -50,42 +49,43 @@ class Employee:
     name: str
     position: EmployeePosition
     contract: EmployeeContract
-    salary_gross_monthly: Decimal
-    productivity: Decimal = Decimal("1.0")
-    experience_months: int = 0
+    salary_gross_monthly: Decimal = Field(ge=0)
+    productivity: Decimal = Field(
+        default=Decimal("1.0"), ge=Decimal("0.5"), le=Decimal("2.0")
+    )
+    experience_months: int = Field(default=0, ge=0)
     is_part_time: bool = False
-    part_time_ratio: Decimal = Decimal("1.0")
+    part_time_ratio: Decimal = Field(default=Decimal("1.0"), gt=0, le=1)
     sunday_work: bool = False
     overtime_eligible: bool = True
 
-    def __post_init__(self) -> None:
-        """Validation des données."""
-        if self.salary_gross_monthly < 0:
-            raise ValueError(
-                f"Le salaire brut doit être positif: {self.salary_gross_monthly}"
-            )
-        if not (0.5 <= self.productivity <= 2.0):
-            raise ValueError(
-                f"La productivité doit être entre 0.5 et 2.0: {self.productivity}"
-            )
-        if self.experience_months < 0:
-            raise ValueError(
-                f"L'expérience doit être positive: {self.experience_months}"
-            )
-        if not (0 < self.part_time_ratio <= 1):
-            raise ValueError(
-                f"Le ratio temps partiel doit être entre 0 et 1: {self.part_time_ratio}"
-            )
+    @field_validator("salary_gross_monthly", "experience_months", "part_time_ratio")
+    @classmethod
+    def validate_contract_rules(cls, v, info):
+        """Validation des règles selon le type de contrat."""
+        if "contract" in info.data:
+            contract = info.data["contract"]
+            field_name = info.field_name
 
-        # Validation selon le type de contrat
-        if self.contract == EmployeeContract.APPRENTI and self.experience_months > 24:
-            raise ValueError(
-                "Un apprenti ne peut pas avoir plus de 24 mois d'expérience"
-            )
-        if self.contract == EmployeeContract.STAGE and self.salary_gross_monthly > 0:
-            raise ValueError(
-                "Un stagiaire ne peut pas avoir de salaire (gratification uniquement)"
-            )
+            if (
+                field_name == "experience_months"
+                and contract == EmployeeContract.APPRENTI
+                and v > 24
+            ):
+                raise ValueError(
+                    "Un apprenti ne peut pas avoir plus de 24 mois d'expérience"
+                )
+
+            if (
+                field_name == "salary_gross_monthly"
+                and contract == EmployeeContract.STAGE
+                and v > 0
+            ):
+                raise ValueError(
+                    "Un stagiaire ne peut pas avoir de salaire (gratification uniquement)"
+                )
+
+        return v
 
     @property
     def effective_salary_monthly(self) -> Decimal:

@@ -14,7 +14,7 @@ from game_engine.domain.commerce import CommerceManager
 from game_engine.domain.restaurant import Restaurant, create_restaurant_from_commerce
 from game_engine.io.data_loader import DataLoader
 from game_engine.io.export import ResultsExporter
-from game_engine.io.persistence import GameStatePersistence
+from game_engine.io.save_manager import GameStatePersistence
 from game_engine.console_ui import (
     clear_screen,
     confirm,
@@ -378,10 +378,8 @@ class FoodOpsProGame:
 def main() -> None:
     """Point d'entrée principal."""
     print("🍽️ LANCEMENT FOODOPS PRO")
-    print("=" * 40)
     print("Version Pro avec interface enrichie")
     print("Achat de fonds de commerce, décisions avancées")
-    print("=" * 40)
     scenario_path = Path(
         "/home/lepagnol/Documents/Perso/Games/Foodopsmini/examples/scenarios/base.yaml"
     )

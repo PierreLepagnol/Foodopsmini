@@ -1,302 +1,258 @@
 """
-Gestionnaire de sauvegarde et chargement
+Gestion de la persistance des parties
 """
 
 import json
-from dataclasses import asdict
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel
 
-class SaveManager:
-    """Gestionnaire de sauvegarde et chargement des parties."""
+from game_engine.domain.restaurant import Restaurant
+from game_engine.scenario import Scenario
 
-    def __init__(self, save_directory: str = "saves"):
-        self.save_directory = Path(save_directory)
-        self.save_directory.mkdir(exist_ok=True)
 
-    def save_game(self, game_data: dict[str, Any], save_name: str) -> str:
+class DecimalEncoder(json.JSONEncoder):
+    """Encodeur JSON pour les objets Decimal."""
+
+    def default(self, obj: Any) -> Any:
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
+
+
+class GameState(BaseModel):
+    """
+    État complet d'une partie de FoodOps Pro.
+
+    Attributes:
+        game_id: Identifiant unique de la partie
+        scenario_name: Nom du scénario
+        current_turn: Tour actuel
+        max_turns: Nombre total de tours
+        players: Liste des restaurants des joueurs
+        ai_competitors: Liste des concurrents IA
+        turn_history: Historique des tours
+        created_at: Date de création
+        last_saved: Dernière sauvegarde
+    """
+
+    game_id: str
+    scenario_name: str
+    current_turn: int
+    max_turns: int
+    players: list[dict]  # Restaurants sérialisés
+    ai_competitors: list[dict]  # Concurrents IA sérialisés
+    turn_history: list[dict]  # Historique des résultats
+    created_at: str
+    last_saved: str
+
+
+class GameStatePersistence:
+    """
+    Gestionnaire de persistance des parties.
+    """
+
+    def __init__(self, save_directory: Path):
         """
-        Sauvegarde une partie en cours.
-
-        Args:
-            game_data: Données de la partie
-            save_name: Nom de la sauvegarde (optionnel)
-
-        Returns:
-            Nom du fichier de sauvegarde créé
+        Initialise le gestionnaire de persistance.
+        save_directory: Répertoire de sauvegarde
         """
-        if save_name is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            save_name = f"partie_{timestamp}"
+        self.save_directory = save_directory
+        self.save_directory.mkdir(parents=True, exist_ok=True)
 
-        # Préparer les données pour la sérialisation
-        serializable_data = self._prepare_for_serialization(game_data)
+    def save_game(self, game_state: GameState) -> Path:
+        """
+        Sauvegarde une partie.
+        """
+        game_state.last_saved = datetime.now().isoformat()
 
-        # Ajouter les métadonnées
-        save_data = {
-            "metadata": {
-                "save_name": save_name,
-                "save_date": datetime.now().isoformat(),
-                "game_version": "1.0",
-                "turn": game_data.get("current_turn", 1),
-                "players": len(game_data.get("restaurants", [])),
-                "scenario": game_data.get("scenario_name", "Standard"),
-            },
-            "game_data": serializable_data,
-        }
+        filename = f"game_{game_state.game_id}.json"
+        filepath = self.save_directory / filename
+        data = game_state.model_dump()
 
-        # Sauvegarder dans un fichier JSON
-        save_file = self.save_directory / f"{save_name}.json"
+        with open(filepath, "w", encoding="utf-8") as file:
+            json.dump(data, file, cls=DecimalEncoder, indent=2, ensure_ascii=False)
 
-        with open(save_file, "w", encoding="utf-8") as f:
-            json.dump(save_data, f, indent=2, ensure_ascii=False)
+        return filepath
 
-        return save_name
-
-    def load_game(self, save_name: str) -> dict[str, Any]:
+    def load_game(self, game_id: str) -> GameState | None:
         """
         Charge une partie sauvegardée.
+        """
+        filepath = self.save_directory / f"game_{game_id}.json"
+        if not filepath.exists():
+            return None
+        with open(filepath, encoding="utf-8") as file:
+            data = json.load(file)
+        return GameState.model_validate(data)
+
+    def list_saved_games(self) -> list[dict[str, str]]:
+        """
+        Liste les parties sauvegardées.
+
+        Returns:
+            Liste des informations des parties
+        """
+        games = []
+        saved_games = self.save_directory.glob("game_*.json")
+        for filepath in saved_games:
+            with open(filepath, encoding="utf-8") as file:
+                data = json.load(file)
+            games.append(
+                {
+                    "game_id": data["game_id"],
+                    "scenario_name": data["scenario_name"],
+                    "current_turn": data["current_turn"],
+                    "max_turns": data["max_turns"],
+                    "created_at": data["created_at"],
+                    "last_saved": data["last_saved"],
+                    "players_count": len(data["players"]),
+                }
+            )
+
+        games.sort(key=lambda x: x["last_saved"], reverse=True)
+        return games
+
+    def delete_game(self, game_id: str) -> bool:
+        """
+        Supprime une partie sauvegardée.
+        """
+        filepath = self.save_directory / f"game_{game_id}.json"
+        if filepath.exists():
+            filepath.unlink()
+
+    def create_game_state(
+        self,
+        scenario: Scenario,
+        players: list[Restaurant],
+        ai_competitors: list[Restaurant] = None,
+    ) -> GameState:
+        """
+        Crée un nouvel état de partie.
 
         Args:
-            save_name: Nom de la sauvegarde
+            scenario: Scénario de jeu
+            players: Restaurants des joueurs
+            ai_competitors: Concurrents IA
 
         Returns:
-            Données de la partie chargée
+            Nouvel état de partie
         """
-        save_file = self.save_directory / f"{save_name}.json"
+        game_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        now = datetime.now().isoformat()
 
-        if not save_file.exists():
-            raise FileNotFoundError(f"Sauvegarde '{save_name}' introuvable")
+        # Sérialisation des restaurants
+        players_data = [self._serialize_restaurant(player) for player in players]
+        ai_data = [self._serialize_restaurant(ai) for ai in (ai_competitors or [])]
 
-        with open(save_file, encoding="utf-8") as f:
-            save_data = json.load(f)
+        return GameState(
+            game_id=game_id,
+            scenario_name=scenario.name,
+            current_turn=1,
+            max_turns=scenario.turns,
+            players=players_data,
+            ai_competitors=ai_data,
+            turn_history=[],
+            created_at=now,
+            last_saved=now,
+        )
 
-        # Vérifier la version
-        metadata = save_data.get("metadata", {})
-        if metadata.get("game_version") != "1.0":
-            print("⚠️ Version de sauvegarde différente, compatibilité non garantie")
+    # def _serialize_restaurant(self, restaurant: Restaurant) -> dict:
+    #     """
+    #     Sérialise un restaurant en dictionnaire.
 
-        # Restaurer les données
-        game_data = self._restore_from_serialization(save_data["game_data"])
-        game_data["metadata"] = metadata
+    #     Args:
+    #         restaurant: Restaurant à sérialiser
 
-        return game_data
+    #     Returns:
+    #         Dictionnaire représentant le restaurant
+    #     """
+    #     # Conversion des employés
+    #     employees_data = []
+    #     for employee in restaurant.employees:
+    #         emp_data = {
+    #             "id": employee.id,
+    #             "name": employee.name,
+    #             "position": employee.position.value,
+    #             "contract": employee.contract.value,
+    #             "salary_gross_monthly": float(employee.salary_gross_monthly),
+    #             "productivity": float(employee.productivity),
+    #             "experience_months": employee.experience_months,
+    #             "is_part_time": employee.is_part_time,
+    #             "part_time_ratio": float(employee.part_time_ratio),
+    #             "sunday_work": employee.sunday_work,
+    #             "overtime_eligible": employee.overtime_eligible,
+    #         }
+    #         employees_data.append(emp_data)
 
-    def list_saves(self) -> list[dict[str, Any]]:
+    #     return {
+    #         "id": restaurant.id,
+    #         "name": restaurant.name,
+    #         "type": restaurant.type.value,
+    #         "capacity_base": restaurant.capacity_base,
+    #         "speed_service": float(restaurant.speed_service),
+    #         "menu": {k: float(v) for k, v in restaurant.menu.items()},
+    #         "employees": employees_data,
+    #         "cash": float(restaurant.cash),
+    #         "equipment_value": float(restaurant.equipment_value),
+    #         "rent_monthly": float(restaurant.rent_monthly),
+    #         "fixed_costs_monthly": float(restaurant.fixed_costs_monthly),
+    #         "staffing_level": restaurant.staffing_level,
+    #         "active_recipes": restaurant.active_recipes.copy(),
+    #     }
+
+    def update_turn_history(self, game_state: GameState, turn_results: dict) -> None:
         """
-        Liste toutes les sauvegardes disponibles.
-
-        Returns:
-            Liste des métadonnées des sauvegardes
-        """
-        saves = []
-
-        for save_file in self.save_directory.glob("*.json"):
-            with open(save_file, encoding="utf-8") as f:
-                save_data = json.load(f)
-
-            metadata = save_data.get("metadata", {})
-            metadata["file_name"] = save_file.stem
-            metadata["file_size"] = save_file.stat().st_size
-
-            saves.append(metadata)
-
-        # Trier par date de sauvegarde (plus récent en premier)
-        saves.sort(key=lambda x: x.get("save_date", ""), reverse=True)
-
-        return saves
-
-    def delete_save(self, save_name: str) -> bool:
-        """
-        Supprime une sauvegarde.
+        Met à jour l'historique des tours.
 
         Args:
-            save_name: Nom de la sauvegarde
-
-        Returns:
-            True si supprimée avec succès
+            game_state: État de la partie
+            turn_results: Résultats du tour
         """
-        save_file = self.save_directory / f"{save_name}.json"
-
-        if save_file.exists():
-            save_file.unlink()
-            return True
-
-        return False
-
-    def _prepare_for_serialization(self, data: Any) -> Any:
-        """Prépare les données pour la sérialisation JSON."""
-        if isinstance(data, dict):
-            return {
-                key: self._prepare_for_serialization(value)
-                for key, value in data.items()
+        # Conversion des résultats en format sérialisable
+        serializable_results = {}
+        for restaurant_id, result in turn_results.items():
+            serializable_results[restaurant_id] = {
+                "allocated_demand": result.allocated_demand,
+                "served_customers": result.served_customers,
+                "capacity": result.capacity,
+                "utilization_rate": float(result.utilization_rate),
+                "lost_customers": result.lost_customers,
+                "revenue": float(result.revenue),
+                "average_ticket": float(result.average_ticket),
             }
-        elif isinstance(data, list):
-            return [self._prepare_for_serialization(item) for item in data]
-        elif isinstance(data, Decimal):
-            return float(data)
-        elif hasattr(data, "__dict__"):
-            # Objet avec attributs - convertir en dictionnaire
-            if hasattr(data, "__dataclass_fields__"):
-                # Dataclass
-                return {
-                    "__class__": data.__class__.__name__,
-                    "__module__": data.__class__.__module__,
-                    **self._prepare_for_serialization(asdict(data)),
-                }
-            else:
-                # Objet normal
-                return {
-                    "__class__": data.__class__.__name__,
-                    "__module__": data.__class__.__module__,
-                    **self._prepare_for_serialization(data.__dict__),
-                }
-        else:
-            return data
 
-    def _restore_from_serialization(self, data: Any) -> Any:
-        """Restaure les données depuis la sérialisation JSON."""
-        if isinstance(data, dict):
-            if "__class__" in data and "__module__" in data:
-                # Objet sérialisé - pour l'instant, retourner comme dictionnaire
-                # TODO: Implémenter la désérialisation complète des objets
-                restored_data = {
-                    key: self._restore_from_serialization(value)
-                    for key, value in data.items()
-                    if key not in ["__class__", "__module__"]
-                }
-                restored_data["__original_class__"] = data["__class__"]
-                return restored_data
-            else:
-                return {
-                    key: self._restore_from_serialization(value)
-                    for key, value in data.items()
-                }
-        elif isinstance(data, list):
-            return [self._restore_from_serialization(item) for item in data]
-        else:
-            return data
-
-    def export_save(self, save_name: str, export_path: str) -> bool:
-        """
-        Exporte une sauvegarde vers un fichier externe.
-
-        Args:
-            save_name: Nom de la sauvegarde
-            export_path: Chemin d'export
-
-        Returns:
-            True si exportée avec succès
-        """
-        save_file = self.save_directory / f"{save_name}.json"
-        export_file = Path(export_path)
-
-        if save_file.exists():
-            import shutil
-
-            shutil.copy2(save_file, export_file)
-            return True
-
-        return False
-
-    def import_save(self, import_path: str, save_name: str = None) -> str:
-        """
-        Importe une sauvegarde depuis un fichier externe.
-
-        Args:
-            import_path: Chemin du fichier à importer
-            save_name: Nom pour la sauvegarde importée
-
-        Returns:
-            Nom de la sauvegarde importée
-        """
-        import_file = Path(import_path)
-
-        if not import_file.exists():
-            raise FileNotFoundError(f"Fichier d'import introuvable: {import_path}")
-
-        # Valider le fichier
-        with open(import_file, encoding="utf-8") as f:
-            save_data = json.load(f)
-
-        if "metadata" not in save_data or "game_data" not in save_data:
-            raise ValueError("Format de sauvegarde invalide")
-
-        # Déterminer le nom de sauvegarde
-        if save_name is None:
-            original_name = save_data["metadata"].get("save_name", "import")
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            save_name = f"{original_name}_import_{timestamp}"
-
-        # Copier le fichier
-        import shutil
-
-        target_file = self.save_directory / f"{save_name}.json"
-        shutil.copy2(import_file, target_file)
-
-        return save_name
-
-    def get_save_info(self, save_name: str) -> dict[str, Any]:
-        """
-        Récupère les informations détaillées d'une sauvegarde.
-
-        Args:
-            save_name: Nom de la sauvegarde
-
-        Returns:
-            Informations détaillées
-        """
-        save_file = self.save_directory / f"{save_name}.json"
-
-        if not save_file.exists():
-            raise FileNotFoundError(f"Sauvegarde '{save_name}' introuvable")
-
-        with open(save_file, encoding="utf-8") as f:
-            save_data = json.load(f)
-
-        metadata = save_data.get("metadata", {})
-        game_data = save_data.get("game_data", {})
-
-        # Analyser les données de jeu
-        restaurants = game_data.get("restaurants", [])
-
-        info = {
-            **metadata,
-            "file_size": save_file.stat().st_size,
-            "restaurants_count": len(restaurants),
-            "restaurant_names": [
-                r.get("name", "Restaurant") for r in restaurants[:3]
-            ],  # 3 premiers
-            "current_turn": game_data.get("current_turn", 1),
-            "total_turns": game_data.get("total_turns", 10),
+        turn_data = {
+            "turn": game_state.current_turn,
+            "timestamp": datetime.now().isoformat(),
+            "results": serializable_results,
         }
 
-        return info
+        game_state.turn_history.append(turn_data)
 
-    def cleanup_old_saves(self, keep_count: int = 10) -> int:
+    def export_game_summary(self, game_state: GameState, output_path: Path) -> None:
         """
-        Nettoie les anciennes sauvegardes.
+        Exporte un résumé de partie en JSON.
 
         Args:
-            keep_count: Nombre de sauvegardes à conserver
-
-        Returns:
-            Nombre de sauvegardes supprimées
+            game_state: État de la partie
+            output_path: Chemin de sortie
         """
-        saves = self.list_saves()
+        summary = {
+            "game_info": {
+                "id": game_state.game_id,
+                "scenario": game_state.scenario_name,
+                "turns_played": len(game_state.turn_history),
+                "total_turns": game_state.max_turns,
+                "created_at": game_state.created_at,
+                "completed": len(game_state.turn_history) >= game_state.max_turns,
+            },
+            "players": game_state.players,
+            "turn_history": game_state.turn_history,
+        }
 
-        if len(saves) <= keep_count:
-            return 0
-
-        # Supprimer les plus anciennes
-        to_delete = saves[keep_count:]
-        deleted_count = 0
-
-        for save in to_delete:
-            if self.delete_save(save["file_name"]):
-                deleted_count += 1
-
-        return deleted_count
+        with open(output_path, "w", encoding="utf-8") as file:
+            json.dump(summary, file, cls=DecimalEncoder, indent=2, ensure_ascii=False)

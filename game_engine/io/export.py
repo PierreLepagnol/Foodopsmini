@@ -1,6 +1,4 @@
-"""
-Export des résultats et calcul des KPIs
-"""
+"""Export des résultats et calcul des KPIs"""
 
 import csv
 import json
@@ -8,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from game_engine.io.persistence import DecimalEncoder, GameState
+from game_engine.io.save_manager import DecimalEncoder, GameState
 
 
 class KPICalculator:

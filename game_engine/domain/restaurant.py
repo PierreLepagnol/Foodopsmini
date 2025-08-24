@@ -8,9 +8,9 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 
 from game_engine.domain.commerce import CommerceLocation
+from game_engine.domain.recipe.ingredient_quality import IngredientQualityManager
+from game_engine.domain.recipe.recipe import Recipe, RecipeItem
 from game_engine.domain.staff.employee import Employee
-from game_engine.domain.ingredient_quality import IngredientQualityManager
-from game_engine.domain.recipe.recipe import Recipe
 from game_engine.domain.types import RestaurantType
 
 
@@ -37,6 +37,11 @@ class Restaurant(BaseModel):
     type: RestaurantType
     capacity_base: int = Field(gt=0)
     speed_service: Decimal = Field(gt=0)
+
+    staff_manager: StaffManager = Field(default_factory=StaffManager)
+    recipe_manager: RecipeManager = Field(default_factory=RecipeManager)
+    financial_manager: FinancialManager = Field(default_factory=FinancialManager)
+
     menu: dict[str, Decimal] = Field(default_factory=dict)  # recipe_id -> prix_ttc
     employees: list[Employee] = Field(default_factory=list)
     cash: Decimal = Decimal("0")
@@ -165,6 +170,41 @@ class Restaurant(BaseModel):
 
         return recipes
 
+    def apply_decisions(self, decisions: dict) -> None:
+        """
+        Applique les décisions du joueur au restaurant.
+
+        Args:
+            decisions: Dictionnaire des décisions prises
+        """
+        from game_engine.domain.staff.employee import Employee
+
+        # Changements de prix
+        if "price_changes" in decisions:
+            for recipe_id, new_price in decisions["price_changes"].items():
+                self.set_recipe_price(recipe_id, new_price)
+
+        # Recrutements
+        if "recruitments" in decisions:
+            for recruit_data in decisions["recruitments"]:
+                employee = Employee(
+                    id=f"{self.id}_new_{len(self.employees) + 1}",
+                    name=f"Nouveau {recruit_data['position'].value}",
+                    position=recruit_data["position"],
+                    contract=recruit_data["contract"],
+                    salary_gross_monthly=recruit_data["salary"],
+                    productivity=Decimal("1.0"),
+                    experience_months=0,
+                )
+                self.add_employee(employee)
+
+        # Campagnes marketing
+        if "marketing_campaigns" in decisions:
+            for campaign in decisions["marketing_campaigns"]:
+                # Déduction du coût
+                self.update_cash(-Decimal(str(campaign["cost"])))
+                # L'effet sera appliqué dans la simulation de marché
+
     def display_team_info(self) -> None:
         """Affiche les informations sur l'équipe."""
         from game_engine.console_ui import print_box
@@ -290,41 +330,6 @@ class Restaurant(BaseModel):
             description: Description de l'opération
         """
         self.cash += amount
-
-    def apply_decisions(self, decisions: dict) -> None:
-        """
-        Applique les décisions du joueur au restaurant.
-
-        Args:
-            decisions: Dictionnaire des décisions prises
-        """
-        from game_engine.domain.staff.employee import Employee
-
-        # Changements de prix
-        if "price_changes" in decisions:
-            for recipe_id, new_price in decisions["price_changes"].items():
-                self.set_recipe_price(recipe_id, new_price)
-
-        # Recrutements
-        if "recruitments" in decisions:
-            for recruit_data in decisions["recruitments"]:
-                employee = Employee(
-                    id=f"{self.id}_new_{len(self.employees) + 1}",
-                    name=f"Nouveau {recruit_data['position'].value}",
-                    position=recruit_data["position"],
-                    contract=recruit_data["contract"],
-                    salary_gross_monthly=recruit_data["salary"],
-                    productivity=Decimal("1.0"),
-                    experience_months=0,
-                )
-                self.add_employee(employee)
-
-        # Campagnes marketing
-        if "marketing_campaigns" in decisions:
-            for campaign in decisions["marketing_campaigns"]:
-                # Déduction du coût
-                self.update_cash(-Decimal(str(campaign["cost"])))
-                # L'effet sera appliqué dans la simulation de marché
 
     def setup_base_employees(self, hr_tables: dict = None) -> None:
         """

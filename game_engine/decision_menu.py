@@ -4,14 +4,6 @@ Menu de décisions enrichi
 
 from decimal import Decimal
 
-from game_engine.domain.recipe.costing import RecipeCostCalculator
-from game_engine.domain.finance.ledger import Ledger
-from game_engine.domain.recipe.procurement import POLine, ProcurementPlanner
-from game_engine.domain.staff.employee import EmployeeContract, EmployeePosition
-from game_engine.domain.market.random_events import RandomEventManager
-from game_engine.domain.restaurant import Restaurant
-from game_engine.domain.stock import StockManager
-
 # from game_engine.financial_reports import FinancialReports
 from game_engine.console_ui import (
     ask_float,
@@ -26,6 +18,13 @@ from game_engine.console_ui import (
     show_menu,
     show_success,
 )
+from game_engine.domain.finance.ledger import Ledger
+from game_engine.domain.market.random_events import RandomEventManager
+from game_engine.domain.recipe.costing import RecipeCostCalculator
+from game_engine.domain.recipe.procurement import POLine, ProcurementPlanner
+from game_engine.domain.restaurant import Restaurant
+from game_engine.domain.staff.employee import EmployeeContract, EmployeePosition
+from game_engine.domain.stock import StockManager
 from game_engine.financial_reports import FinancialReports
 from game_engine.utils import MenuHandler
 
@@ -53,11 +52,7 @@ class DecisionMenu:
         self._available_recipes_cache = recipes or {}
 
     def show_decision_menu(
-        self,
-        restaurant: Restaurant,
-        turn: int,
-        available_recipes: dict,
-        available_employees: list = None,
+        self, restaurant: Restaurant, turn: int, available_recipes: dict
     ) -> dict[str, any]:
         """
         Affiche le menu de décisions principal et retourne les choix du joueur.

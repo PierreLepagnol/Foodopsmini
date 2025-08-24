@@ -9,7 +9,7 @@ from typing import List, Dict, Optional
 from decimal import Decimal
 
 from game_engine.io.data_loader import DataLoader
-from game_engine.io.persistence import GameStatePersistence
+from game_engine.io.save_manager import GameStatePersistence
 from game_engine.io.export import ResultsExporter
 from game_engine.domain.restaurant import Restaurant, RestaurantType
 from game_engine.domain.staff.employee import (
