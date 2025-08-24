@@ -4,10 +4,10 @@ Démonstration des nouvelles fonctionnalités FoodOps Pro.
 """
 
 from decimal import Decimal
-from foodops_pro.ui.console_ui import ConsoleUI
-from foodops_pro.domain.commerce import CommerceManager
-from foodops_pro.admin.admin_config import AdminSettings
-from foodops_pro.io.data_loader import DataLoader
+from game_engine.ui.console_ui import ConsoleUI
+from game_engine.domain.commerce import CommerceManager
+from game_engine.admin.admin_config import AdminSettings
+from game_engine.io.data_loader import DataLoader
 
 
 def demo_interface():
@@ -27,7 +27,6 @@ def demo_interface():
     ]
 
     ui.print_box(welcome, "BIENVENUE", "header")
-    print()
 
     # Test de menu
     options = [
@@ -209,8 +208,8 @@ def main():
         print("  ✅ Rapports financiers complets")
 
         print("\n🚀 POUR JOUER:")
-        print("  python -m src.foodops_pro.cli_pro")
-        print("  python -m src.foodops_pro.cli_pro --admin  (mode professeur)")
+        print("  python -m src.game_engine.cli_pro")
+        print("  python -m src.game_engine.cli_pro --admin  (mode professeur)")
 
     except Exception as e:
         print(f"\n❌ Erreur durant la démonstration: {e}")

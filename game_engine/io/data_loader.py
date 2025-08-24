@@ -4,17 +4,30 @@ Chargeur de données pour FoodOps Pro.
 
 import csv
 import json
-
-import yaml  # Chargement YAML
 from decimal import Decimal
 from pathlib import Path
-from typing import Dict, List, Optional
 
-from foodops_pro.domain.ingredient import Ingredient
-from foodops_pro.domain.recipe import Recipe, RecipeItem
-from foodops_pro.domain.restaurant import RestaurantType
-from foodops_pro.domain.scenario import MarketSegment, Scenario
-from foodops_pro.domain.supplier import Supplier
+import yaml  # Chargement YAML
+
+from game_engine.domain.ingredient import Ingredient
+from game_engine.domain.recipe import Recipe, RecipeItem
+from game_engine.domain.restaurant import RestaurantType
+from game_engine.domain.scenario import MarketSegment, Scenario
+from game_engine.domain.supplier import Supplier
+from game_engine.io.models import (
+    HRSocialCharges,
+    HRTables,
+    IngredientGamme,
+    IngredientGammesDict,
+    IngredientsDict,
+    LoadAllDataResponse,
+    RecipesDict,
+    SupplierPriceEntry,
+    SupplierPricesDict,
+    SuppliersCatalogDict,
+    SuppliersCatalogEntry,
+    SuppliersDict,
+)
 
 
 class DataLoader:
@@ -22,7 +35,7 @@ class DataLoader:
     Chargeur de données depuis les fichiers CSV, JSON et YAML.
     """
 
-    def __init__(self, data_path: Optional[Path] = None) -> None:
+    def __init__(self, data_path: Path | None = None) -> None:
         """
         Initialise le chargeur de données.
 
@@ -35,7 +48,7 @@ class DataLoader:
         else:
             self.data_path = data_path
 
-    def load_ingredients(self) -> Dict[str, Ingredient]:
+    def load_ingredients(self) -> IngredientsDict:
         """
         Charge les ingrédients depuis le fichier CSV.
 
@@ -45,7 +58,7 @@ class DataLoader:
         ingredients = {}
         csv_path = self.data_path / "ingredients.csv"
 
-        with open(csv_path, "r", encoding="utf-8") as file:
+        with open(csv_path, encoding="utf-8") as file:
             reader = csv.DictReader(file)
             for row in reader:
                 ingredient = Ingredient(
@@ -62,7 +75,7 @@ class DataLoader:
 
         return ingredients
 
-    def load_recipes(self) -> Dict[str, Recipe]:
+    def load_recipes(self) -> RecipesDict:
         """
         Charge les recettes depuis les fichiers CSV.
 
@@ -73,7 +86,7 @@ class DataLoader:
         recipe_metadata = {}
         recipes_csv = self.data_path / "recipes.csv"
 
-        with open(recipes_csv, "r", encoding="utf-8") as file:
+        with open(recipes_csv, encoding="utf-8") as file:
             reader = csv.DictReader(file)
             for row in reader:
                 recipe_metadata[row["id"]] = {
@@ -91,7 +104,7 @@ class DataLoader:
         items_csv = self.data_path / "recipe_items.csv"
         recipe_items = {}
 
-        with open(items_csv, "r", encoding="utf-8") as file:
+        with open(items_csv, encoding="utf-8") as file:
             reader = csv.DictReader(file)
             for row in reader:
                 recipe_id = row["recipe_id"]
@@ -126,7 +139,7 @@ class DataLoader:
 
         return recipes
 
-    def load_suppliers(self) -> Dict[str, Supplier]:
+    def load_suppliers(self) -> SuppliersDict:
         """
         Charge les fournisseurs depuis le fichier CSV.
 
@@ -136,7 +149,7 @@ class DataLoader:
         suppliers = {}
         csv_path = self.data_path / "suppliers.csv"
 
-        with open(csv_path, "r", encoding="utf-8") as file:
+        with open(csv_path, encoding="utf-8") as file:
             reader = csv.DictReader(file)
             for row in reader:
                 supplier = Supplier(
@@ -157,64 +170,63 @@ class DataLoader:
                 suppliers[supplier.id] = supplier
         return suppliers
 
-    def load_supplier_prices(self) -> Dict[str, List[Dict]]:
+    def load_supplier_prices(self) -> SupplierPricesDict:
         """Charge la mercuriale (prix fournisseurs par ingrédient)."""
         prices_csv = self.data_path / "supplier_prices.csv"
-        catalog: Dict[str, List[Dict]] = {}
+        catalog: dict[str, list[SupplierPriceEntry]] = {}
         if not prices_csv.exists():
             return catalog
-        with open(prices_csv, "r", encoding="utf-8") as file:
+        with open(prices_csv, encoding="utf-8") as file:
             reader = csv.DictReader(file)
             for row in reader:
                 ing = row["ingredient_id"]
-                entry = {
-                    "supplier_id": row["supplier_id"],
-                    "quality_level": int(row["quality_level"])
+                entry = SupplierPriceEntry(
+                    supplier_id=row["supplier_id"],
+                    quality_level=int(row["quality_level"])
                     if row.get("quality_level")
                     else None,
-                    "pack_size": Decimal(row["pack_size"]),
-                    "pack_unit": row.get("pack_unit") or None,
-                    "unit_price_ht": Decimal(row["unit_price_ht"]),
-                    "vat_rate": Decimal(row["vat_rate"]),
-                    "moq_qty": Decimal(row["moq_qty"])
+                    pack_size=Decimal(row["pack_size"]),
+                    pack_unit=row.get("pack_unit") or None,
+                    unit_price_ht=Decimal(row["unit_price_ht"]),
+                    vat_rate=Decimal(row["vat_rate"]),
+                    moq_qty=Decimal(row["moq_qty"])
                     if row.get("moq_qty")
                     else Decimal("0"),
-                    "moq_value": Decimal(row["moq_value"])
+                    moq_value=Decimal(row["moq_value"])
                     if row.get("moq_value")
                     else Decimal("0"),
-                    "lead_time_days": int(row["lead_time_days"])
+                    lead_time_days=int(row["lead_time_days"])
                     if row.get("lead_time_days")
                     else None,
-                    "reliability": Decimal(row["reliability"])
+                    reliability=Decimal(row["reliability"])
                     if row.get("reliability")
                     else None,
-                    "available": int(row["available"]) if row.get("available") else 1,
-                }
+                    available=int(row["available"]) if row.get("available") else 1,
+                )
                 catalog.setdefault(ing, []).append(entry)
 
         return catalog
 
-    def load_ingredient_gammes(self) -> Dict[str, List[Dict]]:
+    def load_ingredient_gammes(self) -> IngredientGammesDict:
         """Charge les gammes par ingrédient (optionnel)."""
         gammes_csv = self.data_path / "ingredients_gammes.csv"
-        gammes: Dict[str, List[Dict]] = {}
+        gammes: dict[str, list[IngredientGamme]] = {}
         if not gammes_csv.exists():
             return gammes
-        with open(gammes_csv, "r", encoding="utf-8") as file:
+        with open(gammes_csv, encoding="utf-8") as file:
             reader = csv.DictReader(file)
             for row in reader:
                 ing = row["ingredient_id"]
-                entry = {
-                    "quality_level": int(row["quality_level"]),
-                    "price_multiplier": Decimal(row["price_multiplier"]),
-                    "shelf_life_factor": Decimal(row["shelf_life_factor"]),
-                    "quality_score": Decimal(row["quality_score"]),
-                }
+                entry = IngredientGamme(
+                    quality_level=int(row["quality_level"]),
+                    price_multiplier=Decimal(row["price_multiplier"]),
+                    shelf_life_factor=Decimal(row["shelf_life_factor"]),
+                    quality_score=Decimal(row["quality_score"]),
+                )
                 gammes.setdefault(ing, []).append(entry)
         return gammes
-        return suppliers
 
-    def load_hr_tables(self) -> Dict:
+    def load_hr_tables(self) -> HRTables:
         """
         Charge les tables RH depuis le fichier JSON.
 
@@ -222,33 +234,53 @@ class DataLoader:
             Configuration RH complète
         """
         json_path = self.data_path / "hr_tables.json"
-        with open(json_path, "r", encoding="utf-8") as file:
+        with open(json_path, encoding="utf-8") as file:
             hr_data = json.load(file)
 
+        # Conversion des valeurs numériques en Decimal
+        social_charges_data = hr_data.get("social_charges", {})
+        for contract_type, rates in social_charges_data.items():
+            for rate_type, value in rates.items():
+                if isinstance(value, int | float):
+                    social_charges_data[contract_type][rate_type] = Decimal(str(value))
+
+        # Création du modèle Pydantic
+        social_charges = HRSocialCharges(
+            cdi=Decimal(str(social_charges_data.get("cdi", 0.42))),
+            cdd=Decimal(str(social_charges_data.get("cdd", 0.44))),
+            extra=Decimal(str(social_charges_data.get("extra", 0.45))),
+            apprenti=Decimal(str(social_charges_data.get("apprenti", 0.11))),
+            stage=Decimal(str(social_charges_data.get("stage", 0.00))),
+        )
+
+        return HRTables(social_charges=social_charges)
+
     def build_suppliers_catalog(
-        self, suppliers: Dict[str, Supplier], prices: Dict[str, List[Dict]]
-    ) -> Dict[str, List[Dict]]:
+        self, suppliers: SuppliersDict, prices: SupplierPricesDict
+    ) -> SuppliersCatalogDict:
         """Construit un catalogue enrichi avec lead_time et fiabilité."""
-        catalog: Dict[str, List[Dict]] = {}
+        catalog: dict[str, list[SuppliersCatalogEntry]] = {}
         for ing_id, entries in prices.items():
             for e in entries:
-                sup = suppliers.get(e["supplier_id"])
-                offer = dict(e)
+                sup = suppliers.get(e.supplier_id)
                 if sup:
-                    offer["lead_time_days"] = sup.lead_time_days
-                    offer["reliability"] = sup.reliability
-                catalog.setdefault(ing_id, []).append(offer)
+                    catalog_entry = SuppliersCatalogEntry(
+                        supplier_id=e.supplier_id,
+                        quality_level=e.quality_level,
+                        pack_size=e.pack_size,
+                        pack_unit=e.pack_unit,
+                        unit_price_ht=e.unit_price_ht,
+                        vat_rate=e.vat_rate,
+                        moq_qty=e.moq_qty,
+                        moq_value=e.moq_value,
+                        lead_time_days=sup.lead_time_days,
+                        reliability=sup.reliability,
+                        available=e.available,
+                    )
+                    catalog.setdefault(ing_id, []).append(catalog_entry)
         return catalog
 
-        # Conversion des valeurs numériques en Decimal
-        for contract_type, rates in hr_data.get("social_charges", {}).items():
-            for rate_type, value in rates.items():
-                if isinstance(value, (int, float)):
-                    hr_data["social_charges"][contract_type][rate_type] = Decimal(
-                        str(value)
-                    )
-
-    def _fallback_scenario_data(self) -> Dict:
+    def _fallback_scenario_data(self) -> dict:
         """Scénario par défaut minimal si YAML indisponible."""
         return {
             "name": "Scénario de Base (fallback)",
@@ -357,8 +389,6 @@ class DataLoader:
             "interest_rate": 0.045,
         }
 
-        return hr_data
-
     def load_scenario(self, scenario_path: Path) -> Scenario:
         """
         Charge un scénario depuis un fichier JSON.
@@ -372,12 +402,12 @@ class DataLoader:
         # Si c'est un fichier .yaml, on charge via PyYAML si disponible, sinon fallback JSON embarqué
         if str(scenario_path).endswith(".yaml"):
             if yaml is not None:
-                with open(scenario_path, "r", encoding="utf-8") as file:
+                with open(scenario_path, encoding="utf-8") as file:
                     data = yaml.safe_load(file)
             else:
                 data = self._fallback_scenario_data()
         else:
-            with open(scenario_path, "r", encoding="utf-8") as file:
+            with open(scenario_path, encoding="utf-8") as file:
                 data = json.load(file)
 
         # Conversion des segments
@@ -436,7 +466,7 @@ class DataLoader:
 
         return scenario
 
-    def _get_default_scenario_config(self) -> Dict:
+    def _get_default_scenario_config(self) -> dict:
         """Retourne la configuration par défaut du scénario."""
         return {
             "name": "Scénario Standard",
@@ -529,7 +559,7 @@ class DataLoader:
             / "base.yaml"
         )
 
-    def load_all_data(self, scenario_path: Optional[Path] = None) -> Dict:
+    def load_all_data(self, scenario_path: Path | None = None) -> LoadAllDataResponse:
         """
         Charge toutes les données nécessaires au jeu.
 
@@ -537,7 +567,7 @@ class DataLoader:
             scenario_path: Chemin vers le scénario (optionnel)
 
         Returns:
-            Dict avec toutes les données chargées
+            Données complètes du jeu dans un modèle Pydantic
         """
         if scenario_path is None:
             scenario_path = self.get_default_scenario_path()
@@ -545,12 +575,13 @@ class DataLoader:
         suppliers = self.load_suppliers()
         supplier_prices = self.load_supplier_prices()
         suppliers_catalog = self.build_suppliers_catalog(suppliers, supplier_prices)
-        return {
-            "ingredients": self.load_ingredients(),
-            "recipes": self.load_recipes(),
-            "suppliers": suppliers,
-            "suppliers_catalog": suppliers_catalog,
-            "ingredient_gammes": self.load_ingredient_gammes(),
-            "hr_tables": self.load_hr_tables(),
-            "scenario": self.load_scenario(scenario_path),
-        }
+
+        return LoadAllDataResponse(
+            ingredients=self.load_ingredients(),
+            recipes=self.load_recipes(),
+            suppliers=suppliers,
+            suppliers_catalog=suppliers_catalog,
+            ingredient_gammes=self.load_ingredient_gammes(),
+            hr_tables=self.load_hr_tables(),
+            scenario=self.load_scenario(scenario_path),
+        )

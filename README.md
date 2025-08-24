@@ -62,20 +62,20 @@ uv run demo.py
 
 ```bash
 # Version classique
-python -m src.foodops_pro.cli
-python -m src.foodops_pro.cli --scenario examples/scenarios/base.yaml
-python -m src.foodops_pro.cli --debug --seed 42
+python -m src.game_engine.cli
+python -m src.game_engine.cli --scenario examples/scenarios/base.yaml
+python -m src.game_engine.cli --debug --seed 42
 ```
 
 ```bash
 # Version Pro (interface enrichie)
-python -m src.foodops_pro.cli_pro
-python -m src.foodops_pro.cli_pro --scenario examples/scenarios/base.yaml
+python -m src.game_engine.cli_pro
+python -m src.game_engine.cli_pro --scenario examples/scenarios/base.yaml
 ```
 
 ```bash
 # Mode Administrateur (Professeur)
-python -m src.foodops_pro.cli_pro --admin
+python -m src.game_engine.cli_pro --admin
 ```
 
 Choisissez votre :
@@ -89,7 +89,7 @@ Choisissez votre :
 
 ```bash
 # Utiliser un preset
-python -m src.foodops_pro.cli_pro --scenario admin_configs/preset_demo.yaml
+python -m src.game_engine.cli_pro --scenario admin_configs/preset_demo.yaml
 ```
 
 ## 🏗️ Architecture
@@ -142,7 +142,7 @@ tests/
 
 ## 🎮 Comment jouer (Classique)
 
-1. **Lancement** : `python -m src.foodops_pro.cli`
+1. **Lancement** : `python -m src.game_engine.cli`
 2. **Configuration** : Choisissez le nombre de joueurs (1-4) et le type de restaurant
 3. **Chaque tour** :
    - Ajustez vos prix de vente
@@ -152,7 +152,7 @@ tests/
 
 ## 🎮 Comment jouer (Pro)
 
-1. **Lancement** : `python -m src.foodops_pro.cli_pro`
+1. **Lancement** : `python -m src.game_engine.cli_pro`
 2. **Briefing** : l’écran d’accueil affiche le scénario (contexte, objectifs, segments)
 3. **Achat** : choisissez un fonds de commerce (prix, loyer, rénovation, trafic, concurrence)
 4. **Configuration** : nommez votre restaurant, un menu de base est appliqué
@@ -163,7 +163,7 @@ tests/
 
 ## 👨‍🏫 Guide Professeur (Mode Administrateur)
 
-Démarrer : `python -m src.foodops_pro.cli_pro --admin`
+Démarrer : `python -m src.game_engine.cli_pro --admin`
 
 - 📋 Session : nom du cours, professeur, code de cours, année
 - 🎮 Jeu : joueurs max, nombre de tours, budgets, IA (nombre + difficulté)

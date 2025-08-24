@@ -3,8 +3,8 @@
 Démonstration du mode administrateur FoodOps Pro.
 """
 
-from src.foodops_pro.admin.admin_config import AdminSettings
-from src.foodops_pro.ui.console_ui import ConsoleUI
+from src.game_engine.admin.admin_config import AdminSettings
+from src.game_engine.ui.console_ui import ConsoleUI
 
 
 def demo_admin_interface():
@@ -31,7 +31,6 @@ def demo_admin_interface():
     ]
 
     ui.print_box(welcome, "MODE PROFESSEUR", "header")
-    print()
 
 
 def demo_configuration_actuelle():
@@ -59,7 +58,6 @@ def demo_configuration_actuelle():
     ]
 
     ui.print_box(config_summary, "CONFIGURATION ACTUELLE", "info")
-    print()
 
 
 def demo_menu_configuration():
@@ -79,7 +77,6 @@ def demo_menu_configuration():
     print("MENU DE CONFIGURATION DISPONIBLE:")
     for i, option in enumerate(menu_options, 1):
         print(f"  {i}. {option}")
-    print()
 
 
 def demo_criteres_notation():
@@ -105,7 +102,6 @@ def demo_criteres_notation():
     ]
 
     ui.print_box(notation_info, "ÉVALUATION PÉDAGOGIQUE", "success")
-    print()
 
 
 def demo_parametres_avances():
@@ -139,7 +135,6 @@ def demo_parametres_avances():
     ]
 
     ui.print_box(avances_info, "CONFIGURATION AVANCÉE", "warning")
-    print()
 
 
 def demo_scenarios_pedagogiques():
@@ -175,7 +170,6 @@ def demo_scenarios_pedagogiques():
     ]
 
     ui.print_box(scenarios, "SCÉNARIOS TYPES", "info")
-    print()
 
 
 def demo_export_resultats():
@@ -209,7 +203,6 @@ def demo_export_resultats():
     ]
 
     ui.print_box(export_info, "SUIVI PÉDAGOGIQUE", "success")
-    print()
 
 
 def main():
@@ -225,7 +218,7 @@ def main():
     print("=" * 70)
     print("🎉 DÉMONSTRATION MODE ADMINISTRATEUR TERMINÉE")
     print("=" * 70)
-    print()
+
     print("✨ FONCTIONNALITÉS CLÉS DU MODE PROFESSEUR:")
     print("  ✅ Configuration complète des paramètres de jeu")
     print("  ✅ Critères d'évaluation personnalisables")
@@ -234,10 +227,10 @@ def main():
     print("  ✅ Export automatique des résultats")
     print("  ✅ Intégration avec les LMS")
     print("  ✅ Analyses et recommandations pédagogiques")
-    print()
+
     print("🚀 POUR UTILISER LE MODE ADMIN:")
-    print("  python -m src.foodops_pro.cli_pro --admin")
-    print()
+    print("  python -m src.game_engine.cli_pro --admin")
+
     print("📚 IDÉAL POUR:")
     print("  • Cours de gestion d'entreprise")
     print("  • Formations en entrepreneuriat")

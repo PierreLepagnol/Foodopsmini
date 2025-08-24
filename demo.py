@@ -6,13 +6,13 @@ Combine les fonctionnalités de demo.py, demo_admin.py, demo_pro.py
 
 from decimal import Decimal
 
-from src.foodops_pro.admin.admin_config import AdminSettings
-from src.foodops_pro.core.costing import RecipeCostCalculator
-from src.foodops_pro.core.market import MarketEngine
-from src.foodops_pro.domain.commerce import CommerceManager
-from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
-from src.foodops_pro.io.data_loader import DataLoader
-from src.foodops_pro.ui.console_ui import ConsoleUI
+from creation_scenario import AdminSettings
+from game_engine.core.costing import RecipeCostCalculator
+from game_engine.core.market import MarketEngine
+from game_engine.domain.commerce import CommerceManager
+from game_engine.domain.restaurant import Restaurant, RestaurantType
+from game_engine.io.data_loader import DataLoader
+from game_engine.ui.console_ui import ConsoleUI
 
 
 def demo_data_loading():
@@ -124,7 +124,7 @@ def demo_market_simulation(data):
     market_engine = MarketEngine(scenario, random_seed=42)
 
     print(f"\nSimulation sur {scenario.base_demand} clients potentiels")
-    print(f"Segments de marché :")
+    print("Segments de marché :")
     for segment in scenario.segments:
         print(f"  - {segment.name}: {segment.share:.1%} (budget: {segment.budget}€)")
 
@@ -155,7 +155,7 @@ def demo_market_simulation(data):
 
     # Analyse finale
     analysis = market_engine.get_market_analysis()
-    print(f"\nAnalyse du marché (dernier tour) :")
+    print("\nAnalyse du marché (dernier tour) :")
     print(f"  Total clients servis: {analysis['total_served']}")
     print(f"  CA total: {analysis['total_revenue']:.0f}€")
     print(f"  Taux d'utilisation marché: {analysis['market_utilization']:.1%}")
@@ -185,7 +185,6 @@ def demo_admin_interface():
     ]
 
     ui.print_box(welcome, "MODE PROFESSEUR", "header")
-    print()
 
 
 def demo_configuration_actuelle():
@@ -206,12 +205,11 @@ def demo_configuration_actuelle():
     ]
 
     ui.print_box(config_summary, "CONFIGURATION ACTUELLE", "info")
-    print()
 
 
 def demo_menu_configuration():
     """Affiche le menu de configuration."""
-    ui = ConsoleUI()
+    ConsoleUI()
 
     menu_options = [
         "📋 Informations de session",
@@ -228,7 +226,6 @@ def demo_menu_configuration():
     print("MENU DE CONFIGURATION DISPONIBLE:")
     for i, option in enumerate(menu_options, 1):
         print(f"  {i}. {option}")
-    print()
 
 
 def demo_criteres_notation():
@@ -254,7 +251,6 @@ def demo_criteres_notation():
     ]
 
     ui.print_box(notation_info, "ÉVALUATION PÉDAGOGIQUE", "success")
-    print()
 
 
 # FONCTIONS DE DÉMONSTRATION PRO (issues de demo_pro.py)
@@ -275,7 +271,6 @@ def demo_interface_pro():
     ]
 
     ui.print_box(welcome, "BIENVENUE", "header")
-    print()
 
 
 def demo_commerce_pro():
@@ -395,24 +390,24 @@ def show_demo_menu():
     print("🎮 FOODOPS PRO - SUITE DE DÉMONSTRATIONS")
     print("=" * 60)
     print("Choisissez une démonstration:")
-    print()
+
     print("1. 📊 Chargement des données & calculs de base")
     print("   (Original demo.py)")
-    print()
+
     print("2. 👨‍🏫 Interface & configuration administrateur")
     print("   (Fonctionnalités professeur)")
-    print()
+
     print("3. 🍽️ Interface professionnelle & commerce")
     print("   (Nouvelles fonctionnalités Pro)")
-    print()
+
     print("4. 📈 KPIs financiers & compte de résultat")
     print("   (Outils de gestion avancés)")
-    print()
+
     print("5. 🎯 Démonstration complète")
     print("   (Toutes les démos en séquence)")
-    print()
+
     print("6. ❌ Quitter")
-    print()
+
     return input("Votre choix (1-6) : ").strip()
 
 

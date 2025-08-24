@@ -6,22 +6,19 @@ from typing import Dict
 from decimal import Decimal
 from datetime import datetime
 
-from foodops_pro.core.ledger import Ledger
-from foodops_pro.domain.restaurant import Restaurant
-from foodops_pro.console_ui import ConsoleUI
+from game_engine.core.ledger import Ledger
+from game_engine.domain.restaurant import Restaurant
+from game_engine.ui.console_ui import clear_screen, print_box
 
 
 class FinancialReports:
     """Générateur de rapports financiers professionnels."""
 
-    def __init__(self, ui: ConsoleUI):
-        self.ui = ui
-
     def show_profit_loss_statement(
         self, restaurant: Restaurant, ledger: Ledger, period: str = "Mois en cours"
     ) -> None:
         """Affiche le compte de résultat professionnel."""
-        self.ui.clear_screen()
+        clear_screen()
 
         # Récupération des données comptables
         pnl_data = ledger.get_profit_loss()
@@ -102,14 +99,10 @@ class FinancialReports:
 
         # Affichage du compte de résultat
         all_lines = header + pnl_lines
-        self.ui.print_box(all_lines, style="info")
-
-        print()
+        print_box(all_lines, style="info")
 
         # KPIs métier
         self._show_business_kpis(restaurant, metrics)
-
-        print()
 
         # Analyse et recommandations
         self._show_financial_analysis(metrics)
@@ -235,7 +228,7 @@ class FinancialReports:
         else:
             style = "error"
 
-        self.ui.print_box(kpis, style=style)
+        print_box(kpis, style=style)
 
     def _show_financial_analysis(self, metrics: Dict[str, Decimal]) -> None:
         """Affiche l'analyse financière et les recommandations."""
@@ -290,17 +283,16 @@ class FinancialReports:
 
         # Affichage de l'analyse
         if analysis:
-            self.ui.print_box(analysis, "DIAGNOSTIC", "info")
+            print_box(analysis, "DIAGNOSTIC", "info")
 
         # Affichage des recommandations
         if recommendations:
-            print()
             rec_lines = ["RECOMMANDATIONS:"] + [f"• {rec}" for rec in recommendations]
-            self.ui.print_box(rec_lines, style="warning")
+            print_box(rec_lines, style="warning")
 
     def show_cash_flow_statement(self, restaurant: Restaurant, ledger: Ledger) -> None:
         """Affiche le tableau de flux de trésorerie."""
-        self.ui.clear_screen()
+        clear_screen()
 
         cash_flow = [
             f"TABLEAU DE FLUX DE TRÉSORERIE - {restaurant.name.upper()}",
@@ -329,7 +321,7 @@ class FinancialReports:
             f"TRÉSORERIE FIN DE PÉRIODE              │ {restaurant.cash:>15.2f} €",
         ]
 
-        self.ui.print_box(cash_flow, style="info")
+        print_box(cash_flow, style="info")
 
         # Analyse de la trésorerie
         treasury_analysis = [
@@ -353,8 +345,7 @@ class FinancialReports:
             treasury_analysis.append("✅ Trésorerie saine")
             style = "success"
 
-        print()
-        self.ui.print_box(treasury_analysis, style=style)
+        print_box(treasury_analysis, style=style)
 
     def _calculate_autonomy(self, restaurant: Restaurant) -> Decimal:
         """Calcule l'autonomie financière en mois."""
@@ -365,7 +356,7 @@ class FinancialReports:
 
     def show_balance_sheet(self, restaurant: Restaurant, ledger: Ledger) -> None:
         """Affiche le bilan comptable."""
-        self.ui.clear_screen()
+        clear_screen()
 
         balance_sheet = [
             f"BILAN COMPTABLE - {restaurant.name.upper()}",
@@ -388,4 +379,4 @@ class FinancialReports:
             f"TOTAL ACTIF               {restaurant.cash + restaurant.equipment_value:>10.2f} € │ TOTAL PASSIF            {Decimal('0'):>10.2f} €",
         ]
 
-        self.ui.print_box(balance_sheet, style="info")
+        print_box(balance_sheet, style="info")

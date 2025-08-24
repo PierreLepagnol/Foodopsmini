@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from decimal import Decimal
 
-from foodops_pro.domain.ingredient import Ingredient
-from foodops_pro.domain.recipe import Recipe
-from foodops_pro.domain.stock import StockLot
-from foodops_pro.domain.restaurant import RestaurantType
+from game_engine.domain.ingredient import Ingredient
+from game_engine.domain.recipe import Recipe
+from game_engine.domain.stock import StockLot
+from game_engine.domain.restaurant import RestaurantType
 
 
 @dataclass
@@ -324,7 +324,6 @@ class RecipeCostCalculator:
             Suggestions d'optimisation
         """
         cost_breakdown = self.calculate_recipe_cost(recipe)
-        current_cost = cost_breakdown.cost_per_portion
 
         # Analyse des ingrédients les plus coûteux
         sorted_costs = sorted(

@@ -6,9 +6,9 @@ import pytest
 from pathlib import Path
 from decimal import Decimal
 
-from src.foodops_pro.io.data_loader import DataLoader
-from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
-from src.foodops_pro.domain.employee import Employee, EmployeePosition, EmployeeContract
+from src.game_engine.io.data_loader import DataLoader
+from src.game_engine.domain.restaurant import Restaurant, RestaurantType
+from src.game_engine.domain.employee import Employee, EmployeePosition, EmployeeContract
 
 
 @pytest.fixture(scope="session")

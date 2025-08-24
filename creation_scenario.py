@@ -1,20 +1,24 @@
-"""
-Configuration administrateur pour FoodOps Pro.
-"""
-
-from dataclasses import dataclass, field
-from typing import Dict, List
+import json
 from decimal import Decimal
 from pathlib import Path
+from typing import Dict, List
 
-# import yaml  # Remplacé par configuration Python
-import json
+from pydantic import BaseModel
 
-from foodops_pro.ui.console_ui import ConsoleUI
+from game_engine.ui.console_ui import (
+    clear_screen,
+    print_box,
+    show_error,
+    show_menu,
+    pause,
+    get_input,
+    show_success,
+    show_info,
+    confirm,
+)
 
 
-@dataclass
-class AdminSettings:
+class AdminSettings(BaseModel):
     """Configuration administrateur pour une partie."""
 
     # Informations générales
@@ -61,44 +65,39 @@ class AdminSettings:
 
     # Évaluation
     enable_scoring: bool = True
-    scoring_criteria: Dict[str, Decimal] = field(
-        default_factory=lambda: {
-            "survival": Decimal("0.3"),  # 30% - Survie
-            "profitability": Decimal("0.25"),  # 25% - Rentabilité
-            "growth": Decimal("0.20"),  # 20% - Croissance
-            "efficiency": Decimal("0.15"),  # 15% - Efficacité
-            "strategy": Decimal("0.10"),  # 10% - Stratégie
-        }
-    )
+    scoring_criteria: Dict[str, Decimal] = {
+        "survival": Decimal("0.3"),  # 30% - Survie
+        "profitability": Decimal("0.25"),  # 25% - Rentabilité
+        "growth": Decimal("0.20"),  # 20% - Croissance
+        "efficiency": Decimal("0.15"),  # 15% - Efficacité
+        "strategy": Decimal("0.10"),  # 10% - Stratégie
+    }
 
     # Restrictions
-    restrict_restaurant_types: List[str] = field(default_factory=list)
+    restrict_restaurant_types: List[str] = []
     min_employees: int = 1
     max_employees: int = 10
     allow_price_changes: bool = True
     price_change_limit: Decimal = Decimal("0.20")  # ±20%
 
     # Commerce disponibles
-    available_locations: List[str] = field(
-        default_factory=lambda: [
-            "centre_ville",
-            "banlieue",
-            "zone_commerciale",
-            "quartier_etudiant",
-        ]
-    )
+    available_locations: List[str] = [
+        "centre_ville",
+        "banlieue",
+        "zone_commerciale",
+        "quartier_etudiant",
+    ]
 
 
 class AdminConfigManager:
     """Gestionnaire de configuration administrateur."""
 
     def __init__(self):
-        self.ui = ConsoleUI()
         self.settings = AdminSettings()
 
     def configure_session(self) -> AdminSettings:
         """Interface de configuration complète pour l'administrateur."""
-        self.ui.clear_screen()
+        clear_screen()
 
         welcome = [
             "👨‍🏫 CONFIGURATION ADMINISTRATEUR",
@@ -107,9 +106,9 @@ class AdminConfigManager:
             "Vous pouvez personnaliser tous les aspects de la partie",
             "pour vos étudiants.",
         ]
-        self.ui.print_box(welcome, "MODE PROFESSEUR", "header")
+        print_box(welcome, "MODE PROFESSEUR", "header")
 
-        self.ui.clear_screen()
+        clear_screen()
         self._show_current_config()
         # Menu principal de configuration
         while True:
@@ -150,7 +149,7 @@ class AdminConfigManager:
                 {"title": "▶️ Lancer la partie", "action": self._launch_game},
             ]
 
-            choice = self.ui.show_menu(
+            choice = show_menu(
                 "CONFIGURATION ADMINISTRATEUR", menu_options, allow_back=False
             )
 
@@ -195,50 +194,50 @@ class AdminConfigManager:
             f"📊 Notation automatique: {'✅' if self.settings.enable_scoring else '❌'}",
         ]
 
-        self.ui.print_box(config_summary, "CONFIGURATION ACTUELLE", "info")
+        print_box(config_summary, "CONFIGURATION ACTUELLE", "info")
 
     def _configure_session_info(self):
         """Configure les informations de session."""
-        self.ui.clear_screen()
+        clear_screen()
 
         info = [
             "📋 INFORMATIONS DE SESSION",
             "",
             "Définissez les informations générales de votre cours.",
         ]
-        self.ui.print_box(info, style="header")
+        print_box(info, style="header")
 
-        self.settings.session_name = self.ui.get_input(
+        self.settings.session_name = get_input(
             "Nom de la session", default=self.settings.session_name
         )
 
-        self.settings.instructor_name = self.ui.get_input(
+        self.settings.instructor_name = get_input(
             "Nom du professeur", default=self.settings.instructor_name
         )
 
-        self.settings.course_code = self.ui.get_input(
+        self.settings.course_code = get_input(
             "Code du cours (ex: GEST301)", default=self.settings.course_code
         )
 
-        self.settings.academic_year = self.ui.get_input(
+        self.settings.academic_year = get_input(
             "Année académique", default=self.settings.academic_year
         )
 
-        self.ui.show_success("Informations de session mises à jour.")
-        self.ui.pause()
+        show_success("Informations de session mises à jour.")
+        pause()
 
     def _configure_game_params(self):
         """Configure les paramètres de jeu."""
-        self.ui.clear_screen()
+        clear_screen()
 
         info = [
             "🎮 PARAMÈTRES DE JEU",
             "",
             "Définissez la durée, la difficulté et les règles de base.",
         ]
-        self.ui.print_box(info, style="header")
+        print_box(info, style="header")
 
-        self.settings.max_players = self.ui.get_input(
+        self.settings.max_players = get_input(
             "Nombre maximum de joueurs",
             int,
             min_val=1,
@@ -246,7 +245,7 @@ class AdminConfigManager:
             default=self.settings.max_players,
         )
 
-        self.settings.total_turns = self.ui.get_input(
+        self.settings.total_turns = get_input(
             "Nombre de tours",
             int,
             min_val=6,
@@ -261,7 +260,7 @@ class AdminConfigManager:
             "1 trimestre",
             "6 mois",
         ]
-        duration_choice = self.ui.show_menu(
+        duration_choice = show_menu(
             "Durée représentée par chaque tour", duration_options
         )
         if duration_choice > 0:
@@ -269,33 +268,33 @@ class AdminConfigManager:
                 duration_choice - 1
             ]
 
-        self.settings.starting_budget_min = self.ui.get_input(
+        self.settings.starting_budget_min = get_input(
             "Budget initial minimum (€)",
             Decimal,
             min_val=Decimal("5000"),
             default=self.settings.starting_budget_min,
         )
 
-        self.settings.starting_budget_max = self.ui.get_input(
+        self.settings.starting_budget_max = get_input(
             "Budget initial maximum (€)",
             Decimal,
             min_val=self.settings.starting_budget_min,
             default=self.settings.starting_budget_max,
         )
 
-        self.settings.allow_loans = self.ui.confirm(
+        self.settings.allow_loans = confirm(
             "Autoriser les emprunts", default=self.settings.allow_loans
         )
 
         if self.settings.allow_loans:
-            self.settings.max_loan_amount = self.ui.get_input(
+            self.settings.max_loan_amount = get_input(
                 "Montant maximum d'emprunt (€)",
                 Decimal,
                 min_val=Decimal("10000"),
                 default=self.settings.max_loan_amount,
             )
 
-            self.settings.loan_interest_rate = self.ui.get_input(
+            self.settings.loan_interest_rate = get_input(
                 "Taux d'intérêt annuel (ex: 0.045 pour 4.5%)",
                 Decimal,
                 min_val=Decimal("0.01"),
@@ -305,12 +304,12 @@ class AdminConfigManager:
 
         # Configuration IA
         difficulty_options = ["Facile", "Moyen", "Difficile"]
-        difficulty_choice = self.ui.show_menu("Difficulté de l'IA", difficulty_options)
+        difficulty_choice = show_menu("Difficulté de l'IA", difficulty_options)
         if difficulty_choice > 0:
             difficulty_map = ["easy", "medium", "hard"]
             self.settings.ai_difficulty = difficulty_map[difficulty_choice - 1]
 
-        self.settings.ai_count = self.ui.get_input(
+        self.settings.ai_count = get_input(
             "Nombre de concurrents IA",
             int,
             min_val=0,
@@ -318,48 +317,48 @@ class AdminConfigManager:
             default=self.settings.ai_count,
         )
 
-        self.ui.show_success("Paramètres de jeu mis à jour.")
-        self.ui.pause()
+        show_success("Paramètres de jeu mis à jour.")
+        pause()
 
     def _configure_automation(self):
         """Configure les automatisations et confirmations (achats & prévision)."""
-        self.ui.clear_screen()
+        clear_screen()
         info = [
             "⚙️ AUTOMATISATIONS & CONFIRMATIONS",
             "",
             "Activez les options d'automatisation pour accélérer les décisions,",
             "tout en conservant la validation humaine sur chaque ligne d'achat.",
         ]
-        self.ui.print_box(info, style="header")
+        print_box(info, style="header")
 
-        self.settings.auto_forecast_enabled = self.ui.confirm(
+        self.settings.auto_forecast_enabled = confirm(
             "Activer la prévision automatique (remplissage) ?",
             default=self.settings.auto_forecast_enabled,
         )
-        self.settings.auto_purchase_enabled = self.ui.confirm(
+        self.settings.auto_purchase_enabled = confirm(
             "Activer la proposition de commande automatique ?",
             default=self.settings.auto_purchase_enabled,
         )
-        self.settings.require_line_confirmation = self.ui.confirm(
+        self.settings.require_line_confirmation = confirm(
             "Exiger confirmation par ligne (recommandé) ?",
             default=self.settings.require_line_confirmation,
         )
 
-        self.ui.show_success("Options d'automatisation mises à jour.")
-        self.ui.pause()
+        show_success("Options d'automatisation mises à jour.")
+        pause()
 
     def _configure_market(self):
         """Configure le marché et la concurrence."""
-        self.ui.clear_screen()
+        clear_screen()
 
         info = [
             "📊 MARCHÉ ET CONCURRENCE",
             "",
             "Définissez la taille du marché et l'intensité concurrentielle.",
         ]
-        self.ui.print_box(info, style="header")
+        print_box(info, style="header")
 
-        self.settings.total_market_size = self.ui.get_input(
+        self.settings.total_market_size = get_input(
             "Taille totale du marché (clients/tour)",
             int,
             min_val=100,
@@ -367,7 +366,7 @@ class AdminConfigManager:
             default=self.settings.total_market_size,
         )
 
-        self.settings.market_growth_rate = self.ui.get_input(
+        self.settings.market_growth_rate = get_input(
             "Taux de croissance du marché par an (ex: 0.02 pour 2%)",
             Decimal,
             min_val=Decimal("-0.05"),
@@ -376,36 +375,34 @@ class AdminConfigManager:
         )
 
         competition_options = ["Faible", "Normale", "Intense"]
-        competition_choice = self.ui.show_menu(
-            "Intensité concurrentielle", competition_options
-        )
+        competition_choice = show_menu("Intensité concurrentielle", competition_options)
         if competition_choice > 0:
             competition_map = ["low", "normal", "high"]
             self.settings.competition_intensity = competition_map[
                 competition_choice - 1
             ]
 
-        self.ui.show_success("Configuration du marché mise à jour.")
-        self.ui.pause()
+        show_success("Configuration du marché mise à jour.")
+        pause()
 
     def _configure_events(self):
         """Configure les événements et le réalisme."""
-        self.ui.clear_screen()
+        clear_screen()
 
         info = [
             "🎯 ÉVÉNEMENTS ET RÉALISME",
             "",
             "Activez les mécaniques qui rendent le jeu plus réaliste.",
         ]
-        self.ui.print_box(info, style="header")
+        print_box(info, style="header")
 
-        self.settings.enable_random_events = self.ui.confirm(
+        self.settings.enable_random_events = confirm(
             "Activer les événements aléatoires",
             default=self.settings.enable_random_events,
         )
 
         if self.settings.enable_random_events:
-            self.settings.event_frequency = self.ui.get_input(
+            self.settings.event_frequency = get_input(
                 "Fréquence des événements (ex: 0.15 pour 15% par tour)",
                 Decimal,
                 min_val=Decimal("0.05"),
@@ -413,31 +410,31 @@ class AdminConfigManager:
                 default=self.settings.event_frequency,
             )
 
-        self.settings.enable_seasonal_effects = self.ui.confirm(
+        self.settings.enable_seasonal_effects = confirm(
             "Activer les effets saisonniers",
             default=self.settings.enable_seasonal_effects,
         )
 
-        self.settings.enable_economic_cycles = self.ui.confirm(
+        self.settings.enable_economic_cycles = confirm(
             "Activer les cycles économiques",
             default=self.settings.enable_economic_cycles,
         )
 
-        self.ui.show_success("Configuration des événements mise à jour.")
-        self.ui.pause()
+        show_success("Configuration des événements mise à jour.")
+        pause()
 
     def _configure_evaluation(self):
         """Configure l'évaluation et la notation."""
-        self.ui.clear_screen()
+        clear_screen()
 
         info = [
             "📝 ÉVALUATION ET NOTATION",
             "",
             "Configurez le système de notation automatique.",
         ]
-        self.ui.print_box(info, style="header")
+        print_box(info, style="header")
 
-        self.settings.enable_scoring = self.ui.confirm(
+        self.settings.enable_scoring = confirm(
             "Activer la notation automatique", default=self.settings.enable_scoring
         )
 
@@ -454,7 +451,7 @@ class AdminConfigManager:
 
             total_weight = Decimal("0")
             for key, name in criteria_names.items():
-                weight = self.ui.get_input(
+                weight = get_input(
                     f"Poids pour {name}",
                     Decimal,
                     min_val=Decimal("0"),
@@ -465,31 +462,29 @@ class AdminConfigManager:
                 total_weight += weight
 
             if abs(total_weight - Decimal("1.0")) > Decimal("0.01"):
-                self.ui.show_error(
-                    f"Le total des poids ({total_weight}) doit faire 1.0"
-                )
-                self.ui.pause()
+                show_error(f"Le total des poids ({total_weight}) doit faire 1.0")
+                pause()
                 return
 
-        self.settings.detailed_feedback = self.ui.confirm(
+        self.settings.detailed_feedback = confirm(
             "Fournir un feedback détaillé aux étudiants",
             default=self.settings.detailed_feedback,
         )
 
-        self.ui.show_success("Configuration de l'évaluation mise à jour.")
-        self.ui.pause()
+        show_success("Configuration de l'évaluation mise à jour.")
+        pause()
 
     def _configure_restrictions(self):
         """Configure les restrictions et limites."""
         # Implementation simplifiée pour l'instant
-        self.ui.show_info("Configuration des restrictions - À implémenter")
-        self.ui.pause()
+        show_info("Configuration des restrictions - À implémenter")
+        pause()
 
     def _configure_commerce_locations(self):
         """Configure les emplacements de commerce disponibles."""
         # Implementation simplifiée pour l'instant
-        self.ui.show_info("Configuration des emplacements - À implémenter")
-        self.ui.pause()
+        show_info("Configuration des emplacements - À implémenter")
+        pause()
 
     def _save_configuration(self):
         """Sauvegarde la configuration."""
@@ -525,9 +520,9 @@ class AdminConfigManager:
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(config_dict, f, indent=2, ensure_ascii=False)
 
-        self.ui.show_success(f"Configuration sauvegardée dans {config_path}")
+        show_success(f"Configuration sauvegardée dans {config_path}")
 
-        self.ui.pause()
+        pause()
 
     def _validate_configuration(self) -> bool:
         """Valide la configuration avant de lancer la partie."""
@@ -548,8 +543,8 @@ class AdminConfigManager:
             error_msg = "Erreurs de configuration:\n" + "\n".join(
                 f"• {error}" for error in errors
             )
-            self.ui.show_error(error_msg)
-            self.ui.pause()
+            show_error(error_msg)
+            pause()
             return False
 
         return True

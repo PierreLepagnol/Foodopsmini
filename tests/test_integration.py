@@ -6,12 +6,12 @@ from decimal import Decimal
 
 import pytest
 
-from src.foodops_pro.core.costing import RecipeCostCalculator
-from src.foodops_pro.core.ledger import Ledger
-from src.foodops_pro.core.market import MarketEngine
-from src.foodops_pro.core.payroll_fr import PayrollCalculator
-from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
-from src.foodops_pro.io.data_loader import DataLoader
+from src.game_engine.core.costing import RecipeCostCalculator
+from src.game_engine.core.ledger import Ledger
+from src.game_engine.core.market import MarketEngine
+from src.game_engine.core.payroll_fr import PayrollCalculator
+from src.game_engine.domain.restaurant import Restaurant, RestaurantType
+from src.game_engine.io.data_loader import DataLoader
 
 
 @pytest.mark.integration

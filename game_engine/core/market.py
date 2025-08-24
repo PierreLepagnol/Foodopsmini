@@ -7,10 +7,10 @@ from typing import Dict, List, Optional
 from decimal import Decimal
 import random
 
-from foodops_pro.domain.restaurant import Restaurant
-from foodops_pro.domain.scenario import Scenario, MarketSegment
-from foodops_pro.domain.seasonality import SeasonalityManager
-from foodops_pro.domain.competition import CompetitionManager
+from game_engine.domain.restaurant import Restaurant
+from game_engine.domain.scenario import Scenario, MarketSegment
+from game_engine.domain.seasonality import SeasonalityManager
+from game_engine.domain.competition import CompetitionManager
 
 
 @dataclass
@@ -94,7 +94,7 @@ class MarketEngine:
         """
         # NOUVEAU: Traiter les événements de marché
         current_season = self._get_season_name(month)
-        new_events = self.competition_manager.process_turn_events(turn, current_season)
+        self.competition_manager.process_turn_events(turn, current_season)
         market_modifiers = self.competition_manager.get_market_modifiers()
 
         # Calcul de la demande totale avec bruit et événements

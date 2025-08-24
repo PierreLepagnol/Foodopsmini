@@ -6,7 +6,7 @@ import pytest
 from decimal import Decimal
 from datetime import date
 
-from src.foodops_pro.core.ledger import (
+from src.game_engine.core.ledger import (
     Ledger,
     AccountingEntry,
     VATCalculator,

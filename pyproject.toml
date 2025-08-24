@@ -38,7 +38,7 @@ dev = [
 ]
 
 [project.scripts]
-foodops = "foodops_pro.cli:main"
+foodops = "game_engine.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/foodops/foodops-pro"

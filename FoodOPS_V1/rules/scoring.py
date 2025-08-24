@@ -113,12 +113,12 @@ def calculate_perceived_menu_quality(restaurant: Restaurant) -> float:
     Calcule la qualité que les clients perçoivent du menu d'un restaurant.
 
     Comme dans la vraie vie, la qualité perçue dépend de plusieurs facteurs :
-    
+
     1. **Qualité des plats** : recettes bonnes ou mauvaises de base
-    2. **Cohérence avec le concept** : 
+    2. **Cohérence avec le concept** :
        - Du surgelé dans un fast-food ? Normal
        - Du surgelé dans un restaurant gastronomique ? Scandaleux !
-    3. **Qualité du service** : 
+    3. **Qualité du service** :
        - Personnel motivé → meilleure exécution des plats
        - Personnel démotivé → plats bâclés
 
@@ -140,7 +140,7 @@ def calculate_perceived_menu_quality(restaurant: Restaurant) -> float:
     for dish in restaurant.menu:
         # Qualité de base du plat (définie par la recette)
         base_dish_quality = dish.base_quality
-        
+
         # Ajustement selon la cohérence avec le concept du restaurant
         # (ex: surgelé pénalisé en gastro mais OK en fast-food)
         quality_adjusted_for_concept = _apply_concept_quality_adjust(
@@ -170,9 +170,9 @@ def calculate_price_affordability(meal_price: float, customer_budget: float) -> 
 
     Dans la vraie vie, plus un restaurant est cher par rapport au budget du client,
     moins il est attractif. Cette fonction simule cette relation :
-    
+
     - Prix = budget du client → parfait (score 1.0)
-    - Prix < budget → très attractif (score 1.0) 
+    - Prix < budget → très attractif (score 1.0)
     - Prix > budget → attractivité décroissante jusqu'à 0
 
     Exemples :
@@ -183,15 +183,15 @@ def calculate_price_affordability(meal_price: float, customer_budget: float) -> 
     # Si le budget du client est invalide, pas d'attractivité
     if customer_budget <= 0:
         return 0.0
-        
+
     # Si le restaurant est dans le budget, c'est parfait
     if meal_price <= customer_budget:
         return 1.0
-    
+
     # Calcul de l'écart de prix (en pourcentage du budget)
     # Exemple : budget 15€, prix 18€ → écart = (18-15)/15 = 0.2 (20% au-dessus)
     price_overshoot_ratio = (meal_price - customer_budget) / customer_budget
-    
+
     # Plus l'écart est grand, plus l'attractivité baisse
     # Score = 1.0 - écart (mais jamais négatif)
     affordability_score = 1.0 - max(0.0, price_overshoot_ratio)
@@ -235,12 +235,14 @@ path = directory / "scoring_weights.json"
 SCORING_WEIGHTS = load_and_validate(path, ScoreWeightsModel)
 
 
-def calculate_restaurant_attractiveness(restaurant: Restaurant, customer_type: Segment) -> float:
+def calculate_restaurant_attractiveness(
+    restaurant: Restaurant, customer_type: Segment
+) -> float:
     """
     Calcule à quel point un restaurant attire un type de client spécifique.
 
     Comme dans la vraie vie, l'attractivité d'un restaurant dépend de plusieurs facteurs :
-    
+
     1. **Adéquation concept/clientèle** : Un fast-food attire plus les étudiants qu'un gastro
     2. **Prix abordable** : Les clients ont un budget, pas question de le dépasser trop
     3. **Qualité perçue** : Bon menu bien exécuté par une équipe motivée
@@ -260,7 +262,9 @@ def calculate_restaurant_attractiveness(restaurant: Restaurant, customer_type: S
 
     # Évalue les différents aspects qui rendent un restaurant attractif
     perceived_quality = calculate_perceived_menu_quality(restaurant)
-    location_visibility = restaurant.local.visibility_normalized  # Bien placé ? Visible ?
+    location_visibility = (
+        restaurant.local.visibility_normalized
+    )  # Bien placé ? Visible ?
     reputation = restaurant.notoriety  # Bouche-à-oreille, avis clients
 
     # Adéquation entre le type de restaurant et le type de clientèle
@@ -269,20 +273,22 @@ def calculate_restaurant_attractiveness(restaurant: Restaurant, customer_type: S
 
     # Vérifie si le restaurant est abordable pour ce type de clientèle
     typical_customer_budget = BUDGET_PER_SEGMENT.get(customer_type, 15.0)
-    price_affordability = calculate_price_affordability(typical_meal_price, typical_customer_budget)
+    price_affordability = calculate_price_affordability(
+        typical_meal_price, typical_customer_budget
+    )
 
     # Combine tous les facteurs d'attractivité avec leurs poids respectifs
     attractiveness_factors = {
-        "fit": concept_customer_fit,        # Adéquation concept/clientèle
-        "prix": price_affordability,        # Prix abordable
-        "qualite": perceived_quality,       # Qualité perçue du menu
-        "notoriete": reputation,           # Réputation/bouche-à-oreille
+        "fit": concept_customer_fit,  # Adéquation concept/clientèle
+        "prix": price_affordability,  # Prix abordable
+        "qualite": perceived_quality,  # Qualité perçue du menu
+        "notoriete": reputation,  # Réputation/bouche-à-oreille
         "visibility": location_visibility,  # Visibilité de l'emplacement
     }
 
     # Calcule le score final d'attractivité en pondérant chaque facteur
     total_attractiveness_score = sum(
-        SCORING_WEIGHTS[factor_name] * attractiveness_factors[factor_name] 
+        SCORING_WEIGHTS[factor_name] * attractiveness_factors[factor_name]
         for factor_name in SCORING_WEIGHTS.model_fields
     )
 

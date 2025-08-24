@@ -93,37 +93,37 @@ class Restaurant(BaseModel):
 
     def calculate_staff_workload_ratio(self) -> float:
         """Calcule le taux d'utilisation du personnel (entre 0 et 1).
-        
+
         Returns:
             0.0 = personnel complètement inactif
             0.5 = utilisation modérée (idéal)
             1.0 = personnel à fond en permanence
         """
         # Total de minutes disponibles dans l'équipe
-        total_available_minutes = (
-            getattr(self, "service_minutes_left", 0) + 
-            getattr(self, "kitchen_minutes_left", 0)
+        total_available_minutes = getattr(self, "service_minutes_left", 0) + getattr(
+            self, "kitchen_minutes_left", 0
         )
-        
+
         # Minutes effectivement utilisées par l'équipe
         minutes_actually_used = 0
         for employee in self.equipe or []:
-            minutes_actually_used += (
-                getattr(employee, "service_minutes", 0) + 
-                getattr(employee, "kitchen_minutes", 0)
+            minutes_actually_used += getattr(employee, "service_minutes", 0) + getattr(
+                employee, "kitchen_minutes", 0
             )
-        
+
         # Calcule le ratio d'utilisation
         if total_available_minutes == 0:
             return 0.0
         return minutes_actually_used / total_available_minutes
-    
-    def determine_satisfaction_change_based_on_workload(self, workload_ratio: float) -> float:
+
+    def determine_satisfaction_change_based_on_workload(
+        self, workload_ratio: float
+    ) -> float:
         """Détermine comment la satisfaction évolue selon la charge de travail.
-        
+
         Args:
             workload_ratio: Taux d'utilisation du personnel (0.0 à 1.0)
-            
+
         Returns:
             Changement de satisfaction (évolution mensuelle)
         """
@@ -137,16 +137,18 @@ class Restaurant(BaseModel):
             return +0.01  # Rythme tranquille : légère hausse
         else:  # Entre 55% et 85% (zone idéale)
             return +0.02  # Équilibre parfait : bonne hausse
-    
+
     def update_rh_satisfaction(self) -> None:
         """Met à jour la satisfaction du personnel selon sa charge de travail.
-        
-        Un personnel trop sollicité (burn-out) ou pas assez (ennui) voit sa 
+
+        Un personnel trop sollicité (burn-out) ou pas assez (ennui) voit sa
         satisfaction baisser. L'idéal est une charge de travail équilibrée.
         """
         workload_ratio = self.calculate_staff_workload_ratio()
-        satisfaction_change = self.determine_satisfaction_change_based_on_workload(workload_ratio)
-        
+        satisfaction_change = self.determine_satisfaction_change_based_on_workload(
+            workload_ratio
+        )
+
         # Applique le changement en restant dans les bornes [0.0, 1.0]
         current_satisfaction = getattr(self, "rh_satisfaction", 0.8)  # Défaut : 0.8
         new_satisfaction = current_satisfaction + satisfaction_change
@@ -158,37 +160,37 @@ class Restaurant(BaseModel):
 
         Dans la vraie vie, un restaurant ne peut pas servir un nombre infini de clients.
         Sa capacité dépend de :
-        
+
         1. **Nombre de places assises** : combien de personnes peuvent manger en même temps
         2. **Services par jour** : déjeuner + dîner = 2 services
         3. **Jours d'ouverture** : on considère 30 jours par mois
-        4. **Vitesse de service** : 
+        4. **Vitesse de service** :
            - Fast-food : service rapide → plus de rotations possibles
            - Bistro : service normal
            - Gastro : service lent (expérience longue) → moins de rotations
 
         Returns:
             Nombre maximum de clients que le restaurant peut servir en un mois.
-            
+
         Exemple concret :
             Restaurant de 20 places :
             - Théorique max : 20 places × 2 services × 30 jours = 1200 clients/mois
             - Si bistro (vitesse 0.8) : 1200 × 0.8 = 960 clients réels maximum
         """
         # Hypothèses de calcul réalistes
-        SERVICES_PER_DAY = 2    # Déjeuner + Dîner
-        DAYS_PER_MONTH = 30     # Mois de 30 jours
-        
+        SERVICES_PER_DAY = 2  # Déjeuner + Dîner
+        DAYS_PER_MONTH = 30  # Mois de 30 jours
+
         # Capacité théorique si le restaurant était plein en permanence
         theoretical_maximum = (
-            self.local.capacite_clients *  # Nombre de places assises
-            SERVICES_PER_DAY *            # 2 services par jour
-            DAYS_PER_MONTH                # 30 jours
+            self.local.capacite_clients  # Nombre de places assises
+            * SERVICES_PER_DAY  # 2 services par jour
+            * DAYS_PER_MONTH  # 30 jours
         )
-        
+
         # Capacité réelle tenant compte de la vitesse de service du concept
         realistic_maximum = theoretical_maximum * self.service_speed
-        
+
         return max(0, int(realistic_maximum))
 
     # Enregistrement des écritures comptables

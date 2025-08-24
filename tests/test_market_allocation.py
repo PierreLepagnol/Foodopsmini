@@ -5,9 +5,9 @@ Tests pour l'allocation de marché et la concurrence.
 import pytest
 from decimal import Decimal
 
-from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
-from src.foodops_pro.domain.scenario import Scenario, MarketSegment
-from src.foodops_pro.core.market import MarketEngine, AllocationResult
+from src.game_engine.domain.restaurant import Restaurant, RestaurantType
+from src.game_engine.domain.scenario import Scenario, MarketSegment
+from src.game_engine.core.market import MarketEngine, AllocationResult
 
 
 @pytest.fixture

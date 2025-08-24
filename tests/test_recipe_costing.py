@@ -6,10 +6,10 @@ import pytest
 from decimal import Decimal
 from datetime import date, timedelta
 
-from src.foodops_pro.domain.ingredient import Ingredient
-from src.foodops_pro.domain.recipe import Recipe, RecipeItem
-from src.foodops_pro.domain.stock import StockLot
-from src.foodops_pro.core.costing import (
+from src.game_engine.domain.ingredient import Ingredient
+from src.game_engine.domain.recipe import Recipe, RecipeItem
+from src.game_engine.domain.stock import StockLot
+from src.game_engine.core.costing import (
     RecipeCostCalculator,
     CostBreakdown,
     IngredientCost,

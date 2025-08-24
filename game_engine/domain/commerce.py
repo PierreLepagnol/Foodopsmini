@@ -7,7 +7,8 @@ from typing import List, Optional
 from decimal import Decimal
 from enum import Enum
 
-from foodops_pro.restaurant import RestaurantType
+from game_engine.domain.restaurant import RestaurantType
+from game_engine.ui.console_ui import print_box
 
 
 class LocationType(Enum):
@@ -104,6 +105,46 @@ class CommerceLocation:
             return Decimal("0.6")
         else:
             return Decimal("0.9")
+
+    def display_commerce_details(self, index: int):
+        """Affiche les détails d'un commerce."""
+        details = [
+            f"{index}. {self.name.upper()}",
+            f"   📍 {self.location_type.value.replace('_', ' ').title()}",
+            f"   💰 Prix: {self.price:.0f}€ + {self.renovation_cost:.0f}€ rénovation",
+            f"   🏠 {self.size} couverts - État: {self.condition.value}",
+            f"   📈 Passage: {self.foot_traffic} - Concurrence: {self.competition_nearby}",
+            f"   🏢 Loyer: {self.rent_monthly:.0f}€/mois - Bail: {self.lease_years} ans",
+            "",
+            f"   ✅ Avantages: {', '.join(self.advantages[:2])}",
+            f"   ⚠️ Inconvénients: {', '.join(self.disadvantages[:2])}",
+        ]
+        print_box(details, style="info")
+
+    def display_confirm_commerce_purchase(self, budget: Decimal) -> None:
+        """Confirmation d'achat d'un commerce."""
+        remaining_budget = budget - self.total_initial_cost
+
+        confirmation_details = [
+            "CONFIRMATION D'ACHAT",
+            f"Commerce: {self.name}",
+            f"Prix d'achat: {self.price:.0f}€",
+            f"Rénovation: {self.renovation_cost:.0f}€",
+            f"TOTAL: {self.total_initial_cost:.0f}€",
+            f"Budget initial: {budget:.0f}€",
+            f"Budget restant: {remaining_budget:.0f}€",
+            f"Loyer mensuel: {self.rent_monthly:.0f}€",
+            f"Autonomie: {remaining_budget / self.rent_monthly:.1f} mois",
+        ]
+
+        if remaining_budget < self.rent_monthly * 3:
+            confirmation_details.append("")
+            confirmation_details.append("⚠️ ATTENTION: Budget restant faible !")
+            style = "warning"
+        else:
+            style = "info"
+
+        print_box(confirmation_details, style=style)
 
 
 class CommerceManager:
@@ -340,24 +381,22 @@ class CommerceManager:
         Returns:
             Liste des emplacements accessibles
         """
-        filtered_locations = []
 
-        for location in self.available_locations:
-            # Vérification du budget
+        def _matches_criteria(location: CommerceLocation) -> bool:
+            """Vérifie si un emplacement correspond aux critères."""
             if location.total_initial_cost > budget:
-                continue
-
-            # Vérification du type d'emplacement
+                return False
             if location_types and location.location_type not in location_types:
-                continue
-
-            # Vérification du type de restaurant
+                return False
             if restaurant_types and location.restaurant_type not in restaurant_types:
-                continue
+                return False
+            return True
 
-            filtered_locations.append(location)
-
-        return filtered_locations
+        return [
+            location
+            for location in self.available_locations
+            if _matches_criteria(location)
+        ]
 
     def get_location_by_id(self, location_id: str) -> Optional[CommerceLocation]:
         """Retourne un emplacement par son ID."""

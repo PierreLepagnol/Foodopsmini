@@ -7,9 +7,9 @@ from enum import Enum
 from typing import Dict, List
 from decimal import Decimal
 
-from foodops_pro.employee import Employee
-from foodops_pro.recipe import Recipe
-from foodops_pro.ingredient_quality import IngredientQualityManager
+from game_engine.domain.employee import Employee
+from game_engine.domain.recipe import Recipe
+from game_engine.domain.ingredient_quality import IngredientQualityManager
 
 
 class RestaurantType(Enum):

@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 from decimal import Decimal
 
-from foodops_pro.domain.restaurant import Restaurant
-from foodops_pro.domain.scenario import Scenario
+from game_engine.domain.restaurant import Restaurant
+from game_engine.domain.scenario import Scenario
 
 
 class DecimalEncoder(json.JSONEncoder):

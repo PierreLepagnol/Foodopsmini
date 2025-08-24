@@ -30,12 +30,14 @@ from FoodOPS_V1.domain.scenario import Scenario
 from FoodOPS_V1.rules.scoring import calculate_restaurant_attractiveness
 
 
-def is_restaurant_affordable_for_customer_segment(restaurant: Restaurant, customer_segment: Segment) -> bool:
+def is_restaurant_affordable_for_customer_segment(
+    restaurant: Restaurant, customer_segment: Segment
+) -> bool:
     """Vérifie si un restaurant est abordable pour un type de clientèle donné.
-    
+
     Un restaurant est considéré comme abordable si son prix médian est inférieur
     ou égal au budget du segment client multiplié par un facteur de tolérance.
-    
+
     Par exemple, si les étudiants ont un budget de 10€ et une tolérance de 20%,
     ils accepteront des restaurants jusqu'à 12€ par repas.
     """
@@ -47,20 +49,24 @@ def is_restaurant_affordable_for_customer_segment(restaurant: Restaurant, custom
     menu_prices = [dish.price for dish in restaurant_menu if dish is not None]
     typical_meal_price = np.median(menu_prices) if menu_prices else 0.0
 
-    customer_typical_budget = BUDGET_PER_SEGMENT.get(customer_segment, 15.0)  # budget par défaut : 15€
+    customer_typical_budget = BUDGET_PER_SEGMENT.get(
+        customer_segment, 15.0
+    )  # budget par défaut : 15€
     maximum_acceptable_price = customer_typical_budget * customer_budget_flexibility
-    
+
     return typical_meal_price <= maximum_acceptable_price
 
 
-def count_competing_restaurants_by_type(restaurants: List[Restaurant]) -> Dict[RestaurantType, int]:
+def count_competing_restaurants_by_type(
+    restaurants: List[Restaurant],
+) -> Dict[RestaurantType, int]:
     """
     Compte combien de restaurants de chaque type sont en concurrence sur le marché.
 
     Imagine une zone commerciale avec plusieurs restaurants :
     - Si il y a 3 fast-foods, ils vont se disputer la même clientèle (étudiants, familles pressées)
     - Si il y a 1 seul restaurant gastronomique, il aura le monopole de sa clientèle
-    
+
     Cette fonction compte ces concurrents pour calculer ensuite l'impact de la concurrence
     sur l'attractivité de chaque restaurant.
 
@@ -116,19 +122,21 @@ def calculate_competition_penalty(
         return 1.0  # Aucune pénalité, attractivité maximale
 
     # Calcul de la réduction d'attractivité due à la concurrence
-    # 
+    #
     # Logique : plus il y a de concurrents, plus chacun perd en attractivité
     # Mais l'effet diminue progressivement (loi des rendements décroissants)
-    # 
+    #
     # Exemples concrets :
     # - 2 MacDo au lieu de 1 : impact fort (-15% à -20% d'attractivité)
     # - 5 MacDo au lieu de 4 : impact plus faible (-2% à -5% d'attractivité)
     #
     # Formule mathématique : 1 / sqrt(1 + intensité * (nb_concurrents - 1))
-    excess_competitors = number_of_similar_restaurants - 1  # On retire 1 car on se compte dedans
+    excess_competitors = (
+        number_of_similar_restaurants - 1
+    )  # On retire 1 car on se compte dedans
     competition_impact = sqrt(1.0 + COMPETITION_INTENSITY * excess_competitors)
     attractiveness_reduction_factor = 1.0 / max(1.0, competition_impact)
-    
+
     return attractiveness_reduction_factor
 
 
@@ -142,9 +150,9 @@ def _rank_restaurants_for_customer_segment(
 
     Imagine que vous êtes un étudiant avec un budget limité cherchant où manger.
     Cette fonction simule votre processus de choix :
-    
+
     1. D'abord, elle élimine les restaurants trop chers pour votre budget
-    2. Ensuite, elle note chaque restaurant restant sur son attractivité 
+    2. Ensuite, elle note chaque restaurant restant sur son attractivité
        (qualité, emplacement, réputation, etc.)
     3. Enfin, elle pénalise les restaurants qui ont beaucoup de concurrents identiques
 
@@ -166,15 +174,21 @@ def _rank_restaurants_for_customer_segment(
     # Évalue chaque restaurant pour ce type de clientèle
     for restaurant_index, restaurant in enumerate(restaurants):
         # D'abord, vérifie si ce restaurant est abordable pour ce segment
-        if not is_restaurant_affordable_for_customer_segment(restaurant, customer_segment):
+        if not is_restaurant_affordable_for_customer_segment(
+            restaurant, customer_segment
+        ):
             continue  # Restaurant trop cher, on l'ignore complètement
 
         # Calcule l'attractivité de base du restaurant pour ce segment
         # (qualité, emplacement, adéquation avec le type de clientèle, etc.)
-        base_attractiveness = calculate_restaurant_attractiveness(restaurant, customer_segment)
+        base_attractiveness = calculate_restaurant_attractiveness(
+            restaurant, customer_segment
+        )
 
         # Réduit l'attractivité s'il y a beaucoup de concurrents du même type
-        competition_penalty = calculate_competition_penalty(restaurant, competitor_counts)
+        competition_penalty = calculate_competition_penalty(
+            restaurant, competitor_counts
+        )
 
         # Score final = attractivité de base multipliée par la pénalité de concurrence
         final_attractiveness_score = base_attractiveness * competition_penalty
@@ -191,7 +205,7 @@ def allocate_customers_to_restaurants(
 
     Imaginez une rue avec plusieurs restaurants et différents types de clients :
     - Des étudiants avec un petit budget cherchent du rapide et pas cher
-    - Des familles veulent un bon rapport qualité/prix avec des portions généreuses  
+    - Des familles veulent un bon rapport qualité/prix avec des portions généreuses
     - Des touristes sont prêts à payer plus pour une expérience authentique
     - Des cadres veulent de la qualité pour leurs repas d'affaires
 
@@ -225,7 +239,9 @@ def allocate_customers_to_restaurants(
         for restaurant_index, restaurant in enumerate(restaurants)
     }
     # Prépare le suivi d'attribution : combien de clients attribués à chaque restaurant (commence à 0)
-    customers_assigned_to_each_restaurant = {restaurant_index: 0 for restaurant_index, _ in enumerate(restaurants)}
+    customers_assigned_to_each_restaurant = {
+        restaurant_index: 0 for restaurant_index, _ in enumerate(restaurants)
+    }
 
     # Traite chaque type de clientèle séparément
     for customer_type, number_of_customers in customers_by_type.items():
@@ -235,12 +251,14 @@ def allocate_customers_to_restaurants(
 
         # Obtient les restaurants classés par attractivité pour ce segment
         # (inclut le filtrage budgétaire et les pénalités de concurrence)
-        restaurant_rankings = _rank_restaurants_for_customer_segment(restaurants, customer_type, competitor_counts_by_type)
+        restaurant_rankings = _rank_restaurants_for_customer_segment(
+            restaurants, customer_type, competitor_counts_by_type
+        )
 
         # Si aucun restaurant n'est abordable pour ce segment, tous les clients sont perdus
         if not restaurant_rankings:
             continue  # Tous les clients de ce type ne trouvent pas de restaurant adapté
-            
+
         clients_still_looking_for_restaurant = number_of_customers
 
         # Allocation des clients : on remplit d'abord le restaurant le plus attractif,
@@ -249,20 +267,24 @@ def allocate_customers_to_restaurants(
             # Si tous les clients ont trouvé un restaurant, on arrête
             if clients_still_looking_for_restaurant <= 0:
                 break
-                
+
             # Si ce restaurant est déjà plein, on passe au suivant
             if available_seats_per_restaurant[restaurant_index] <= 0:
                 continue
 
             # Calcule combien de clients ce restaurant peut encore accueillir
             clients_this_restaurant_can_serve = min(
-                clients_still_looking_for_restaurant, 
-                available_seats_per_restaurant[restaurant_index]
+                clients_still_looking_for_restaurant,
+                available_seats_per_restaurant[restaurant_index],
             )
-            
+
             # Attribue ces clients au restaurant
-            customers_assigned_to_each_restaurant[restaurant_index] += clients_this_restaurant_can_serve
-            available_seats_per_restaurant[restaurant_index] -= clients_this_restaurant_can_serve
+            customers_assigned_to_each_restaurant[restaurant_index] += (
+                clients_this_restaurant_can_serve
+            )
+            available_seats_per_restaurant[restaurant_index] -= (
+                clients_this_restaurant_can_serve
+            )
             clients_still_looking_for_restaurant -= clients_this_restaurant_can_serve
 
     return customers_assigned_to_each_restaurant
@@ -290,19 +312,19 @@ def clamp_capacity(
 
     Exemple concret:
         - Attribution initiale : Restaurant A = 1500 clients, Restaurant B = 800 clients
-        - Capacités maximales : Restaurant A = 1200 clients, Restaurant B = 1000 clients  
+        - Capacités maximales : Restaurant A = 1200 clients, Restaurant B = 1000 clients
         - Résultat final : Restaurant A = 1200 clients (limité), Restaurant B = 800 clients (OK)
     """
     actually_served: Dict[int, int] = {}
     for restaurant_index, restaurant in enumerate(restaurants):
         # Capacité maximale que ce restaurant peut gérer
         maximum_capacity = restaurant.compute_maximum_monthly_customers()
-        
+
         # Nombre de clients attribués à ce restaurant
         clients_assigned = allocated.get(restaurant_index, 0)
-        
+
         # Prend le minimum entre ce qui est attribué et ce qui est possible
         clients_actually_served = min(clients_assigned, maximum_capacity)
         actually_served[restaurant_index] = clients_actually_served
-        
+
     return actually_served

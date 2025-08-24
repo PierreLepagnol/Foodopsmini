@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, List, Any
 from datetime import datetime
 
-from foodops_pro.persistence import GameState, DecimalEncoder
+from game_engine.io.persistence import GameState, DecimalEncoder
 
 
 class KPICalculator:
@@ -46,7 +46,7 @@ class KPICalculator:
         # Calculs des KPIs
         total_revenue = sum(turn["revenue"] for turn in restaurant_turns)
         total_customers = sum(turn["served_customers"] for turn in restaurant_turns)
-        total_capacity = sum(turn["capacity"] for turn in restaurant_turns)
+        sum(turn["capacity"] for turn in restaurant_turns)
 
         # Ticket moyen
         average_ticket = total_revenue / total_customers if total_customers > 0 else 0

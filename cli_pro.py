@@ -2,22 +2,35 @@
 Interface CLI professionnelle pour FoodOps Pro.
 """
 
-import argparse
-from pathlib import Path
-from typing import List, Dict, Optional
 from decimal import Decimal
+from pathlib import Path
+from typing import Dict, List, Optional
 
-from foodops_pro.io.data_loader import DataLoader
-from foodops_pro.io.persistence import GameStatePersistence
-from foodops_pro.io.export import ResultsExporter
-from foodops_pro.domain.restaurant import Restaurant, RestaurantType
-from foodops_pro.domain.employee import Employee, EmployeePosition, EmployeeContract
-from foodops_pro.domain.commerce import CommerceManager, CommerceLocation
-from foodops_pro.core.market import MarketEngine
-from foodops_pro.core.costing import RecipeCostCalculator
-from foodops_pro.ui.console_ui import ConsoleUI
-from foodops_pro.ui.decision_menu import DecisionMenu
-from foodops_pro.admin.admin_config import AdminConfigManager, AdminSettings
+import yaml
+
+from creation_scenario import AdminSettings
+from game_engine.core.costing import RecipeCostCalculator
+from game_engine.core.market import MarketEngine
+from game_engine.domain.commerce import CommerceLocation, CommerceManager
+from game_engine.domain.employee import Employee, EmployeeContract, EmployeePosition
+from game_engine.domain.restaurant import Restaurant, RestaurantType
+from game_engine.io.data_loader import DataLoader
+from game_engine.io.export import ResultsExporter
+from game_engine.io.persistence import GameStatePersistence
+from game_engine.ui.console_ui import (
+    clear_screen,
+    print_box,
+    show_error,
+    show_progress_bar,
+    show_welcome_screen,
+    show_success,
+    show_info,
+    show_menu,
+    pause,
+    confirm,
+    get_input,
+)
+from game_engine.ui.decision_menu import DecisionMenu
 
 
 class FoodOpsProGame:
@@ -33,18 +46,18 @@ class FoodOpsProGame:
             scenario_path: Chemin vers le scénario
             admin_mode: Mode administrateur activé
         """
-        self.ui = ConsoleUI()
-        self.admin_mode = admin_mode
-        self.admin_settings = AdminSettings()
+        self.admin_settings = self.load_settings(
+            "/home/lepagnol/Documents/Perso/Games/Foodopsmini/admin_configs/preset_demo.yaml"
+        )
 
         # Chargement des données
-        self.ui.show_progress_bar(0, 5, "Initialisation")
+        show_progress_bar(0, 5, "Initialisation")
 
         self.data_loader = DataLoader()
-        self.ui.show_progress_bar(1, 5, "Chargement des données")
+        show_progress_bar(1, 5, "Chargement des données")
 
         self.game_data = self.data_loader.load_all_data(scenario_path)
-        self.ui.show_progress_bar(2, 5, "Configuration du marché")
+        show_progress_bar(2, 5, "Configuration du marché")
 
         self.scenario = self.game_data["scenario"]
         self.ingredients = self.game_data["ingredients"]
@@ -56,64 +69,56 @@ class FoodOpsProGame:
 
         # Gestionnaires
         self.commerce_manager = CommerceManager()
-        self.ui.show_progress_bar(3, 5, "Initialisation des moteurs")
+        show_progress_bar(3, 5, "Initialisation des moteurs")
 
         self.market_engine = MarketEngine(self.scenario, self.scenario.random_seed)
         self.cost_calculator = RecipeCostCalculator(self.ingredients)
         self.decision_menu = DecisionMenu(self.ui, self.cost_calculator)
         # Injection des catalogues et paramètres admin
         self.decision_menu.set_suppliers_catalog(self.suppliers_catalog)
-        self.decision_menu.set_admin_settings(self.admin_settings)
+        self.decision_menu.set_admin_settings(
+            "/home/lepagnol/Documents/Perso/Games/Foodopsmini/admin_configs/Session_FoodOps_Pro_2025.json"
+        )
 
-        self.ui.show_progress_bar(4, 5, "Finalisation")
+        show_progress_bar(4, 5, "Finalisation")
 
         # État du jeu
         self.players: List[Restaurant] = []
         self.ai_competitors: List[Restaurant] = []
         self.current_turn = 1
 
-        self.ui.show_progress_bar(5, 5, "Prêt !")
-        print()  # Ligne vide après la barre de progression
+        show_progress_bar(5, 5, "Prêt !")
+        # Ligne vide après la barre de progression
+
+    def load_settings(self, config_path: str) -> AdminSettings:
+        """Charge les paramètres administrateur depuis un fichier JSON."""
+        with open(config_path, "r", encoding="utf-8") as f:
+            settings_data = yaml.safe_load(f)
+        return AdminSettings(**settings_data)
 
     def start_game(self) -> None:
         """Lance le jeu principal."""
-        try:
-            # Écran d'accueil avec scénario
-            self.ui.show_welcome_screen(self.scenario, self.admin_mode)
-            self.ui.pause()
+        # Écran d'accueil avec scénario
+        show_welcome_screen(self.scenario)
+        pause()
+        # Sélection et achat des fonds de commerce
+        self._commerce_selection_phase()
 
-            # Configuration administrateur si activée
-            if self.admin_mode:
-                admin_config = AdminConfigManager(self.ui)
-                self.admin_settings = admin_config.configure_session()
+        # Configuration des restaurants
+        self._setup_players()
 
-            # Sélection et achat des fonds de commerce
-            self._commerce_selection_phase()
+        # Création des concurrents IA
+        self._create_ai_competitors()
 
-            # Configuration des restaurants
-            self._setup_players()
+        # Boucle de jeu principale
+        self._game_loop()
 
-            # Création des concurrents IA
-            self._create_ai_competitors()
-
-            # Boucle de jeu principale
-            self._game_loop()
-
-            # Fin de partie
-            self._end_game()
-
-        except KeyboardInterrupt:
-            self.ui.show_info("Partie interrompue par l'utilisateur.")
-        except Exception as e:
-            self.ui.show_error(f"Erreur inattendue: {e}")
-            if self.admin_mode:  # Plus de détails en mode admin
-                import traceback
-
-                traceback.print_exc()
+        # Fin de partie
+        self._end_game()
 
     def _commerce_selection_phase(self) -> None:
         """Phase de sélection et achat des fonds de commerce."""
-        self.ui.clear_screen()
+        clear_screen()
 
         intro = [
             "🏪 PHASE D'ACQUISITION",
@@ -124,12 +129,13 @@ class FoodOpsProGame:
             "Chaque emplacement a ses avantages et inconvénients.",
             "Analysez bien votre budget et votre stratégie !",
         ]
-        self.ui.print_box(intro, "ACQUISITION DE FONDS DE COMMERCE", "header")
-        self.ui.pause()
+        print_box(intro, "ACQUISITION DE FONDS DE COMMERCE", "header")
+        pause()
 
         # Détermination du nombre de joueurs
         max_players = self.admin_settings.max_players
-        num_players = self.ui.get_input(
+
+        num_players = get_input(
             f"Nombre de joueurs (1-{max_players})",
             int,
             min_val=1,
@@ -143,10 +149,10 @@ class FoodOpsProGame:
 
     def _select_commerce_for_player(self, player_num: int) -> None:
         """Sélection du commerce pour un joueur."""
-        self.ui.clear_screen()
+        clear_screen()
 
         # Budget du joueur
-        budget = self.ui.get_input(
+        budget = get_input(
             f"Budget du joueur {player_num} (€)",
             Decimal,
             min_val=self.admin_settings.starting_budget_min,
@@ -162,17 +168,13 @@ class FoodOpsProGame:
         available_locations = self.commerce_manager.get_available_locations(budget)
 
         if not available_locations:
-            self.ui.show_error(
-                f"Aucun commerce disponible avec un budget de {budget:.0f}€"
-            )
+            show_error(f"Aucun commerce disponible avec un budget de {budget:.0f}€")
             return
-
-        self.ui.clear_screen()
+        clear_screen()
 
         # Affichage détaillé des options
         for i, location in enumerate(available_locations):
-            self._display_commerce_details(location, i + 1)
-            print()
+            location.display_commerce_details(i + 1)
 
         # Sélection
         location_options = [
@@ -180,92 +182,34 @@ class FoodOpsProGame:
             for loc in available_locations
         ]
 
-        choice = self.ui.show_menu(
+        choice = show_menu(
             f"JOUEUR {player_num} - Choisissez votre fonds de commerce",
             location_options,
         )
-
-        if choice == 0:
-            return
-
         selected_location = available_locations[choice - 1]
 
         # Confirmation d'achat
-        if self._confirm_commerce_purchase(selected_location, budget):
+        selected_location.display_confirm_commerce_purchase(budget)
+        if confirm("Confirmer l'achat de ce fonds de commerce ?"):
             # Création du restaurant
             restaurant = self._create_restaurant_from_commerce(
                 selected_location, budget, player_num
             )
             self.players.append(restaurant)
 
-            self.ui.show_success(
-                f"Félicitations ! Vous êtes maintenant propriétaire de '{selected_location.name}'"
+            show_success("Félicitations !")
+            show_info(
+                f"Vous êtes maintenant propriétaire de '{selected_location.name}'"
             )
-            self.ui.pause()
-
-    def _display_commerce_details(self, location: CommerceLocation, index: int) -> None:
-        """Affiche les détails d'un commerce."""
-        details = [
-            f"{index}. {location.name.upper()}",
-            f"   📍 {location.location_type.value.replace('_', ' ').title()}",
-            f"   💰 Prix: {location.price:.0f}€ + {location.renovation_cost:.0f}€ rénovation",
-            f"   🏠 {location.size} couverts - État: {location.condition.value}",
-            f"   📈 Passage: {location.foot_traffic} - Concurrence: {location.competition_nearby}",
-            f"   🏢 Loyer: {location.rent_monthly:.0f}€/mois - Bail: {location.lease_years} ans",
-            "",
-            f"   ✅ Avantages: {', '.join(location.advantages[:2])}",
-            f"   ⚠️ Inconvénients: {', '.join(location.disadvantages[:2])}",
-        ]
-
-        # Couleur selon le prix
-        if location.total_initial_cost < 40000:
-            style = "success"
-        elif location.total_initial_cost < 80000:
-            style = "warning"
-        else:
-            style = "error"
-
-        self.ui.print_box(details, style=style)
-
-    def _confirm_commerce_purchase(
-        self, location: CommerceLocation, budget: Decimal
-    ) -> bool:
-        """Confirmation d'achat d'un commerce."""
-        remaining_budget = budget - location.total_initial_cost
-
-        confirmation_details = [
-            f"CONFIRMATION D'ACHAT",
-            "",
-            f"Commerce: {location.name}",
-            f"Prix d'achat: {location.price:.0f}€",
-            f"Rénovation: {location.renovation_cost:.0f}€",
-            f"TOTAL: {location.total_initial_cost:.0f}€",
-            "",
-            f"Budget initial: {budget:.0f}€",
-            f"Budget restant: {remaining_budget:.0f}€",
-            "",
-            f"Loyer mensuel: {location.rent_monthly:.0f}€",
-            f"Autonomie: {remaining_budget / location.rent_monthly:.1f} mois",
-        ]
-
-        if remaining_budget < location.rent_monthly * 3:
-            confirmation_details.append("")
-            confirmation_details.append("⚠️ ATTENTION: Budget restant faible !")
-            style = "warning"
-        else:
-            style = "info"
-
-        self.ui.print_box(confirmation_details, style=style)
-
-        return self.ui.confirm("Confirmer l'achat de ce fonds de commerce ?")
+            pause()
 
     def _create_restaurant_from_commerce(
         self, location: CommerceLocation, budget: Decimal, player_num: int
     ) -> Restaurant:
         """Crée un restaurant à partir d'un commerce acheté."""
         # Nom du restaurant
-        restaurant_name = self.ui.get_input(
-            f"Nom de votre restaurant", default=f"Restaurant {player_num}"
+        restaurant_name = get_input(
+            "Nom de votre restaurant", default=f"Restaurant {player_num}"
         )
 
         # Création du restaurant
@@ -380,11 +324,11 @@ class FoodOpsProGame:
         """Configuration finale des joueurs (si nécessaire)."""
         # Les joueurs sont déjà configurés dans la phase commerce
         if not self.players:
-            self.ui.show_error("Aucun joueur configuré !")
+            show_error("Aucun joueur configuré !")
             return
 
-        self.ui.show_success(f"{len(self.players)} restaurant(s) prêt(s) à ouvrir !")
-        self.ui.pause()
+        show_success(f"{len(self.players)} restaurant(s) prêt(s) à ouvrir !")
+        pause()
 
     def _create_ai_competitors(self) -> None:
         """Crée les concurrents IA."""
@@ -399,7 +343,7 @@ class FoodOpsProGame:
             if i < len(ai_configs):
                 name, rest_type = ai_configs[i]
             else:
-                name, rest_type = f"Concurrent {i + 1}", RestaurantType.CLASSIC
+                name, _rest_type = f"Concurrent {i + 1}", RestaurantType.CLASSIC
 
             # Sélection d'un commerce pour l'IA
             available_locations = self.commerce_manager.get_available_locations(
@@ -444,7 +388,7 @@ class FoodOpsProGame:
 
             # Pause entre les tours
             if turn < total_turns:
-                self.ui.pause("Appuyez sur Entrée pour continuer au tour suivant...")
+                pause("Appuyez sur Entrée pour continuer au tour suivant...")
 
     def _apply_player_decisions(self, restaurant: Restaurant, decisions: Dict) -> None:
         """Applique les décisions du joueur au restaurant."""
@@ -491,15 +435,13 @@ class FoodOpsProGame:
 
     def _display_turn_results(self, results: Dict, turn: int) -> None:
         """Affiche les résultats du tour."""
-        self.ui.clear_screen()
+        clear_screen()
 
         header = [
             f"📊 RÉSULTATS DU TOUR {turn}/{self.admin_settings.total_turns}",
             f"Période simulée: {self.admin_settings.turn_duration_description}",
         ]
-        self.ui.print_box(header, style="header")
-
-        print()
+        print_box(header, style="header")
 
         # Tableau des résultats
         results_lines = [
@@ -526,20 +468,19 @@ class FoodOpsProGame:
                     f"{result.revenue:<12.0f}"
                 )
 
-        self.ui.print_box(results_lines, "PERFORMANCE", "info")
+        print_box(results_lines, "PERFORMANCE", "info")
 
         # Analyse du marché
         market_analysis = self.market_engine.get_market_analysis()
         analysis_lines = [
-            f"📈 ANALYSE DU MARCHÉ:",
+            "📈 ANALYSE DU MARCHÉ",
             f"• Total clients servis: {market_analysis['total_served']}",
             f"• Chiffre d'affaires total: {market_analysis['total_revenue']:.0f}€",
             f"• Taux d'utilisation marché: {market_analysis['market_utilization']:.1%}",
             f"• Satisfaction de la demande: {market_analysis['demand_satisfaction']:.1%}",
         ]
 
-        print()
-        self.ui.print_box(analysis_lines, style="warning")
+        print_box(analysis_lines, style="warning")
 
     def _update_restaurants(self, results: Dict) -> None:
         """Met à jour l'état des restaurants après le tour."""
@@ -572,7 +513,7 @@ class FoodOpsProGame:
 
     def _end_game(self) -> None:
         """Gestion de la fin de partie."""
-        self.ui.clear_screen()
+        clear_screen()
 
         # Classement final
         all_restaurants = self.players + self.ai_competitors
@@ -588,24 +529,20 @@ class FoodOpsProGame:
                 f"{medal} {marker} {restaurant.name:<25} {restaurant.cash:>12.0f}€"
             )
 
-        self.ui.print_box(final_ranking, style="success")
+        print_box(final_ranking, style="success")
 
         # Félicitations au gagnant
         winner = ranking[0]
         if winner in self.players:
-            self.ui.show_success(
-                f"🎉 Félicitations ! '{winner.name}' remporte la partie !"
-            )
+            show_success(f"🎉 Félicitations ! '{winner.name}' remporte la partie !")
         else:
-            self.ui.show_info(
-                f"🤖 L'IA '{winner.name}' remporte cette partie. Réessayez !"
-            )
+            show_info(f"🤖 L'IA '{winner.name}' remporte cette partie. Réessayez !")
 
         # Proposition d'export
-        if self.ui.confirm("Exporter les résultats de la partie ?"):
+        if confirm("Exporter les résultats de la partie ?"):
             self._export_results()
 
-        self.ui.pause("Merci d'avoir joué à FoodOps Pro !")
+        pause("Merci d'avoir joué à FoodOps Pro !")
 
     def _export_results(self) -> None:
         """Exporte les résultats de la partie."""
@@ -626,32 +563,23 @@ class FoodOpsProGame:
             json_file = output_dir / f"results_{game_state.game_id}.json"
             exporter.export_to_json(game_state, json_file)
 
-            self.ui.show_success(f"✅ Résultats exportés vers {json_file}")
+            show_success(f"✅ Résultats exportés vers {json_file}")
 
         except Exception as e:
-            self.ui.show_error(f"❌ Erreur lors de l'export : {e}")
+            show_error(f"❌ Erreur lors de l'export : {e}")
 
 
 def main() -> None:
     """Point d'entrée principal."""
-    parser = argparse.ArgumentParser(
-        description="FoodOps Pro - Simulateur de gestion de restaurant"
-    )
-    parser.add_argument(
-        "--scenario", type=Path, help="Chemin vers le fichier de scénario"
-    )
-    parser.add_argument("--admin", action="store_true", help="Mode administrateur")
-    parser.add_argument("--debug", action="store_true", help="Mode debug")
-
-    args = parser.parse_args()
-
     print("🍽️ LANCEMENT FOODOPS PRO")
     print("=" * 40)
     print("Version Pro avec interface enrichie")
     print("Achat de fonds de commerce, décisions avancées")
     print("=" * 40)
-
-    game = FoodOpsProGame(args.scenario, args.admin)
+    scenario_path = Path(
+        "/home/lepagnol/Documents/Perso/Games/Foodopsmini/examples/scenarios/base.yaml"
+    )
+    game = FoodOpsProGame(scenario_path)
     # Passer les recettes au DecisionMenu pour Achats & Stocks
     game.decision_menu.cache_available_recipes(game.recipes)
     game.start_game()

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 from decimal import Decimal
 
-from foodops_pro.domain.employee import Employee, EmployeeContract
+from game_engine.domain.employee import Employee, EmployeeContract
 
 
 @dataclass
@@ -93,7 +93,7 @@ class PayrollCalculator:
         """
         # Heures normales et supplémentaires
         monthly_normal_hours = Decimal("151.67")  # 35h * 52 semaines / 12 mois
-        normal_hours = min(hours_worked, monthly_normal_hours)
+        min(hours_worked, monthly_normal_hours)
         overtime_hours = max(Decimal("0"), hours_worked - monthly_normal_hours)
 
         # Salaire de base

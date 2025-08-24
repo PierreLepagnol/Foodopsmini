@@ -8,13 +8,13 @@ from pathlib import Path
 from typing import List, Dict, Optional
 from decimal import Decimal
 
-from foodops_pro.io.data_loader import DataLoader
-from foodops_pro.io.persistence import GameStatePersistence
-from foodops_pro.io.export import ResultsExporter
-from foodops_pro.domain.restaurant import Restaurant, RestaurantType
-from foodops_pro.domain.employee import Employee, EmployeePosition, EmployeeContract
-from foodops_pro.core.market import MarketEngine
-from foodops_pro.core.costing import RecipeCostCalculator
+from game_engine.io.data_loader import DataLoader
+from game_engine.io.persistence import GameStatePersistence
+from game_engine.io.export import ResultsExporter
+from game_engine.domain.restaurant import Restaurant, RestaurantType
+from game_engine.domain.employee import Employee, EmployeePosition, EmployeeContract
+from game_engine.core.market import MarketEngine
+from game_engine.core.costing import RecipeCostCalculator
 
 
 class FoodOpsGame:
@@ -413,7 +413,7 @@ class FoodOpsGame:
 
     def _end_game(self) -> None:
         """Gère la fin de partie."""
-        print(f"\n🏁 FIN DE PARTIE")
+        print("\n🏁 FIN DE PARTIE")
         print("=" * 60)
 
         # Classement final

@@ -3,7 +3,7 @@ Tutoriel interactif pour FoodOps Pro.
 """
 
 from typing import Dict, List
-from foodops_pro.console_ui import ConsoleUI
+from game_engine.console_ui import ConsoleUI
 
 
 class InteractiveTutorial:
@@ -177,13 +177,13 @@ class InteractiveTutorial:
         Returns:
             True si le tutoriel est terminé, False si abandonné
         """
-        self.ui.clear_screen()
-        self.ui.show_info("🎓 TUTORIEL INTERACTIF FOODOPS PRO")
+        clear_screen()
+        show_info("🎓 TUTORIEL INTERACTIF FOODOPS PRO")
 
         print("\n📚 Ce tutoriel vous apprendra à jouer en 5 minutes.")
         print("💡 Vous pouvez quitter à tout moment en tapant 'quit'.")
 
-        if not self.ui.ask_yes_no("\nCommencer le tutoriel ?", default=True):
+        if not ask_yes_no("\nCommencer le tutoriel ?", default=True):
             return False
 
         for i, step in enumerate(self.tutorial_data):
@@ -203,17 +203,15 @@ class InteractiveTutorial:
         Returns:
             True pour continuer, False pour quitter
         """
-        self.ui.clear_screen()
+        clear_screen()
 
         # Afficher le titre avec numéro d'étape
         title = f"{step['title']} ({step_number}/{len(self.tutorial_data)})"
-        self.ui.show_info(title)
+        show_info(title)
 
         # Afficher le contenu
         for line in step["content"]:
             print(f"   {line}")
-
-        print()
 
         # Gestion de l'interaction
         if step["interactive"]:
@@ -256,8 +254,8 @@ class InteractiveTutorial:
 
     def show_quick_help(self) -> None:
         """Affiche une aide rapide."""
-        self.ui.clear_screen()
-        self.ui.show_info("❓ AIDE RAPIDE FOODOPS PRO")
+        clear_screen()
+        show_info("❓ AIDE RAPIDE FOODOPS PRO")
 
         help_sections = {
             "🎯 OBJECTIF": ["Gérer un restaurant rentable et battre la concurrence"],
@@ -293,12 +291,12 @@ class InteractiveTutorial:
             for item in items:
                 print(f"   {item}")
 
-        self.ui.pause()
+        pause()
 
     def show_strategy_tips(self) -> None:
         """Affiche des conseils stratégiques."""
-        self.ui.clear_screen()
-        self.ui.show_info("💡 CONSEILS STRATÉGIQUES")
+        clear_screen()
+        show_info("💡 CONSEILS STRATÉGIQUES")
 
         tips = [
             {
@@ -335,4 +333,4 @@ class InteractiveTutorial:
             for tip in tip_group["tips"]:
                 print(f"   • {tip}")
 
-        self.ui.pause()
+        pause()

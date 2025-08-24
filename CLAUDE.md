@@ -38,15 +38,15 @@ pip install -e ".[dev]"
 ### Game Execution
 ```bash
 # Classic CLI version
-python -m src.foodops_pro.cli
-python -m src.foodops_pro.cli --scenario examples/scenarios/base.yaml
+python -m src.game_engine.cli
+python -m src.game_engine.cli --scenario examples/scenarios/base.yaml
 
 # Professional CLI with rich UI
-python -m src.foodops_pro.cli_pro
-python -m src.foodops_pro.cli_pro --scenario admin_configs/preset_demo.yaml
+python -m src.game_engine.cli_pro
+python -m src.game_engine.cli_pro --scenario admin_configs/preset_demo.yaml
 
 # Administrator mode for instructors
-python -m src.foodops_pro.cli_pro --admin
+python -m src.game_engine.cli_pro --admin
 
 # Quick launchers
 python start_pro.py        # Full Pro version
@@ -170,7 +170,7 @@ The admin interface provides comprehensive control over game sessions:
 - Competition intensity levels (low, normal, high)
 - Available commerce locations selection
 
-### Educational Features  
+### Educational Features
 - Scoring system with weighted criteria: Survival (30%), Profitability (25%), Growth (20%), Efficiency (15%), Strategy (10%)
 - Random events and seasonal effects toggles
 - Economic cycle simulation controls

@@ -10,9 +10,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 from decimal import Decimal
 
-from src.foodops_pro.core.market import MarketEngine
-from src.foodops_pro.domain.restaurant import Restaurant, RestaurantType
-from src.foodops_pro.domain.scenario import MarketSegment, Scenario
+from src.game_engine.core.market import MarketEngine
+from src.game_engine.domain.restaurant import Restaurant, RestaurantType
+from src.game_engine.domain.scenario import MarketSegment, Scenario
 
 
 def create_test_scenario():
@@ -273,7 +273,7 @@ def main():
         test_seasonal_impact()
         test_strategic_scenarios()
 
-        print(f"\n\n🎉 CONCLUSIONS:")
+        print("\n\n🎉 CONCLUSIONS:")
         print("=" * 40)
         print("✅ Système de qualité intégré dans FoodOps Pro")
         print("✅ Impact réel sur allocation de marché")

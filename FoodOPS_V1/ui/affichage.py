@@ -83,18 +83,20 @@ def _posneg(val):
 
 def print_income_statement(cr, title: str):
     print(title)
+    CA = _posneg(cr["Chiffre d'affaires (70)"])
+    ACHAT_CONSOMME = _posneg(cr["Achats consommés (60)"])
+    SERVICES_EXTERIEURS = _posneg(cr["Services extérieurs (61/62)"])
+    CHARGES_PERSONNEL = _posneg(cr["Charges de personnel (64)"])
+    DOTATIONS_AMORTISSEMENTS = _posneg(cr["Dotations amortissements (68)"])
+    RESULTAT_EXPLOITATION = _posneg(cr["Résultat d'exploitation"])
     print("=" * 40)
-    print(f"💶 Chiffre d'affaires (70) : {_posneg(cr["Chiffre d'affaires (70)"])}")
-    print(f"🛒 Achats consommés (60) : {_posneg(cr['Achats consommés (60)'])}")
-    print(
-        f"🛠 Services extérieurs (61/62) : {_posneg(cr['Services extérieurs (61/62)'])}"
-    )
-    print(f"👥 Charges de personnel (64) : {_posneg(cr['Charges de personnel (64)'])}")
-    print(
-        f"📉 Dotations amortissements (68) : {_posneg(cr['Dotations amortissements (68)'])}"
-    )
+    print(f"💶 Chiffre d'affaires (70) : {CA}")
+    print(f"🛒 Achats consommés (60) : {ACHAT_CONSOMME}")
+    print(f"🛠 Services extérieurs (61/62) : {SERVICES_EXTERIEURS}")
+    print(f"👥 Charges de personnel (64) : {CHARGES_PERSONNEL}")
+    print(f"📉 Dotations amortissements (68) : {DOTATIONS_AMORTISSEMENTS}")
     print("-" * 40)
-    print(f"📈 Résultat d'exploitation : {_posneg(cr["Résultat d'exploitation"])}")
+    print(f"📈 Résultat d'exploitation : {RESULTAT_EXPLOITATION}")
     print("=" * 40)
 
 

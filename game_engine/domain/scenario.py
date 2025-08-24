@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from decimal import Decimal
 
-from foodops_pro.restaurant import RestaurantType
+from game_engine.domain.restaurant import RestaurantType
 
 
 @dataclass(frozen=True)
