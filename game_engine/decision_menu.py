@@ -24,7 +24,7 @@ from game_engine.domain.stock.procurement import POLine, ProcurementPlanner
 from game_engine.domain.menu.recipe_costing import RecipeCostCalculator
 from game_engine.domain.restaurant import Restaurant
 from game_engine.domain.staff.employee import EmployeeContract, EmployeePosition
-from game_engine.domain.stock import StockManager
+from game_engine.domain.stock.stock import StockManager
 from game_engine.financial_reports import FinancialReports
 from game_engine.utils import MenuHandler
 
@@ -813,7 +813,7 @@ class DecisionMenu:
         # Saisie réception par ligne: accepter/refuser et split lots
         from datetime import date
 
-        from game_engine.domain.stock.procurement import (
+        from game_engine.domain.recipe.procurement import (
             DeliveryLine,
             GoodsReceipt,
             GoodsReceiptLine,
